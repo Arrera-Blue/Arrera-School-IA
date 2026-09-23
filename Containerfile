@@ -10,6 +10,7 @@ RUN useradd --create-home --uid 1000 app
 COPY --chown=app:app . .
 USER app
 
-ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app
 EXPOSE 8000
-CMD ["uvicorn", "generateur.interface.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "generateur.interface.api:app", "--host", "127.0.0.1", "--port", "8000"]
+
