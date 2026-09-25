@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- aucune ressource externe, aucune connexion réseau : l'exercice doit fonctionner hors ligne -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:">
+  <title>{{ titre }} — {{ niveau }}</title>
+  <style>
+    :root {
+      --fond: #f7f7f5; --carte: #ffffff; --texte: #1d1d1f; --doux: #55555a; --bord: #c9c9ce;
+      --accent: #1f5fbf; --choix: #dce8fb; --juste: #1e7a34; --juste-fond: #e2f4e6;
+      --faux: #b3261e; --faux-fond: #fbe4e2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--fond); color: var(--texte);
+      font: 1.125rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "DejaVu Sans", sans-serif;
+    }
+    .page { max-width: 50rem; margin: 0 auto; padding: 1rem; }
+    header h1 { margin: .5rem 0 .25rem; font-size: 1.6rem; line-height: 1.25; }
+    .infos { margin: 0; color: var(--doux); font-size: .95rem; }
+    .consigne { margin: 1rem 0 0; font-weight: 600; }
+    .question {
+      background: var(--carte); border: 1px solid var(--bord); border-radius: .75rem;
+      padding: 1rem; margin: 1rem 0;
+    }
+    .question h2 { margin: 0 0 .25rem; font-size: 1rem; color: var(--doux); }
+    .enonce { margin: 0 0 .75rem; overflow-wrap: anywhere; }
+    .propositions { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+    .prop {
+      width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
+      background: var(--carte); border: 2px solid var(--bord); border-radius: .5rem;
+      padding: .6rem .8rem; overflow-wrap: anywhere;
+    }
+    .prop:hover:not(:disabled) { border-color: var(--accent); }
+    .prop:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .prop[aria-pressed="true"] { background: var(--choix); border-color: var(--accent); }
+    .prop:disabled { cursor: default; }
+    /* le résultat n'est jamais signalé par la seule couleur : un symbole l'accompagne */
+    .prop.juste { background: var(--juste-fond); border-color: var(--juste); }
+    .prop.juste::after { content: "  ✓ bonne réponse"; color: var(--juste); font-weight: 700; }
+    .prop.faux { background: var(--faux-fond); border-color: var(--faux); }
+    .prop.faux::after { content: "  ✗ ta réponse"; color: var(--faux); font-weight: 700; }
+    .explication {
+      margin: .75rem 0 0; padding: .6rem .8rem; border-left: 4px solid var(--accent);
+      background: var(--fond); overflow-wrap: anywhere;
+    }
+    footer { position: sticky; bottom: 0; background: var(--fond); padding: .75rem 0 1rem; }
+    .action {
+      font: inherit; font-weight: 700; cursor: pointer; color: #fff; background: var(--accent);
+      border: 0; border-radius: .5rem; padding: .7rem 1.2rem;
+    }
+    .action:focus-visible { outline: 3px solid var(--texte); outline-offset: 2px; }
+    #score { margin: .5rem 0 0; font-weight: 700; min-height: 1.5em; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>{{ titre }}</h1>
+      <p class="infos">{{ matiere }} · {{ niveau }} · {{ notion }}</p>
+      {% if consigne %}<p class="consigne">{{ consigne }}</p>{% endif %}
+    </header>
+
+    <main id="quiz">
+    {% for q in questions %}
+      <section class="question" data-correct="{{ q.index_correct }}" aria-labelledby="q{{ loop.index }}">
+        <h2 id="q{{ loop.index }}">Question {{ loop.index }} sur {{ questions|length }}</h2>
+        <p class="enonce">{{ q.enonce }}</p>
+        <ul class="propositions">
+        {% for p in q.propositions %}
+          <li><button type="button" class="prop" data-index="{{ loop.index0 }}" aria-pressed="false">{{ p }}</button></li>
+        {% endfor %}
+        </ul>
+        <p class="explication" hidden>{{ q.explication }}</p>
+      </section>
+    {% endfor %}
+    </main>
+
+    <footer>
+      <button type="button" class="action" id="valider">Valider mes réponses</button>
+      <button type="button" class="action" id="recommencer" hidden>Recommencer</button>
+      <p id="score" role="status" aria-live="polite"></p>
+    </footer>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    var questions = Array.prototype.slice.call(document.querySelectorAll(".question"));
+    var valider = document.getElementById("valider");
+    var recommencer = document.getElementById("recommencer");
+    var score = document.getElementById("score");
+    var corrige = false;
+
+    function boutons(question) {
+      return Array.prototype.slice.call(question.querySelectorAll(".prop"));
+    }
+
+    // mélange l'ordre des propositions : neutralise le biais de position des modèles
+    function melanger(question) {
+      var liste = question.querySelector(".propositions");
+      var items = Array.prototype.slice.call(liste.children);
+      for (var i = items.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = items[i]; items[i] = items[j]; items[j] = t;
+      }
+      items.forEach(function (li) { liste.appendChild(li); });
+    }
+
+    function choisir(evt) {
+      var bouton = evt.target.closest(".prop");
+      if (!bouton || corrige) return;
+      boutons(bouton.closest(".question")).forEach(function (b) {
+        b.setAttribute("aria-pressed", b === bouton ? "true" : "false");
+      });
+    }
+
+    function corriger() {
+      var sansReponse = questions.filter(function (q) {
+        return !q.querySelector('.prop[aria-pressed="true"]');
+      }).length;
+      if (sansReponse > 0) {
+        score.textContent = "Il reste " + sansReponse + " question" + (sansReponse > 1 ? "s" : "") + " sans réponse.";
+        return;
+      }
+      var justes = 0;
+      questions.forEach(function (q) {
+        var correct = q.getAttribute("data-correct");
+        boutons(q).forEach(function (b) {
+          var choisi = b.getAttribute("aria-pressed") === "true";
+          var bon = b.getAttribute("data-index") === correct;
+          if (bon) b.classList.add("juste");
+          if (choisi && !bon) b.classList.add("faux");
+          if (choisi && bon) justes++;
+          b.disabled = true;
+        });
+        q.querySelector(".explication").hidden = false;
+      });
+      corrige = true;
+      score.textContent = "Score : " + justes + " / " + questions.length;
+      valider.hidden = true;
+      recommencer.hidden = false;
+      recommencer.focus();
+    }
+
+    function reinitialiser() {
+      questions.forEach(function (q) {
+        boutons(q).forEach(function (b) {
+          b.classList.remove("juste", "faux");
+          b.setAttribute("aria-pressed", "false");
+          b.disabled = false;
+        });
+        q.querySelector(".explication").hidden = true;
+        melanger(q);
+      });
+      corrige = false;
+      score.textContent = "";
+      recommencer.hidden = true;
+      valider.hidden = false;
+      window.scrollTo(0, 0);
+    }
+
+    questions.forEach(melanger);
+    document.getElementById("quiz").addEventListener("click", choisir);
+    valider.addEventListener("click", corriger);
+    recommencer.addEventListener("click", reinitialiser);
+  })();
+  </script>
+</body>
+</html>

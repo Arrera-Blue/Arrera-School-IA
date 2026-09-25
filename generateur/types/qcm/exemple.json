@@ -1,0 +1,31 @@
+{
+  "type": "qcm",
+  "titre": "Le théorème de Pythagore",
+  "matiere": "maths",
+  "niveau": "4e",
+  "notion": "Théorème de Pythagore et sa réciproque",
+  "consigne": "Pour chaque question, choisis la seule bonne réponse.",
+  "questions": [
+    {
+      "enonce": "Dans un triangle ABC rectangle en A, quelle égalité est vraie ?",
+      "propositions": ["BC² = AB² + AC²", "AB² = BC² + AC²", "AC² = AB² + BC²"],
+      "index_correct": 0,
+      "explication": "Le triangle est rectangle en A, donc l'hypoténuse est [BC], le côté opposé à l'angle droit. Le carré de l'hypoténuse est égal à la somme des carrés des deux autres côtés.",
+      "difficulte": "facile"
+    },
+    {
+      "enonce": "Un triangle rectangle a pour côtés de l'angle droit 3 cm et 4 cm. Quelle est la longueur de l'hypoténuse ?",
+      "propositions": ["7 cm", "12 cm", "5 cm", "25 cm"],
+      "index_correct": 2,
+      "explication": "3² + 4² = 9 + 16 = 25, et 25 = 5², donc l'hypoténuse mesure 5 cm.",
+      "difficulte": "facile"
+    },
+    {
+      "enonce": "Un triangle a des côtés de 6 cm, 8 cm et 10 cm. Est-il rectangle ?",
+      "propositions": ["Non, car 6 + 8 n'est pas égal à 10", "Oui, car 6² + 8² = 10²", "On ne peut pas le savoir sans mesurer ses angles"],
+      "index_correct": 1,
+      "explication": "6² + 8² = 36 + 64 = 100 et 10² = 100. L'égalité est vérifiée, donc d'après la réciproque du théorème de Pythagore, le triangle est rectangle.",
+      "difficulte": "moyen"
+    }
+  ]
+}
