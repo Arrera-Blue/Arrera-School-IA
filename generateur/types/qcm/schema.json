@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Exercice QCM",
+  "type": "object",
+  "required": ["type", "titre", "niveau", "matiere", "notion", "questions"],
+  "additionalProperties": false,
+  "properties": {
+    "type":    { "const": "qcm" },
+    "titre":   { "type": "string", "minLength": 3, "maxLength": 80 },
+    "matiere": { "enum": ["maths", "francais", "histoire-geo", "svt",
+                          "physique-chimie", "anglais", "technologie"] },
+    "niveau":  { "enum": ["6e", "5e", "4e", "3e"] },
+    "notion":  { "type": "string", "maxLength": 120 },
+    "consigne":{ "type": "string", "maxLength": 200 },
+    "questions": {
+      "type": "array", "minItems": 3, "maxItems": 15,
+      "items": {
+        "type": "object",
+        "required": ["enonce", "propositions", "index_correct", "explication"],
+        "additionalProperties": false,
+        "properties": {
+          "enonce":        { "type": "string", "minLength": 5, "maxLength": 300 },
+          "propositions":  { "type": "array", "minItems": 3, "maxItems": 4,
+                             "items": { "type": "string", "maxLength": 150 } },
+          "index_correct": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "explication":   { "type": "string", "minLength": 10, "maxLength": 400 },
+          "difficulte":    { "enum": ["facile", "moyen", "difficile"] }
+        }
+      }
+    },
+    "meta": { "type": "object" }
+  }
+}
