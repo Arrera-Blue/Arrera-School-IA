@@ -1,4 +1,4 @@
-"""Demande → modèle → JSON validé (N1, N2) → bloc meta → exercice HTML.
+"""Demande → modèle → JSON validé (N1, N2, N3) → bloc meta → exercice HTML.
 
 Exemples (dans le conteneur, depuis /app) :
     python -m generateur.moteur.generation --demande "un QCM de 5 questions sur les fractions pour des 6e"
@@ -18,7 +18,7 @@ from pathlib import Path
 
 from generateur.moteur import config, registre, rendu
 from generateur.moteur.fournisseurs import ErreurFournisseur, creer
-from generateur.moteur.validation import ErreurValidation
+from generateur.moteur.validation import ErreurValidation, n3_pedagogie
 from generateur.moteur.validation.n1_syntaxe import extraire_json
 from generateur.moteur.validation.n2_schema import valider
 
@@ -74,6 +74,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     try:
         instance = extraire_json(brut)
         valider(instance, schema)
+        avertissements = n3_pedagogie.valider(instance)
     except ErreurValidation:
         # on garde la réponse fautive : c'est elle qu'il faut regarder pour corriger le prompt
         ecrire_brut(brut)
@@ -86,7 +87,8 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         "date": datetime.now().isoformat(timespec="seconds"),
         "duree_s": duree,
         "tentatives": 1,
-        "validation": {"n1": True, "n2": True},
+        "validation": {"n1": True, "n2": True, "n3": True},
+        "avertissements": avertissements,
         "statut": "genere",
         "prompt_origine": demande.get("demande_enseignant") or demande,
     }
@@ -144,6 +146,8 @@ def main() -> None:
 
     html_chemin = rendu.ecrire(rendu.rendre(instance, args.type), args.sortie or config.chemin("sortie") / f"{ident}.html")
     print(f"✓ {len(instance['questions'])} questions — « {instance['titre']} »")
+    for avertissement in instance["meta"]["avertissements"]:
+        print(f"   ⚠ à relire : {avertissement}")
     print(f"   JSON : {json_chemin}")
     print(f"   HTML : {html_chemin}")
 
