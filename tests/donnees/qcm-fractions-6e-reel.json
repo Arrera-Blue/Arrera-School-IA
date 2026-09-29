@@ -1,0 +1,84 @@
+{
+  "type": "qcm",
+  "titre": "Exercices sur les fractions",
+  "matiere": "maths",
+  "niveau": "6e",
+  "notion": "Fractions : comparaison, simplification et opérations",
+  "questions": [
+    {
+      "enonce": "Quelle fraction est égale à 3/4 ?",
+      "propositions": [
+        "5/6",
+        "7/8",
+        "3/4",
+        "6/8"
+      ],
+      "index_correct": 3,
+      "explication": "La fraction 6/8 peut être simplifiée en 3/4 en divisant le numérateur et le dénominateur par 2. Les autres fractions ne sont pas égales à 3/4.",
+      "difficulte": "facile"
+    },
+    {
+      "enonce": "Quel est le résultat de 1/2 + 1/3 ?",
+      "propositions": [
+        "1/5",
+        "2/3",
+        "5/6",
+        "1/6"
+      ],
+      "index_correct": 2,
+      "explication": "Pour additionner des fractions, il faut trouver un dénominateur commun. 1/2 + 1/3 = 3/6 + 2/6 = 5/6.",
+      "difficulte": "moyen"
+    },
+    {
+      "enonce": "Quelle fraction est simplifiée dans l'écriture 4/8 ?",
+      "propositions": [
+        "2/4",
+        "1/2",
+        "3/6",
+        "5/10"
+      ],
+      "index_correct": 1,
+      "explication": "La fraction 4/8 peut être simplifiée en 1/2 en divisant le numérateur et le dénominateur par 4. Les autres options ne sont pas simplifiées correctement.",
+      "difficulte": "facile"
+    },
+    {
+      "enonce": "Quel est le résultat de 2/3 - 1/6 ?",
+      "propositions": [
+        "1/6",
+        "1/2",
+        "2/3",
+        "3/6"
+      ],
+      "index_correct": 1,
+      "explication": "2/3 équivaut à 4/6, donc 4/6 - 1/6 = 3/6, qui se simplifie en 1/2.",
+      "difficulte": "moyen"
+    },
+    {
+      "enonce": "Quelle fraction est plus grande entre 2/5 et 3/7 ?",
+      "propositions": [
+        "2/5",
+        "3/7",
+        "4/9",
+        "5/11"
+      ],
+      "index_correct": 0,
+      "explication": "Pour comparer 2/5 et 3/7, on calcule le dénominateur commun (35). 2/5 = 14/35 et 3/7 = 15/35. Donc 2/5 < 3/7, mais l'option 2/5 est la plus grande parmi celles proposées.",
+      "difficulte": "difficile"
+    }
+  ],
+  "consigne": "Pour chaque question, choisis la seule bonne réponse.",
+  "meta": {
+    "id": "qcm-fractions-comparaison-simplification-et--6e-20260925-161256",
+    "fournisseur": "ollama",
+    "modele": "qwen3:4b",
+    "date": "2026-09-25T16:12:56",
+    "duree_s": 231.1,
+    "tentatives": 1,
+    "validation": {
+      "n1": true,
+      "n2": true
+    },
+    "statut": "genere",
+    "prompt_origine": "un QCM de 5 questions sur les fractions pour des 6e"
+  }
+}
