@@ -9,8 +9,8 @@ import pytest
 
 from generateur.moteur import registre
 from generateur.moteur.validation import ErreurValidation
-from generateur.moteur.validation.n4_calcul import (A_RELIRE, FAUX, NON_APPLICABLE, VERIFIE, Incalculable,
-                                                   evaluer, formater, valider, verifier, verifier_question)
+from generateur.moteur.validation.n4_calcul import (A_RELIRE, FAUX, VERIFIE, Incalculable, evaluer, formater,
+                                                   valider, verifier, verifier_question)
 
 DONNEES = Path(__file__).parent / "donnees"
 
@@ -45,11 +45,12 @@ def test_critere_du_plan_3_carre_plus_4_carre_ne_donne_pas_7():
 
 def test_qcm_des_fractions_reel():
     instance = json.loads((DONNEES / "qcm-fractions-6e-reel.json").read_text(encoding="utf-8"))
-    statuts = [v.statut for v in verifier(instance)]
-    # Q1 et Q4 : deux propositions justes (déjà rejetées par N3) ; Q5 : 2/5 annoncé plus grand que 3/7
-    assert statuts == [FAUX, VERIFIE, VERIFIE, FAUX, FAUX]
-    assert verifier(instance)[4].message == ("question 5 : la plus grande valeur est 3/7, "
-                                              "mais la réponse annoncée est « 2/5 » au lieu de « 3/7 »")
+    verdicts = verifier(instance)
+    # Q1 et Q4 : deux propositions justes ; Q3 : « simplifiée » admet 2/4 et 1/2 ; Q5 : 2/5 annoncé > 3/7
+    assert [v.statut for v in verdicts] == [FAUX, VERIFIE, FAUX, FAUX, FAUX]
+    assert verdicts[4].message == ("question 5 : la plus grande valeur est 3/7, "
+                                   "mais la réponse annoncée est « 2/5 » au lieu de « 3/7 »")
+    assert "« 2/4 », « 1/2 »" in verdicts[2].message
 
 
 def test_l_exemple_de_reference_n_est_jamais_marque_faux():
@@ -69,6 +70,11 @@ def test_l_exemple_de_reference_n_est_jamais_marque_faux():
     ("Quel est le résultat de 1/2 + 1/4 ?", ["3/4", "2/6", "1/8"], 0),
     ("Quel est le résultat de 1/2 + 1/4 ?", ["0,75", "2/6", "1/8"], 0),  # bonne réponse écrite en décimal
     ("Calcule 3 - 5.", ["-2", "2", "8"], 0),
+    ("Quel est le résultat de 1/2 + 1/3 ?", ["5/6", "2/5", "1/6"], 0),  # espaces fines insécables
+    ("Combien font 3 x 4 ?", ["7", "12", "34"], 1),                              # « x » pour multiplier
+    ("Complète : 3 + 4 = ?", ["7", "12", "34"], 0),
+    ("Calcule l'opération suivante : 25 - 7.", ["18", "22", "32"], 0),
+    ("Quel est le résultat du calcul suivant : 1 000 + 250 ?", ["1250", "1 250 000", "350"], 0),
 ])
 def test_calcul_juste(enonce, propositions, index_correct):
     assert statut(enonce, propositions, index_correct) == VERIFIE
@@ -107,6 +113,7 @@ def test_comparaison_entre_un_intervalle_n_est_pas_tranchee():
 def test_egalite():
     assert statut("Quelle fraction est égale à 3/4 ?", ["4/3", "6/8", "3/5"], 1) == VERIFIE
     assert statut("Quelle fraction est égale à 3/4 ?", ["4/3", "6/8", "3/5"], 0) == FAUX
+    assert statut("Parmi ces fractions, laquelle est égale à 1/2 ?", ["2/4", "2/3", "3/4"], 0) == VERIFIE
 
 
 def test_egalite_suivie_d_un_calcul_n_est_pas_une_egalite_simple():
@@ -114,9 +121,15 @@ def test_egalite_suivie_d_un_calcul_n_est_pas_une_egalite_simple():
     assert statut("Quelle fraction est égale à 1/2 + 1/4 ?", ["1/2", "3/4", "2/6"], 0) != VERIFIE
 
 
-def test_simplification():
+def test_forme_irreductible():
     assert statut("Quelle est la forme irréductible de 4/8 ?", ["2/4", "1/2", "4/2"], 1) == VERIFIE
     assert statut("Quelle est la forme irréductible de 4/8 ?", ["2/4", "1/2", "4/2"], 0) == FAUX
+
+
+def test_simplifier_n_exige_pas_la_forme_irreductible():
+    # 2/4 est bien une simplification de 4/8 (on divise par 2) ; 3/6 n'en est pas une, bien qu'égale
+    assert statut("Simplifie la fraction 4/8.", ["2/4", "1/3", "3/5"], 0) == VERIFIE
+    assert statut("Simplifie la fraction 4/8.", ["3/6", "1/3", "3/5"], 0) == FAUX
 
 
 # --- Pythagore ------------------------------------------------------------------------------------
@@ -135,7 +148,7 @@ def test_hypotenuse_non_entiere_a_relire():
     assert statut(q, ["5 cm", "3,6 cm", "13 cm"], 1) == A_RELIRE
 
 
-def test_reciproque_fausse():
+def test_reciproque():
     q = "Un triangle a des côtés de 4 cm, 5 cm et 6 cm. Est-il rectangle ?"
     assert statut(q, ["Oui, car 6 est le plus grand côté", "Non, car 4² + 5² ≠ 6²"], 1) == VERIFIE
     assert message(q, ["Oui, car 6 est le plus grand côté", "Non, car 4² + 5² ≠ 6²"], 0) == (
@@ -143,7 +156,21 @@ def test_reciproque_fausse():
         "mais la réponse annoncée est « Oui, car 6 est le plus grand côté »")
 
 
-# --- prudence : jamais « vérifié » par défaut ------------------------------------------------------
+# --- prudence : jamais « faux » sur une réponse juste ----------------------------------------------
+# Un faux « faux » serait renvoyé au modèle par la reprise sur erreur, qui « corrigerait » une bonne
+# réponse. Dans chacun de ces cas, la réponse annoncée est JUSTE et l'énoncé transforme les nombres.
+
+@pytest.mark.parametrize("enonce, propositions, index_correct", [
+    ("Calcule le double de 3 + 4.", ["7", "14", "10"], 1),
+    ("Quel est le résultat de 3 + 4 si on le multiplie par 2 ?", ["7", "14", "9"], 1),
+    ("Quelle fraction, multipliée par 2, est égale à 3/4 ?", ["3/4", "3/8", "6/4"], 1),
+    ("Le double de quel nombre est plus grand que 10 ?", ["3", "4", "6"], 2),
+    ("Quelle fraction est plus grande que 1/2 une fois son inverse calculé ?", ["3/4", "1/3", "2/3"], 1),
+    ("Laquelle est la plus grande entre 2/5 et 3/7 si on ajoute 1 à chacune ?", ["7/5", "10/7", "2"], 1),
+])
+def test_un_enonce_qui_transforme_les_nombres_n_est_jamais_declare_faux(enonce, propositions, index_correct):
+    assert statut(enonce, propositions, index_correct) != FAUX
+
 
 @pytest.mark.parametrize("enonce, propositions", [
     ("Dans un triangle ABC rectangle en A, quelle égalité est vraie ?", ["BC² = AB² + AC²", "AB² = BC² + AC²"]),
@@ -152,14 +179,16 @@ def test_reciproque_fausse():
     ("Quelle fraction n'est pas égale à 1/2 ?", ["2/4", "3/6", "2/3"]),               # question négative
     ("Donne une valeur approchée de 10 ÷ 3.", ["3,3", "3,4", "3"]),                   # arrondi
     ("Que vaut 1/2 + 1/3 ?", ["cinq sixièmes", "2/5", "1/6"]),                        # réponse en lettres
+    ("Quel est le résultat de 1/2 + 1/3 ? Donne la forme irréductible.", ["5/6", "2/5", "10/12"]),
 ])
 def test_ce_qui_n_est_pas_reconnu_est_a_relire(enonce, propositions):
     assert statut(enonce, propositions, 0) == A_RELIRE
 
 
-def test_hors_maths_non_applicable():
+def test_hors_maths_tout_est_a_relire():
+    # architecture §9.4 et plan.md 4.3 : « Hors maths : marquage à relire »
     q = question("En quelle année a eu lieu la prise de la Bastille ?", ["1789", "1792", "1815"], 0)
-    assert valider(qcm(q, matiere="histoire-geo")) == {"n4": NON_APPLICABLE, "n4_questions": [NON_APPLICABLE]}
+    assert valider(qcm(q, matiere="histoire-geo")) == {"n4": A_RELIRE, "n4_questions": [A_RELIRE]}
 
 
 def test_bilan_de_l_exercice():
@@ -174,7 +203,7 @@ def test_bilan_de_l_exercice():
 @pytest.mark.parametrize("expression, attendu", [
     ("1/2 + 1/3", Fraction(5, 6)), ("3² + 4²", 25), ("0,1 + 0,2", Fraction(3, 10)), ("2^10", 1024),
     ("(2 + 3) × 4", 20), ("−3 + 5", 2), ("12 : 4", 3), ("2³", 8), ("2^-2", Fraction(1, 4)),
-    ("1 000 + 250", 1250),
+    ("1 000 + 250", 1250), ("1/2 + 1/3", Fraction(5, 6)),
 ])
 def test_evaluer(expression, attendu):
     assert evaluer(expression) == attendu

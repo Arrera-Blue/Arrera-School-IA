@@ -8,7 +8,7 @@ import pytest
 
 from generateur.moteur import registre
 from generateur.moteur.validation import ErreurValidation
-from generateur.moteur.validation.n3_pedagogie import valeur, valider, verifier
+from generateur.moteur.validation.n3_pedagogie import forme_irreductible, valeur, valider, verifier
 
 DONNEES = Path(__file__).parent / "donnees"
 
@@ -79,6 +79,26 @@ def test_propositions_equivalentes():
     assert bloquants(qcm(question(["1 m", "10 cm", "100 cm"]))) == [
         "question 1 : les propositions « 1 m » et « 100 cm » ont la même valeur ; "
         "une seule proposition peut être juste, les autres doivent être fausses"]
+
+
+def test_forme_irreductible_demandee_les_fractions_egales_sont_les_distracteurs():
+    # seule 1/2 est irréductible : 2/4 a la même valeur mais c'est une mauvaise réponse, pas une ambiguïté
+    q = question(["2/4", "1/2", "4/2"], index_correct=1, enonce="Quelle est la forme irréductible de 4/8 ?",
+                 explication="On divise 4 et 8 par leur plus grand diviseur commun, 4 : on obtient 1/2.")
+    assert bloquants(qcm(q)) == []
+
+
+def test_simplifiee_sans_irreductible_reste_ambigu():
+    # « simplifiée » : 2/4 et 1/2 sont toutes deux des simplifications de 4/8 (question 3 du 25/09)
+    q = question(["2/4", "1/2", "3/5"], index_correct=1, enonce="Quelle fraction est simplifiée dans l'écriture 4/8 ?")
+    assert any("même valeur" in m for m in bloquants(qcm(q)))
+
+
+@pytest.mark.parametrize("texte, attendu", [
+    ("1/2", True), ("3", True), ("5 / 7", True), ("2/4", False), ("0,5", False), ("6/3", False), ("4/1", False),
+])
+def test_forme_irreductible(texte, attendu):
+    assert forme_irreductible(texte) is attendu
 
 
 def test_doublon_textuel_insensible_a_la_casse_et_a_la_ponctuation():

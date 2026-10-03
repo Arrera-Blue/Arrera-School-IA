@@ -9,6 +9,7 @@ Deux gravités :
 Ce que N3 ne fait pas : vérifier qu'un calcul est juste. C'est le rôle de N4.
 """
 
+import math
 import re
 import unicodedata
 from collections import defaultdict
@@ -107,6 +108,18 @@ def cle_de_comparaison(proposition: str) -> tuple:
     return ("valeur", *v) if v is not None else ("texte", normaliser(proposition))
 
 
+FRACTION_ECRITE = re.compile(r"^(\d+) ?/ ?(\d+)$")
+
+
+def forme_irreductible(proposition: str) -> bool:
+    """« 1/2 » ou « 3 » : oui ; « 2/4 », « 0,5 » ou « 6/3 » : non."""
+    texte = normaliser(proposition)
+    if texte.isdigit():
+        return True
+    m = FRACTION_ECRITE.match(texte)
+    return m is not None and int(m[2]) > 1 and math.gcd(int(m[1]), int(m[2])) == 1
+
+
 # --- règles --------------------------------------------------------------------------------------
 
 def _liste(elements: list[str]) -> str:
@@ -122,7 +135,12 @@ def propositions_vides(n: int, q: dict) -> list[Constat]:
 
 
 def propositions_equivalentes(n: int, q: dict) -> list[Constat]:
-    """Doublons exacts, et valeurs égales écrites différemment (3/4 et 6/8, 1 m et 100 cm)."""
+    """Doublons exacts, et valeurs égales écrites différemment (3/4 et 6/8, 1 m et 100 cm).
+
+    Exception : quand l'énoncé demande la forme irréductible, « 2/4 » et « 1/2 » ont la même valeur mais
+    une seule est irréductible. Ce sont alors les distracteurs naturels de la question, pas une ambiguïté.
+    """
+    irreductible_demandee = "irréductible" in normaliser(q["enonce"])
     groupes = defaultdict(list)
     for p in q["propositions"]:
         if p.strip():  # les propositions vides relèvent de propositions_vides
@@ -134,6 +152,8 @@ def propositions_equivalentes(n: int, q: dict) -> list[Constat]:
         if len({normaliser(m) for m in membres}) == 1:
             constats.append(Constat(f"question {n} : la proposition « {membres[0]} » apparaît "
                                     f"{len(membres)} fois", True, n))
+        elif irreductible_demandee and sum(forme_irreductible(m) for m in membres) <= 1:
+            continue
         else:
             constats.append(Constat(f"question {n} : les propositions {_liste(membres)} ont la même valeur ; "
                                     "une seule proposition peut être juste, les autres doivent être fausses", True, n))
