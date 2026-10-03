@@ -95,6 +95,23 @@ def test_qcm_reel_du_3_octobre_n_est_plus_rejete():
     assert [m.split(" :")[0] for m in avertissements_n3 if "mauvaises réponses" in m] == ["question 3", "question 4"]
 
 
+@pytest.mark.parametrize("propositions, index_correct", [
+    (["La partie coloriée", "3 parts sur 4 parts", "4 parts sur 3 parts", "3 parts sur 4 parts coloriées"], 1),
+    (["1/3", "2/5", "1/3 est plus grande", "2/5 est plus grande"], 1),
+])
+def test_bonne_reponse_contenue_dans_une_autre_proposition(propositions, index_correct):
+    # cas réels du 03/10 : les deux formulations sont justes
+    q = question(propositions, index_correct=index_correct, enonce="Quelle est la bonne réponse ?")
+    assert bloquants(qcm(q)) == []
+    assert any("se recoupent" in m for m in avertissements(qcm(q)))
+
+
+def test_nombres_qui_se_ressemblent_ne_se_recoupent_pas():
+    # « 8 » n'est pas contenu dans « 18 », ni « 1/2 » dans « 11/2 »
+    assert not any("se recoupent" in m for m in avertissements(qcm(question(["8", "18", "28"]))))
+    assert not any("se recoupent" in m for m in avertissements(qcm(question(["1/2", "11/2", "3/2"]))))
+
+
 def test_forme_irreductible_demandee_les_fractions_egales_sont_les_distracteurs():
     # seule 1/2 est irréductible : 2/4 a la même valeur mais c'est une mauvaise réponse, pas une ambiguïté
     q = question(["2/4", "1/2", "4/2"], index_correct=1, enonce="Quelle est la forme irréductible de 4/8 ?",

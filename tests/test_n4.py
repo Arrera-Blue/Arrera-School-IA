@@ -69,6 +69,20 @@ def test_qcm_reel_du_3_octobre_rejete_a_raison():
                                    "mais la réponse annoncée est « 1/6 » au lieu de « 1/2 »")
 
 
+def test_qcm_reel_du_3_octobre_troisieme_essai():
+    # Q2 et Q5 : plusieurs fractions égales justes ; Q3 : « 2/5 » annoncée ET « 2/5 est plus grande »
+    # proposée : deux formulations de la bonne réponse, donc jamais « vérifié »
+    instance = json.loads((DONNEES / "qcm-fractions-6e-20261003-troisieme.json").read_text(encoding="utf-8"))
+    assert [v.statut for v in verifier(instance)] == [A_RELIRE, FAUX, A_RELIRE, A_RELIRE, FAUX]
+
+
+def test_une_reformulation_de_la_bonne_reponse_empeche_le_verdict_verifie():
+    enonce = "Quelle fraction est plus grande : 1/3 ou 2/5 ?"
+    assert statut(enonce, ["1/3", "2/5", "1/3 est plus grande", "2/5 est plus grande"], 1) == A_RELIRE
+    assert statut(enonce, ["1/3", "2/5", "1/3 est plus grande", "les deux sont égales"], 1) == VERIFIE
+    assert statut(enonce, ["1/3", "2/5", "3/4"], 1) == VERIFIE
+
+
 @pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
     ("Quelle est la somme de 1/3 et 1/6 ?", ["1/2", "2/9", "1/9"], 0, VERIFIE),
     ("Quelle est la somme de 1/3 et 1/6 ?", ["1/2", "2/9", "3/6"], 0, FAUX),        # deux bonnes réponses

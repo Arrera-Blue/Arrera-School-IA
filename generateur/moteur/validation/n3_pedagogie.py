@@ -204,6 +204,24 @@ def bonne_reponse_trop_longue(n: int, q: dict) -> list[Constat]:
     return []
 
 
+def bonne_reponse_contenue(n: int, q: dict) -> list[Constat]:
+    """« 3 parts sur 4 parts » et « 3 parts sur 4 parts coloriées » : si la bonne réponse est contenue dans
+    une autre proposition (ou l'inverse), les deux sont souvent justes (cas réels du 03/10). Pas toujours :
+    « Paris » et « Paris est en Italie » ne le sont pas. D'où un avertissement, pas un rejet."""
+    bonne = normaliser(q["propositions"][q["index_correct"]])
+    if not bonne:
+        return []
+    for i, p in enumerate(q["propositions"]):
+        autre = normaliser(p)
+        if i == q["index_correct"] or not autre or autre == bonne:
+            continue
+        courte, longue = sorted((bonne, autre), key=len)
+        if re.search(rf"(?<!\w){re.escape(courte)}(?!\w)", longue):
+            return [Constat(f"question {n} : la bonne réponse « {q['propositions'][q['index_correct']]} » et la "
+                            f"proposition « {p} » se recoupent ; vérifier qu'une seule des deux est juste", False, n)]
+    return []
+
+
 MOTS_FLOUS = re.compile(r"\b(généralement|en général|souvent|parfois|peut-être|la plupart|habituellement)\b",
                         re.IGNORECASE)
 
@@ -217,7 +235,7 @@ def enonce_flou(n: int, q: dict) -> list[Constat]:
 
 
 REGLES_PAR_QUESTION = (propositions_vides, propositions_equivalentes, formules_interdites,
-                       explication_recopiee, bonne_reponse_trop_longue, enonce_flou)
+                       explication_recopiee, bonne_reponse_trop_longue, bonne_reponse_contenue, enonce_flou)
 
 
 def enonces_dupliques(questions: list[dict]) -> list[Constat]:

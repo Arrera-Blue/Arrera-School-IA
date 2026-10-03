@@ -22,6 +22,7 @@ from generateur.moteur.validation.n4_calcul import A_RELIRE, FAUX, VERIFIE, veri
 GENERATIONS_MIN = 10
 FAUX_FAIBLE, FAUX_ELEVE = 0.10, 0.20
 VERIFIE_ELEVE, VERIFIE_FAIBLE = 0.60, 0.50
+REPONSE_FAUSSE, PLUSIEURS_JUSTES = "réponse annoncée fausse", "plusieurs bonnes réponses"
 
 
 @dataclass
@@ -30,6 +31,16 @@ class Bilan:
     rejetees: int = 0
     rejets_non_mesurables: int = 0  # rejetés en N1 ou N2 : pas d'instance exploitable
     statuts: Counter = field(default_factory=Counter)
+    # nature des « faux » : une réponse annoncée fausse (erreur de calcul) n'appelle pas le même remède que
+    # plusieurs bonnes réponses (défaut de conception du QCM, que la reprise ou le prompt peuvent corriger)
+    faux_par_nature: Counter = field(default_factory=Counter)
+
+    def compter(self, instance: dict) -> None:
+        for v in verifier(instance):
+            self.statuts[v.statut] += 1
+            if v.statut == FAUX:
+                nature = PLUSIEURS_JUSTES if "plusieurs propositions conviennent" in v.message else REPONSE_FAUSSE
+                self.faux_par_nature[nature] += 1
 
     @property
     def generations(self) -> int:
@@ -61,7 +72,7 @@ def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = 
         instance = _lire(chemin)
         if instance and instance.get("matiere") == "maths" and retenue((instance.get("meta") or {}).get("date")):
             bilan.acceptees += 1
-            bilan.statuts.update(v.statut for v in verifier(instance))
+            bilan.compter(instance)
     for chemin in sorted(dossier_rejets.glob("*.json")) if dossier_rejets.is_dir() else []:
         rejet = _lire(chemin) or {}
         if not retenue(rejet.get("date")):
@@ -73,7 +84,7 @@ def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = 
             continue
         if instance.get("matiere") == "maths":
             bilan.rejetees += 1
-            bilan.statuts.update(v.statut for v in verifier(instance))
+            bilan.compter(instance)
     return bilan
 
 
@@ -81,7 +92,11 @@ def decision(bilan: Bilan) -> str:
     if bilan.questions == 0:
         return "aucune question de maths à analyser : lancer des générations d'abord"
     faux, verifie = bilan.part(FAUX), bilan.part(VERIFIE)
-    if faux > FAUX_ELEVE:
+    if faux > FAUX_ELEVE and bilan.faux_par_nature[PLUSIEURS_JUSTES] > bilan.faux_par_nature[REPONSE_FAUSSE]:
+        conseil = ("trop de questions fausses, surtout à plusieurs bonnes réponses : remesurer après la reprise "
+                   "sur erreur (1.4), qui renvoie ces défauts au modèle ; si le taux reste élevé, passer au "
+                   "GÉNÉRATEUR PROCÉDURAL pour les maths")
+    elif faux > FAUX_ELEVE:
         conseil = "le modèle se trompe trop souvent en calcul : passer au GÉNÉRATEUR PROCÉDURAL pour les maths"
     elif verifie < VERIFIE_FAIBLE:
         conseil = ("N4 ne vérifie pas assez de questions : étendre les reconnaisseurs, "
@@ -105,6 +120,9 @@ def rapport(bilan: Bilan) -> str:
     lignes.append(f"Questions : {bilan.questions}")
     for statut, libelle in ((VERIFIE, "vérifiées "), (FAUX, "fausses   "), (A_RELIRE, "à relire  ")):
         lignes.append(f"  {libelle}: {bilan.statuts[statut]:3d}  ({bilan.part(statut):.0%})")
+        if statut == FAUX and bilan.statuts[FAUX]:
+            for nature in (REPONSE_FAUSSE, PLUSIEURS_JUSTES):
+                lignes.append(f"      dont {nature} : {bilan.faux_par_nature[nature]}")
     lignes.append(f"Décision suggérée : {decision(bilan)}")
     lignes.append("Seuils : docs/etapes/etape-1.3.md §8 — ce sont des ordres de grandeur, pas une règle.")
     return "\n".join(lignes)
