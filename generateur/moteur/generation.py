@@ -47,10 +47,10 @@ def construire_messages(type_exo: registre.TypeExercice, schema: dict, demande: 
     return [{"role": "system", "content": type_exo.prompt}, {"role": "user", "content": utilisateur}]
 
 
-def identifiant(type_: str, instance: dict) -> str:
+def identifiant(type_: str, instance: dict, horodatage: str = "%Y%m%d-%H%M%S") -> str:
     texte = unicodedata.normalize("NFKD", instance.get("notion") or instance.get("titre") or "exercice")
     slug = re.sub(r"[^a-z0-9]+", "-", texte.encode("ascii", "ignore").decode().lower()).strip("-")[:40]
-    return f"{type_}-{slug}-{instance.get('niveau', '')}-{datetime.now():%Y%m%d-%H%M%S}"
+    return f"{type_}-{slug}-{instance.get('niveau', '')}-{datetime.now():{horodatage}}"
 
 
 def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = None) -> dict:
@@ -71,14 +71,20 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     duree = round(time.monotonic() - debut, 1)
     print(f"→ réponse reçue en {duree} s", flush=True)
 
+    instance = None
     try:
         instance = extraire_json(brut)
         valider(instance, schema)
         avertissements = n3_pedagogie.valider(instance)
         bilan_n4 = n4_calcul.valider(instance)
-    except ErreurValidation:
-        # on garde la réponse fautive : c'est elle qu'il faut regarder pour corriger le prompt
+    except ErreurValidation as e:
+        # on garde la réponse fautive : c'est elle qu'il faut regarder pour corriger le prompt, et elle
+        # compte dans les mesures (taux d'erreur du modèle, point de décision de N4)
         ecrire_brut(brut)
+        try:
+            e.rejet = enregistrer_rejet(e, brut, instance, demande, type_, fournisseur, duree)
+        except OSError as erreur_disque:  # ne jamais masquer le rejet lui-même
+            print(f"⚠ rejet non enregistré : {erreur_disque}", file=sys.stderr)
         raise
 
     instance["meta"] = {
@@ -96,10 +102,37 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     return instance
 
 
-def resume_n4(statuts: list[str]) -> str:
+def enregistrer_rejet(erreur: ErreurValidation, brut: str, instance: dict | None, demande: dict, type_: str,
+                      fournisseur, duree: float) -> Path:
+    """Conserve chaque génération rejetée dans banque/rejets/.
+
+    Sans cela, les exercices faux disparaîtraient et le taux d'erreur du modèle serait invisible : c'est
+    pourtant la donnée du point de décision de N4 (docs/etapes/etape-1.3.md §8). Quand N1 et N2 sont
+    passés, l'instance est gardée telle quelle : N4 pourra être recalculée dessus à chaque amélioration.
+    """
+    rejet = {
+        "date": datetime.now().isoformat(timespec="seconds"),
+        "fournisseur": fournisseur.nom,
+        "modele": fournisseur.modele,
+        "duree_s": duree,
+        "demande": demande,
+        "niveau": erreur.niveau,
+        "erreurs": erreur.erreurs,
+        "questions": list(erreur.questions),
+        "instance": instance if erreur.niveau not in ("N1", "N2") else None,
+        "brut": brut,
+    }
+    chemin = config.chemin("rejets") / f"{identifiant(type_, instance or {}, '%Y%m%d-%H%M%S-%f')}.json"
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    chemin.write_text(json.dumps(rejet, ensure_ascii=False, indent=2), encoding="utf-8")
+    return chemin
+
+
+def resume_n4(instance: dict) -> str:
     """« N4 : 4 question(s) recalculée(s) et juste(s), 1 à relire (question 3) »."""
-    if all(s == n4_calcul.NON_APPLICABLE for s in statuts):
-        return "N4 : non applicable (hors maths), le fond repose sur la relecture de l'enseignant"
+    statuts = instance["meta"]["validation"]["n4_questions"]
+    if instance.get("matiere") != "maths":
+        return "N4 : hors maths, aucun calcul recalculé : le fond est à relire par l'enseignant"
     verifiees = statuts.count(n4_calcul.VERIFIE)
     a_relire = [str(n) for n, s in enumerate(statuts, start=1) if s == n4_calcul.A_RELIRE]
     texte = f"N4 : {verifiees} question(s) recalculée(s) et juste(s)"
@@ -150,7 +183,8 @@ def main() -> None:
         print(f"✗ réponse du modèle rejetée ({e.niveau}) :", file=sys.stderr)
         for erreur in e.erreurs:
             print(f"   - {erreur}", file=sys.stderr)
-        sys.exit(f"   réponse brute conservée dans {config.chemin('sortie') / 'derniere_reponse_brute.txt'}")
+        print(f"   réponse brute conservée dans {config.chemin('sortie') / 'derniere_reponse_brute.txt'}", file=sys.stderr)
+        sys.exit(f"   rejet enregistré (il compte dans les mesures) : {e.rejet}")
 
     ident = instance["meta"]["id"]
     json_chemin = config.chemin("banque") / f"{ident}.json"
@@ -161,7 +195,7 @@ def main() -> None:
     print(f"✓ {len(instance['questions'])} questions — « {instance['titre']} »")
     for avertissement in instance["meta"]["avertissements"]:
         print(f"   ⚠ à relire : {avertissement}")
-    print(f"   {resume_n4(instance['meta']['validation']['n4_questions'])}")
+    print(f"   {resume_n4(instance)}")
     print(f"   JSON : {json_chemin}")
     print(f"   HTML : {html_chemin}")
 

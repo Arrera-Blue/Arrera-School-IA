@@ -5,12 +5,17 @@ reconnaître un genre de question qu'elle sait recalculer (calcul direct, compar
 simplification, Pythagore), refait le calcul en valeurs exactes, et compare le résultat aux propositions.
 
 Trois verdicts par question :
-- « verifie » : calcul refait, la réponse annoncée est juste ;
-- « faux »    : calcul refait, la réponse annoncée est fausse (ou aucune / plusieurs propositions justes) → rejet ;
-- « a_relire » : question non reconnue ou incalculable. JAMAIS « verifie » par défaut.
+- « verifie »  : calcul refait, la réponse annoncée est juste ;
+- « faux »     : calcul refait, la réponse annoncée est fausse (ou aucune / plusieurs propositions justes) → rejet ;
+- « a_relire » : question non reconnue, incalculable, ou hors maths. JAMAIS « verifie » par défaut.
 
-Sécurité : le texte vient du modèle et n'est jamais exécuté. Les expressions sont lues avec le module
-`ast` (analyse sans exécution), sur une liste blanche de caractères et d'opérations, avec des bornes.
+Deux principes de prudence :
+- **un faux « faux » est aussi grave qu'un faux « vérifié »** : le message de rejet sera renvoyé au modèle
+  (reprise sur erreur), qui « corrigerait » alors une bonne réponse. Les reconnaisseurs sont donc ancrés
+  sur des formulations précises (« Calcule 3 + 4. », « Quelle fraction est égale à 3/4 ? ») et
+  renoncent dès que l'énoncé transforme les nombres (« le double de », « si on multiplie »…) ;
+- le texte vient du modèle et n'est **jamais exécuté** : les expressions sont lues avec le module `ast`
+  (analyse sans exécution), sur une liste blanche de caractères et d'opérations, avec des bornes.
 """
 
 import ast
@@ -20,9 +25,10 @@ from dataclasses import dataclass
 from fractions import Fraction
 
 from generateur.moteur.validation import ErreurValidation
-from generateur.moteur.validation.n3_pedagogie import SEPARATEUR_MILLIERS, UNITES, normaliser, valeur
+from generateur.moteur.validation.n3_pedagogie import (SEPARATEUR_MILLIERS, UNITES, forme_irreductible,
+                                                       normaliser, valeur)
 
-VERIFIE, FAUX, A_RELIRE, NON_APPLICABLE = "verifie", "faux", "a_relire", "non_applicable"
+VERIFIE, FAUX, A_RELIRE = "verifie", "faux", "a_relire"
 
 
 @dataclass(frozen=True)
@@ -41,14 +47,14 @@ EXPOSANT_MAX = 10
 CHIFFRES_MAX = 12      # par nombre écrit dans l'expression
 CHIFFRES_RESULTAT_MAX = 30
 
-LISTE_BLANCHE = re.compile(r"^[\d+\-*/().\s]+$")
+LISTE_BLANCHE = re.compile(r"^[\d+\-*/(). ]+$")
 OPERATIONS = {ast.Add: lambda a, b: a + b, ast.Sub: lambda a, b: a - b,
               ast.Mult: lambda a, b: a * b, ast.Div: lambda a, b: a / b}
 
 
 def nettoyer(expression: str) -> str:
     """Écriture scolaire → écriture Python : « 3² × 0,5 » → « 3**2 * 0.5 »."""
-    e = expression
+    e = re.sub(r"\s+", " ", expression)  # espaces insécables et fines, fréquents en typographie française
     for avant, apres in (("×", "*"), ("·", "*"), ("÷", "/"), (":", "/"), ("−", "-"), ("–", "-"),
                          ("²", "**2"), ("³", "**3"), ("^", "**")):
         e = e.replace(avant, apres)
@@ -130,17 +136,32 @@ def formater(f: Fraction, en_fraction: bool = True) -> str:
 
 # --- lecture de l'énoncé -------------------------------------------------------------------------
 
+def preparer(enonce: str) -> str:
+    """Forme de travail de l'énoncé : apostrophes droites, espaces simples, « 3 x 4 » → « 3×4 »."""
+    e = re.sub(r"\s+", " ", enonce.replace("’", "'")).strip()
+    return re.sub(r"(?<=\d) ?[xX] ?(?=\d)", "×", e)
+
+
 NOMBRE = r"\d+(?:[.,]\d+)?"
-# une valeur écrite dans l'énoncé : nombre, décimal ou fraction (« 3/4 »), isolé du reste du texte
-VALEUR_ENONCE = re.compile(rf"(?<![\w/.,])[+\-−]?{NOMBRE}(?:\s*/\s*{NOMBRE})?(?![\w/]|[.,]\d)")
-# une expression candidate : chiffres, opérateurs et parenthèses, commençant et finissant proprement
-EXPRESSION = re.compile(r"[\d(−\-](?:[\d\s.,+\-−×*·÷:/()²³^]*[\d)²³])?")
+# une valeur citée : nombre, décimal, fraction (« 3/4 ») ou pourcentage, isolée du reste du texte
+VALEUR_TEXTE = rf"[+\-−]?{NOMBRE}(?: ?/ ?{NOMBRE})?(?: ?%)?"
+VALEUR_ENONCE = re.compile(rf"(?<![\w/.,]){VALEUR_TEXTE}(?![\w/]|[.,]\d)")
+# une expression : chiffres, opérateurs et parenthèses, commençant et finissant proprement
+EXPRESSION = r"[\d(−\-](?:[\d .,+\-−×*·÷:/()²³^]*[\d)²³])?"
 OPERATEUR = re.compile(r"[+\-−×*·÷:/^²³]")
 CALCUL_HORS_FRACTION = re.compile(r"[+\-−×*·÷:^²³]")  # une barre seule (« 2/5 ») est une fraction, pas un calcul
-LONGUEUR = re.compile(rf"({NOMBRE})\s*(mm|cm|dm|km|m)\b")
+LONGUEUR = re.compile(rf"({NOMBRE}) ?(mm|cm|dm|km|m)\b")
 
 # une question négative ou approchée se lit à l'envers ou tolère un écart : N4 ne s'y risque pas
 PRUDENCE = re.compile(r"\b(pas|jamais|aucune?|environ|arrondi\w*|approch\w*|presque)\b|≈", re.IGNORECASE)
+# des mots qui transforment les nombres cités : la réponse n'est plus l'un d'eux, ni leur valeur brute
+TRANSFORMATION = re.compile(
+    r"\b(double|triple|moitié|tiers|quart|inverse|opposée?|carrée?|cube|racine|fois|multipli\w*|divis\w*|"
+    r"ajout\w*|additionn\w*|soustr\w*|retranch\w*|enl[eè]v\w*|somme|différence|produit|quotient|reste|"
+    r"si on|si l'on|après)\b", re.IGNORECASE)
+# début d'une question directe : « Quelle fraction est », « Quel nombre est », « Parmi ces fractions, laquelle est »
+QUESTION_DIRECTE = (r"(?:^|[.!?] )(?:parmi [^,?]{1,40}, )?(?:quel|quelle|quels|quelles|lequel|laquelle)"
+                    r"(?: [a-zàâçéèêëîïôûùüÿœ'-]+){0,4}? (?:est|sont)")
 
 
 def valeurs_enonce(enonce: str) -> list[Fraction]:
@@ -150,11 +171,16 @@ def valeurs_enonce(enonce: str) -> list[Fraction]:
 def expressions(enonce: str) -> list[str]:
     """Les expressions qui contiennent au moins une opération (« 1/2 + 1/3 », « 3² »…)."""
     resultat = []
-    for m in EXPRESSION.finditer(enonce):
+    for m in re.finditer(EXPRESSION, enonce):
         texte = m.group(0).strip()
         if OPERATEUR.search(texte.lstrip("-−")):
             resultat.append(texte)
     return resultat
+
+
+def calculs(enonce: str) -> list[str]:
+    """Les expressions qui contiennent une vraie opération, pas seulement une barre de fraction."""
+    return [e for e in expressions(enonce) if CALCUL_HORS_FRACTION.search(e.lstrip("-−"))]
 
 
 def valeurs_nues(q: dict) -> list[Fraction | None]:
@@ -195,13 +221,13 @@ def _selon_valeur(n: int, q: dict, cible: Fraction, attendu: str) -> Verdict:
 
 
 # --- reconnaisseurs ------------------------------------------------------------------------------
-# Chacun renvoie None s'il ne reconnaît pas la question, un Verdict sinon. Le premier qui reconnaît gagne.
+# Chacun reçoit l'énoncé préparé. Il renvoie None s'il ne reconnaît pas la question, un Verdict sinon.
+# Le premier qui reconnaît gagne.
 
-HYPOTENUSE = re.compile(r"(longueur|mesure)\s+(de\s+)?l'hypoténuse", re.IGNORECASE)
+HYPOTENUSE = re.compile(r"(longueur|mesure) (de )?l'hypoténuse", re.IGNORECASE)
 
 
-def pythagore_hypotenuse(n: int, q: dict) -> Verdict | None:
-    enonce = q["enonce"].replace("’", "'")
+def pythagore_hypotenuse(n: int, q: dict, enonce: str) -> Verdict | None:
     if not (HYPOTENUSE.search(enonce) and "angle droit" in enonce.lower()):
         return None
     longueurs = LONGUEUR.findall(enonce)
@@ -220,13 +246,13 @@ def pythagore_hypotenuse(n: int, q: dict) -> Verdict | None:
     return trancher(n, q, justes, illisibles, attendu)
 
 
-EST_RECTANGLE = re.compile(r"est-il\s+(un\s+triangle\s+)?rectangle", re.IGNORECASE)
+EST_RECTANGLE = re.compile(r"est-il (un triangle )?rectangle", re.IGNORECASE)
 
 
-def pythagore_reciproque(n: int, q: dict) -> Verdict | None:
-    if not EST_RECTANGLE.search(q["enonce"]):
+def pythagore_reciproque(n: int, q: dict, enonce: str) -> Verdict | None:
+    if not EST_RECTANGLE.search(enonce):
         return None
-    longueurs = LONGUEUR.findall(q["enonce"])
+    longueurs = LONGUEUR.findall(enonce)
     if len(longueurs) != 3 or len({u for _, u in longueurs}) != 1:
         return Verdict(A_RELIRE)
     a, b, c = sorted(Fraction(x.replace(",", ".")) for x, _ in longueurs)
@@ -250,66 +276,87 @@ def pythagore_reciproque(n: int, q: dict) -> Verdict | None:
 
 
 SIMPLIFICATION = re.compile(r"simplifi|irréductible", re.IGNORECASE)
-FRACTION_SEULE = re.compile(r"^(\d+)\s*/\s*(\d+)$")
+FRACTION_ENTIERE = re.compile(r"^(\d+) ?/ ?(\d+)$")
 
 
-def simplification(n: int, q: dict) -> Verdict | None:
-    if not SIMPLIFICATION.search(q["enonce"]):
+def simplification(n: int, q: dict, enonce: str) -> Verdict | None:
+    """« Quelle est la forme irréductible de 4/8 ? » → 1/2 seulement.
+    « Simplifie 4/8. » → toute fraction obtenue en divisant 4 et 8 par un même entier (2/4 ou 1/2)."""
+    if not SIMPLIFICATION.search(enonce):
         return None
-    fractions = [m.group(0) for m in VALEUR_ENONCE.finditer(q["enonce"]) if "/" in m.group(0)]
-    if len(fractions) != 1:
+    if TRANSFORMATION.search(enonce) or calculs(enonce):
         return Verdict(A_RELIRE)
-    cible = valeur(fractions[0])[1]
+    fractions = [m.group(0) for m in VALEUR_ENONCE.finditer(enonce) if "/" in m.group(0)]
+    depart = FRACTION_ENTIERE.match(normaliser(fractions[0])) if len(fractions) == 1 else None
+    if depart is None:
+        return Verdict(A_RELIRE)
+    num, den = int(depart[1]), int(depart[2])
+    cible = Fraction(num, den)
+    irreductible_demandee = "irréductible" in enonce.lower()
 
-    def irreductible(p: str) -> bool:
+    def convient(p: str) -> bool:
         texte = normaliser(p)
-        if cible.denominator == 1:
-            return texte == str(cible.numerator)
-        m = FRACTION_SEULE.match(texte)
-        return m is not None and Fraction(int(m[1]), int(m[2])) == cible and math.gcd(int(m[1]), int(m[2])) == 1
+        if irreductible_demandee:
+            return forme_irreductible(p) and valeur(p) == ("", cible)
+        m = FRACTION_ENTIERE.match(texte)
+        a, b = (int(m[1]), int(m[2])) if m else (int(texte), 1) if texte.isdigit() else (0, 0)
+        # une simplification divise les deux termes par un même entier : 4/8 → 2/4 ou 1/2, mais pas 3/6
+        return a > 0 and Fraction(a, b) == cible and a < num and num % a == 0 and den % b == 0
 
-    justes = [i for i, p in enumerate(q["propositions"]) if irreductible(p)]
-    return trancher(n, q, justes, [], f"la forme irréductible de {fractions[0]} est {formater(cible)}")
+    justes = [i for i, p in enumerate(q["propositions"]) if convient(p)]
+    illisibles = [i for i, p in enumerate(q["propositions"]) if valeur(p) is None]
+    if irreductible_demandee:
+        attendu = f"la forme irréductible de {num}/{den} est {formater(cible)}"
+    else:
+        attendu = f"une simplification de {num}/{den} divise ses deux termes par un même nombre"
+    return trancher(n, q, justes, illisibles, attendu)
 
 
-EGALITE = re.compile(rf"(?:égale?s?|équivalente?s?|la même valeur)\s+(?:à|que)\s+"
-                     rf"(?P<x>[+\-−]?{NOMBRE}(?:\s*/\s*{NOMBRE})?(?:\s*%)?)(?!\s*[\d+\-−×*·÷:^/])", re.IGNORECASE)
+EGALITE = re.compile(rf"{QUESTION_DIRECTE} (?:égale?s?|équivalente?s?) (?:à|a) (?P<x>{VALEUR_TEXTE}) ?\?$",
+                     re.IGNORECASE)
 
 
-def egalite(n: int, q: dict) -> Verdict | None:
-    m = EGALITE.search(q["enonce"])
+def egalite(n: int, q: dict, enonce: str) -> Verdict | None:
+    """« Quelle fraction est égale à 3/4 ? » — formulation directe uniquement."""
+    m = EGALITE.search(enonce)
     if not m:
         return None
+    if TRANSFORMATION.search(enonce):
+        return Verdict(A_RELIRE)
     cible = valeur(m["x"])[1]
     return _selon_valeur(n, q, cible, f"la proposition égale à {m['x'].strip()} doit valoir {formater(cible)}")
 
 
-COMPARAISON = re.compile(r"\b(plus|moins)\s+(grand|petit)e?s?\b(?P<que>\s+que\b)?", re.IGNORECASE)
+COMPARAISON = re.compile(r"\b(plus|moins) (grand|petit)e?s?\b", re.IGNORECASE)
+SEUIL = re.compile(rf"{QUESTION_DIRECTE} (?P<sens>plus|moins) (?P<adj>grand|petit)e?s? que (?P<x>{VALEUR_TEXTE}) ?\?$",
+                   re.IGNORECASE)
 
 
-def comparaison(n: int, q: dict) -> Verdict | None:
-    trouves = list(COMPARAISON.finditer(q["enonce"]))
+def comparaison(n: int, q: dict, enonce: str) -> Verdict | None:
+    trouves = list(COMPARAISON.finditer(enonce))
     if not trouves:
         return None
-    # plusieurs comparaisons, ou des calculs à comparer (« 1/2 + 1/4 ou 2/3 ? ») : trop risqué
-    calculs = [e for e in expressions(q["enonce"]) if CALCUL_HORS_FRACTION.search(e.lstrip("-−"))]
-    if len(trouves) > 1 or calculs:
+    # plusieurs comparaisons, des calculs à comparer (« 1/2 + 1/4 ou 2/3 ? ») ou des nombres transformés
+    # (« le double de… ») : la réponse n'est plus directement l'une des valeurs citées
+    if len(trouves) > 1 or calculs(enonce) or TRANSFORMATION.search(enonce):
         return Verdict(A_RELIRE)
-    m = trouves[0]
-    cherche_max = (m[1].lower() == "plus") == (m[2].lower() == "grand")
     vals = valeurs_nues(q)
     illisibles = [i for i, v in enumerate(vals) if v is None]
-    nombres = valeurs_enonce(q["enonce"])
 
-    if m["que"]:  # « plus grande que 1/2 » : les propositions qui dépassent le seuil
-        if len(nombres) != 1:
-            return Verdict(A_RELIRE)
-        seuil = nombres[0]
-        justes = [i for i, v in enumerate(vals) if v is not None and (v > seuil if cherche_max else v < seuil)]
+    seuil = SEUIL.search(enonce)
+    if seuil:  # « Quelle fraction est plus grande que 1/2 ? » : les propositions qui dépassent le seuil
+        cherche_max = (seuil["sens"].lower() == "plus") == (seuil["adj"].lower() == "grand")
+        x = valeur(seuil["x"])[1]
+        justes = [i for i, v in enumerate(vals) if v is not None and (v > x if cherche_max else v < x)]
         sens = "plus grande" if cherche_max else "plus petite"
-        return trancher(n, q, justes, illisibles, f"la proposition doit être {sens} que {formater(seuil)}")
+        return trancher(n, q, justes, illisibles, f"la proposition doit être {sens} que {formater(x)}")
+    if re.search(r"\bque\b", enonce[trouves[0].end():], re.IGNORECASE):
+        return Verdict(A_RELIRE)  # seuil formulé autrement : pas assez sûr de la lecture
 
     # « la plus grande entre 2/5 et 3/7 » : la réponse est l'une des valeurs citées
+    m = trouves[0]
+    cherche_max = (m[1].lower() == "plus") == (m[2].lower() == "grand")
+    nombres = valeurs_enonce(enonce)
     if len(nombres) < 2:
         return Verdict(A_RELIRE)  # comparaison entre les seules propositions : non traitée pour l'instant
     extreme = max(nombres) if cherche_max else min(nombres)
@@ -325,24 +372,30 @@ def comparaison(n: int, q: dict) -> Verdict | None:
     return trancher(n, q, justes, illisibles, f"la plus {qualificatif} valeur est {formater(extreme)}")
 
 
-CALCUL = re.compile(r"résultat|calcul|combien\s+(font|fait|vaut|valent)|que\s+va(ut|lent)|"
-                    r"quelle\s+est\s+la\s+(somme|différence|valeur)|quel\s+est\s+le\s+(produit|quotient)|=\s*\?",
-                    re.IGNORECASE)
+# l'expression suit directement la demande de calcul et termine l'énoncé : « Calcule 7 × 8. »,
+# « Quel est le résultat de 1/2 + 1/3 ? », « Combien font 3² + 4² ? », « Complète : 3 + 4 = ? »
+DEMANDE_DE_CALCUL = (r"(?:résultat (?:de|du)|calcule[rz]?|effectue[rz]?|combien (?:font|fait|vaut|valent|donne)|"
+                     r"que (?:vaut|valent|donne)|valeur de)")
+SUPPORT = (r"(?: (?:l'|la |le |du |de l')?(?:opération|expression|calcul|addition|soustraction|multiplication|"
+           r"division)(?: suivante?)?)?")
+CALCUL_DIRECT = re.compile(rf"\b{DEMANDE_DE_CALCUL}{SUPPORT} ?:? ?(?P<expr>{EXPRESSION}) ?(?:= ?)?[?.!]?$",
+                           re.IGNORECASE)
+CALCUL_A_COMPLETER = re.compile(rf"(?:^|[:.!?] )(?P<expr>{EXPRESSION}) ?= ?(?:\?|\.\.\.|…)$")
 
 
-def calcul_direct(n: int, q: dict) -> Verdict | None:
-    if not CALCUL.search(q["enonce"]):
+def calcul_direct(n: int, q: dict, enonce: str) -> Verdict | None:
+    m = CALCUL_DIRECT.search(enonce) or CALCUL_A_COMPLETER.search(enonce)
+    if not m:
         return None
-    candidates = expressions(q["enonce"])
-    if len(candidates) != 1:
+    expression = m["expr"].strip()
+    if not OPERATEUR.search(expression.lstrip("-−")) or len(expressions(enonce)) != 1:
         return Verdict(A_RELIRE)
-    expression = candidates[0]
     try:
         resultat = evaluer(expression)
     except Incalculable:
         return Verdict(A_RELIRE)
     en_fraction = "/" in expression
-    return _selon_valeur(n, q, resultat, f"{' '.join(expression.split())} = {formater(resultat, en_fraction)}")
+    return _selon_valeur(n, q, resultat, f"{expression} = {formater(resultat, en_fraction)}")
 
 
 RECONNAISSEURS = (pythagore_hypotenuse, pythagore_reciproque, simplification, egalite, comparaison, calcul_direct)
@@ -351,11 +404,12 @@ RECONNAISSEURS = (pythagore_hypotenuse, pythagore_reciproque, simplification, eg
 # --- point d'entrée ------------------------------------------------------------------------------
 
 def verifier_question(n: int, q: dict) -> Verdict:
-    if PRUDENCE.search(q["enonce"]):
+    enonce = preparer(q["enonce"])
+    if PRUDENCE.search(enonce):
         return Verdict(A_RELIRE)
     for reconnaisseur in RECONNAISSEURS:
         try:
-            verdict = reconnaisseur(n, q)
+            verdict = reconnaisseur(n, q, enonce)
         except (Incalculable, ValueError, ZeroDivisionError, TypeError, IndexError):
             return Verdict(A_RELIRE)
         if verdict is not None:
@@ -364,8 +418,9 @@ def verifier_question(n: int, q: dict) -> Verdict:
 
 
 def verifier(instance: dict) -> list[Verdict]:
+    """Un verdict par question. Hors maths, rien n'est recalculé : tout est « à relire » (architecture §9.4)."""
     if instance.get("matiere") != "maths":
-        return [Verdict(NON_APPLICABLE) for _ in instance["questions"]]
+        return [Verdict(A_RELIRE) for _ in instance["questions"]]
     return [verifier_question(n, q) for n, q in enumerate(instance["questions"], start=1)]
 
 
@@ -376,10 +431,4 @@ def valider(instance: dict) -> dict:
     if faux:
         raise ErreurValidation("N4", [v.message for _, v in faux], tuple(n for n, _ in faux))
     statuts = [v.statut for v in verdicts]
-    if all(s == NON_APPLICABLE for s in statuts):
-        global_ = NON_APPLICABLE
-    elif A_RELIRE in statuts:
-        global_ = A_RELIRE
-    else:
-        global_ = VERIFIE
-    return {"n4": global_, "n4_questions": statuts}
+    return {"n4": VERIFIE if all(s == VERIFIE for s in statuts) else A_RELIRE, "n4_questions": statuts}
