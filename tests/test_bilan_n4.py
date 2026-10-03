@@ -33,6 +33,21 @@ def test_mesure_acceptes_et_rejetes(tmp_path):
     assert "Questions : 8" in rapport(bilan)
 
 
+def test_filtre_depuis_une_date(tmp_path):
+    instances, rejets = tmp_path / "instances", tmp_path / "rejets"
+    ancien = json.loads((DONNEES / "qcm-fractions-6e-reel.json").read_text(encoding="utf-8"))  # meta.date 25/09
+    recent = json.loads((DONNEES / "qcm-fractions-6e-20261003-rejete-a-tort.json").read_text(encoding="utf-8"))
+    ecrire(instances / "ancien.json", ancien)
+    ecrire(rejets / "recent.json", {"date": "2026-10-03T14:09:14", "niveau": "N3", "instance": recent})
+
+    tout = mesurer(instances, rejets)
+    assert (tout.acceptees, tout.rejetees, tout.statuts[FAUX]) == (1, 1, 4)
+
+    nouveau_prompt = mesurer(instances, rejets, depuis="2026-10-03")
+    assert (nouveau_prompt.acceptees, nouveau_prompt.rejetees) == (0, 1)
+    assert nouveau_prompt.statuts == Counter({VERIFIE: 5})
+
+
 def test_dossiers_absents(tmp_path):
     bilan = mesurer(tmp_path / "rien", tmp_path / "rien non plus")
     assert bilan.questions == 0 and "aucune question" in decision(bilan)
