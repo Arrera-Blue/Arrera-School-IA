@@ -194,11 +194,21 @@ def valeurs_nues(q: dict) -> list[Fraction | None]:
 
 # --- verdict commun ------------------------------------------------------------------------------
 
+def _mentionne_la_meme_valeur(texte: str, cible: tuple) -> bool:
+    """« 2/5 est plus grande » mentionne la valeur 2/5."""
+    return any(valeur(m.group(0)) == cible for m in VALEUR_ENONCE.finditer(preparer(texte)))
+
+
 def trancher(n: int, q: dict, justes: list[int], illisibles: list[int], attendu: str) -> Verdict:
     """Compare les propositions reconnues justes par le calcul à la réponse annoncée par le modèle."""
     annoncee = q["index_correct"]
     propositions = q["propositions"]
     if len(justes) == 1 and justes[0] == annoncee:
+        # prudence : « 2/5 » annoncée et « 2/5 est plus grande » proposée sont deux formulations de la
+        # bonne réponse ; la seconde, illisible comme nombre, échappe au calcul (cas réel du 03/10)
+        cible = valeur(propositions[annoncee])
+        if cible is not None and any(_mentionne_la_meme_valeur(propositions[i], cible) for i in illisibles):
+            return Verdict(A_RELIRE)
         return Verdict(VERIFIE)
     # prudence : une proposition illisible (« cinq sixièmes ») pourrait être la bonne réponse
     if annoncee in illisibles or (not justes and illisibles):
