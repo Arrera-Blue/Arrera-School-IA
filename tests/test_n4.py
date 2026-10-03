@@ -53,6 +53,12 @@ def test_qcm_des_fractions_reel():
     assert "« 2/4 », « 1/2 »" in verdicts[2].message
 
 
+def test_qcm_reel_du_3_octobre_entierement_verifie():
+    # premier QCM généré avec le nouveau prompt : les 5 calculs sont justes et reconnus
+    instance = json.loads((DONNEES / "qcm-fractions-6e-20261003-rejete-a-tort.json").read_text(encoding="utf-8"))
+    assert valider(instance) == {"n4": VERIFIE, "n4_questions": [VERIFIE] * 5}
+
+
 def test_l_exemple_de_reference_n_est_jamais_marque_faux():
     statuts = [v.statut for v in verifier(registre.charger("qcm").exemple)]
     # Q1 « quelle égalité est vraie ? » n'est pas un calcul ; Q2 hypoténuse ; Q3 réciproque

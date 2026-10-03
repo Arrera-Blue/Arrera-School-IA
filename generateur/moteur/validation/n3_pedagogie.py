@@ -137,26 +137,37 @@ def propositions_vides(n: int, q: dict) -> list[Constat]:
 def propositions_equivalentes(n: int, q: dict) -> list[Constat]:
     """Doublons exacts, et valeurs égales écrites différemment (3/4 et 6/8, 1 m et 100 cm).
 
+    - doublon exact (« Paris » deux fois) : toujours bloquant ;
+    - valeurs égales **dont la bonne réponse** (« 3/4 » annoncée, « 6/8 » proposée) : bloquant, car il y a
+      deux bonnes réponses ;
+    - valeurs égales **entre mauvaises réponses** seulement (« 2/4 » et « 1/2 » quand la réponse est 3/4) :
+      avertissement. Le QCM est juste, mais un élève peut éliminer les deux d'un coup (cas réel du 03/10).
+      Si c'est en fait la réponse annoncée qui est fausse, N4 le verra en recalculant.
+
     Exception : quand l'énoncé demande la forme irréductible, « 2/4 » et « 1/2 » ont la même valeur mais
     une seule est irréductible. Ce sont alors les distracteurs naturels de la question, pas une ambiguïté.
     """
     irreductible_demandee = "irréductible" in normaliser(q["enonce"])
     groupes = defaultdict(list)
-    for p in q["propositions"]:
+    for i, p in enumerate(q["propositions"]):
         if p.strip():  # les propositions vides relèvent de propositions_vides
-            groupes[cle_de_comparaison(p)].append(p)
+            groupes[cle_de_comparaison(p)].append(i)
     constats = []
-    for membres in groupes.values():
-        if len(membres) < 2:
+    for indices in groupes.values():
+        if len(indices) < 2:
             continue
+        membres = [q["propositions"][i] for i in indices]
         if len({normaliser(m) for m in membres}) == 1:
             constats.append(Constat(f"question {n} : la proposition « {membres[0]} » apparaît "
                                     f"{len(membres)} fois", True, n))
         elif irreductible_demandee and sum(forme_irreductible(m) for m in membres) <= 1:
             continue
-        else:
+        elif q["index_correct"] in indices:
             constats.append(Constat(f"question {n} : les propositions {_liste(membres)} ont la même valeur ; "
                                     "une seule proposition peut être juste, les autres doivent être fausses", True, n))
+        else:
+            constats.append(Constat(f"question {n} : les mauvaises réponses {_liste(membres)} ont la même valeur ; "
+                                    "un élève peut les éliminer ensemble sans connaître la notion", False, n))
     return constats
 
 

@@ -7,6 +7,7 @@ Recalculer plutôt que relire le meta permet de remesurer le même corpus après
 Les seuils sont ceux de docs/etapes/etape-1.3.md §8.
 
     python -m generateur.outils.bilan_n4
+    python -m generateur.outils.bilan_n4 --depuis 2026-10-03     # seulement le prompt actuel
 """
 
 import argparse
@@ -49,15 +50,22 @@ def _lire(chemin: Path) -> dict | None:
         return None
 
 
-def mesurer(dossier_instances: Path, dossier_rejets: Path) -> Bilan:
+def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = None) -> Bilan:
+    """`depuis` (« 2026-10-03 ») ne garde que les générations de cette date ou après : utile pour juger
+    un nouveau prompt sans le mélanger aux générations de l'ancien."""
+    def retenue(date: str | None) -> bool:
+        return depuis is None or (date or "") >= depuis
+
     bilan = Bilan()
     for chemin in sorted(dossier_instances.glob("*.json")) if dossier_instances.is_dir() else []:
         instance = _lire(chemin)
-        if instance and instance.get("matiere") == "maths":
+        if instance and instance.get("matiere") == "maths" and retenue((instance.get("meta") or {}).get("date")):
             bilan.acceptees += 1
             bilan.statuts.update(v.statut for v in verifier(instance))
     for chemin in sorted(dossier_rejets.glob("*.json")) if dossier_rejets.is_dir() else []:
         rejet = _lire(chemin) or {}
+        if not retenue(rejet.get("date")):
+            continue
         instance = rejet.get("instance")
         if instance is None:
             if (rejet.get("demande") or {}).get("matiere") in (None, "maths"):
@@ -106,8 +114,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Mesurer N4 sur les générations de maths conservées.")
     parser.add_argument("--instances", type=Path, default=config.chemin("banque"))
     parser.add_argument("--rejets", type=Path, default=config.chemin("rejets"))
+    parser.add_argument("--depuis", metavar="AAAA-MM-JJ",
+                        help="ne compter que les générations de cette date ou après (par exemple depuis un changement de prompt)")
     args = parser.parse_args()
-    print(rapport(mesurer(args.instances, args.rejets)))
+    if args.depuis:
+        print(f"Générations retenues : depuis le {args.depuis}")
+    print(rapport(mesurer(args.instances, args.rejets, args.depuis)))
 
 
 if __name__ == "__main__":

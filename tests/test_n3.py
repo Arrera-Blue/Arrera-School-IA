@@ -81,6 +81,20 @@ def test_propositions_equivalentes():
         "une seule proposition peut être juste, les autres doivent être fausses"]
 
 
+def test_mauvaises_reponses_egales_entre_elles_avertissement_seulement():
+    # 1/2 + 1/4 = 3/4 : « 2/4 » et « 1/2 » sont égales, mais ce sont deux MAUVAISES réponses
+    q = question(["3/4", "2/4", "1/2"], index_correct=0, enonce="Quel est le résultat de 1/2 + 1/4 ?")
+    assert bloquants(qcm(q)) == []
+    assert any("mauvaises réponses « 2/4 » et « 1/2 »" in m for m in avertissements(qcm(q)))
+
+
+def test_qcm_reel_du_3_octobre_n_est_plus_rejete():
+    # généré avec le nouveau prompt : 5 questions justes, rejeté à tort par l'ancienne règle de N3
+    instance = json.loads((DONNEES / "qcm-fractions-6e-20261003-rejete-a-tort.json").read_text(encoding="utf-8"))
+    avertissements_n3 = valider(instance)
+    assert [m.split(" :")[0] for m in avertissements_n3 if "mauvaises réponses" in m] == ["question 3", "question 4"]
+
+
 def test_forme_irreductible_demandee_les_fractions_egales_sont_les_distracteurs():
     # seule 1/2 est irréductible : 2/4 a la même valeur mais c'est une mauvaise réponse, pas une ambiguïté
     q = question(["2/4", "1/2", "4/2"], index_correct=1, enonce="Quelle est la forme irréductible de 4/8 ?",
