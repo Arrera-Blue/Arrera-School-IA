@@ -58,10 +58,28 @@ def test_un_rejet_est_conserve_avec_son_instance(dossiers, monkeypatch):
     fichiers = list((dossiers / "rejets").glob("*.json"))
     assert len(fichiers) == 1 and e.value.rejet == fichiers[0]
     rejet = json.loads(fichiers[0].read_text(encoding="utf-8"))
-    assert rejet["niveau"] == "N3" and rejet["questions"] == [1, 3, 4]
+    # N3 : Q1, Q3, Q4 (deux bonnes réponses) ; N4 : Q5 (2/5 annoncé plus grand que 3/7)
+    assert rejet["niveau"] == "N3, N4" and rejet["questions"] == [1, 3, 4, 5]
     assert rejet["instance"]["matiere"] == "maths"  # N4 pourra être recalculée dessus
     assert rejet["brut"] == brut and rejet["modele"] == "réponse enregistrée"
     assert (dossiers / "sortie" / "derniere_reponse_brute.txt").read_text(encoding="utf-8") == brut
+
+
+def test_n3_et_n4_signalent_tous_les_defauts_d_un_coup(dossiers, monkeypatch):
+    # second QCM du 03/10 : N3 rejetait Q1, Q2, Q4 et l'erreur de calcul de Q3 restait cachée
+    fautif = json.loads((DONNEES / "qcm-fractions-6e-20261003-rejete-a-raison.json").read_text(encoding="utf-8"))
+    rejouer(monkeypatch, json.dumps(fautif, ensure_ascii=False))
+
+    with pytest.raises(ErreurValidation) as e:
+        generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "rejoue")
+
+    assert e.value.niveau == "N3, N4"
+    assert e.value.questions == (1, 2, 3, 4, 5)
+    numeros = [int(m.split(" ")[1]) for m in e.value.erreurs]
+    assert numeros == [1, 2, 3, 4, 5]  # un message par question, dans l'ordre : pas de doublon N3/N4
+    assert "la plus grande valeur est 3/7" in e.value.erreurs[2]
+    rejet = json.loads(next((dossiers / "rejets").glob("*.json")).read_text(encoding="utf-8"))
+    assert rejet["niveau"] == "N3, N4" and rejet["instance"] is not None
 
 
 def test_un_rejet_n1_est_conserve_sans_instance(dossiers, monkeypatch):

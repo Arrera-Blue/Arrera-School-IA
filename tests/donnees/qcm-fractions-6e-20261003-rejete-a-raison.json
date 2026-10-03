@@ -1,0 +1,68 @@
+{
+  "type": "qcm",
+  "titre": "Les fractions",
+  "matiere": "maths",
+  "niveau": "6e",
+  "notion": "Fractions : comparaison, addition et soustraction",
+  "questions": [
+    {
+      "enonce": "Quelle fraction est égale à 1/2 ?",
+      "propositions": [
+        "3/4",
+        "2/4",
+        "1/4",
+        "4/8"
+      ],
+      "index_correct": 1,
+      "explication": "2/4 simplifié par 2 donne 1/2, donc c'est la fraction égale à 1/2.",
+      "difficulte": "facile"
+    },
+    {
+      "enonce": "Quelle est la somme de 1/3 et 1/6 ?",
+      "propositions": [
+        "1/2",
+        "1/3",
+        "2/3",
+        "3/6"
+      ],
+      "index_correct": 0,
+      "explication": "1/3 = 2/6, donc 2/6 + 1/6 = 3/6 = 1/2.",
+      "difficulte": "facile"
+    },
+    {
+      "enonce": "Quelle fraction est plus grande : 2/5 ou 3/7 ?",
+      "propositions": [
+        "2/5",
+        "3/7",
+        "2/5 est plus grande",
+        "3/7 est plus grande"
+      ],
+      "index_correct": 0,
+      "explication": "2/5 = 14/35 et 3/7 = 15/35, donc 14/35 < 15/35, donc 2/5 est plus petite que 3/7.",
+      "difficulte": "moyen"
+    },
+    {
+      "enonce": "Quelle fraction est égale à 3/4 ?",
+      "propositions": [
+        "6/8",
+        "9/12",
+        "12/16",
+        "1/4"
+      ],
+      "index_correct": 0,
+      "explication": "6/8 simplifié par 2 donne 3/4, donc c'est la fraction égale à 3/4.",
+      "difficulte": "facile"
+    },
+    {
+      "enonce": "Quelle est la différence entre 5/6 et 1/3 ?",
+      "propositions": [
+        "1/2",
+        "1/3",
+        "2/3",
+        "1/6"
+      ],
+      "index_correct": 3,
+      "explication": "1/3 = 2/6, donc 5/6 - 2/6 = 3/6 = 1/2, mais 1/2 n'est pas dans les propositions. 5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2, mais 1/2 n'est pas dans les propositions. 1/6 est la différence entre 1/3 et 5/6 ? Non, 5/6 est plus grand que 1/3, donc 5/6 - 1/3 = 1/2. Les propositions sont : 1/2, 1/3, 2/3, 1/6. 1/2 n'est pas dans les propositions. 1/6 est la réponse ? Non. 5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2. Mais"
+    }
+  ]
+}

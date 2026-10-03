@@ -59,6 +59,30 @@ def test_qcm_reel_du_3_octobre_entierement_verifie():
     assert valider(instance) == {"n4": VERIFIE, "n4_questions": [VERIFIE] * 5}
 
 
+def test_qcm_reel_du_3_octobre_rejete_a_raison():
+    # second QCM du 03/10 : les 5 questions sont fausses ; Q2 (« somme de ») et Q5 (« différence entre »)
+    # n'étaient pas reconnues avant l'ajout du reconnaisseur d'opérations nommées
+    instance = json.loads((DONNEES / "qcm-fractions-6e-20261003-rejete-a-raison.json").read_text(encoding="utf-8"))
+    verdicts = verifier(instance)
+    assert [v.statut for v in verdicts] == [FAUX] * 5
+    assert verdicts[4].message == ("question 5 : la différence de 5/6 et 1/3 vaut 1/2, "
+                                   "mais la réponse annoncée est « 1/6 » au lieu de « 1/2 »")
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    ("Quelle est la somme de 1/3 et 1/6 ?", ["1/2", "2/9", "1/9"], 0, VERIFIE),
+    ("Quelle est la somme de 1/3 et 1/6 ?", ["1/2", "2/9", "3/6"], 0, FAUX),        # deux bonnes réponses
+    ("Quelle est la différence entre 5/6 et 1/3 ?", ["1/2", "1/6", "2/3"], 1, FAUX),
+    ("Quelle est la différence entre 1/3 et 5/6 ?", ["1/2", "1/6", "2/3"], 0, A_RELIRE),  # ordre ambigu
+    ("Calcule le produit de 3 et 4.", ["7", "12", "34"], 1, VERIFIE),
+    ("Quel est le quotient de 12 par 4 ?", ["3", "8", "48"], 0, VERIFIE),
+    ("Quel est le quotient de 12 par 0 ?", ["0", "12", "1"], 0, A_RELIRE),
+    ("Quelle est la somme de 1/3 et 1/6 si on la double ?", ["1", "1/2", "2/9"], 0, A_RELIRE),
+])
+def test_operations_nommees(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
 def test_l_exemple_de_reference_n_est_jamais_marque_faux():
     statuts = [v.statut for v in verifier(registre.charger("qcm").exemple)]
     # Q1 « quelle égalité est vraie ? » n'est pas un calcul ; Q2 hypoténuse ; Q3 réciproque
