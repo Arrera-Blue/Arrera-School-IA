@@ -53,6 +53,40 @@ def identifiant(type_: str, instance: dict, horodatage: str = "%Y%m%d-%H%M%S") -
     return f"{type_}-{slug}-{instance.get('niveau', '')}-{datetime.now():{horodatage}}"
 
 
+def _numero(message: str) -> int:
+    m = re.match(r"question (\d+)", message)
+    return int(m[1]) if m else 0
+
+
+def valider_le_fond(instance: dict) -> tuple[list[str], dict]:
+    """N3 puis N4, en signalant TOUS les défauts d'un coup.
+
+    S'arrêter au premier niveau en faute cacherait les erreurs de calcul quand N3 a déjà rejeté : la
+    reprise sur erreur (1.4) corrigerait une partie des questions, puis échouerait sur le reste à l'essai
+    suivant. Cas réel du 03/10 : N3 rejetait les questions 1, 2 et 4, et l'erreur de calcul de la
+    question 3 n'apparaissait pas.
+    """
+    rejets: list[ErreurValidation] = []
+    avertissements, bilan_n4 = [], {}
+    try:
+        avertissements = n3_pedagogie.valider(instance)
+    except ErreurValidation as e:
+        rejets.append(e)
+    try:
+        bilan_n4 = n4_calcul.valider(instance)
+    except ErreurValidation as e:
+        # « plusieurs propositions conviennent » sur une question déjà rejetée par N3 : même défaut, pas deux fois
+        deja = set(rejets[0].questions) if rejets else set()
+        messages = [m for m in e.erreurs if not (_numero(m) in deja and "plusieurs propositions conviennent" in m)]
+        rejets.append(ErreurValidation("N4", messages, tuple(_numero(m) for m in messages)))
+    rejets = [r for r in rejets if r.erreurs]
+    if rejets:
+        raise ErreurValidation(", ".join(r.niveau for r in rejets),
+                               sorted((m for r in rejets for m in r.erreurs), key=_numero),
+                               tuple(sorted({q for r in rejets for q in r.questions})))
+    return avertissements, bilan_n4
+
+
 def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = None) -> dict:
     cfg = config.charger()
     nom_fournisseur = nom_fournisseur or cfg["fournisseurs"]["ordre"][0]
@@ -75,8 +109,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     try:
         instance = extraire_json(brut)
         valider(instance, schema)
-        avertissements = n3_pedagogie.valider(instance)
-        bilan_n4 = n4_calcul.valider(instance)
+        avertissements, bilan_n4 = valider_le_fond(instance)
     except ErreurValidation as e:
         # on garde la réponse fautive : c'est elle qu'il faut regarder pour corriger le prompt, et elle
         # compte dans les mesures (taux d'erreur du modèle, point de décision de N4)

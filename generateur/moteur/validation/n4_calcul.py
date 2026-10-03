@@ -398,7 +398,38 @@ def calcul_direct(n: int, q: dict, enonce: str) -> Verdict | None:
     return _selon_valeur(n, q, resultat, f"{expression} = {formater(resultat, en_fraction)}")
 
 
-RECONNAISSEURS = (pythagore_hypotenuse, pythagore_reciproque, simplification, egalite, comparaison, calcul_direct)
+# « Quelle est la somme de 1/3 et 1/6 ? », « Calcule le produit de 3 et 4. », « le quotient de 12 par 4 »
+OPERATION_NOMMEE = re.compile(
+    rf"(?:^|[.!?] )(?:quel(?:le)? est|calcule[rz]?|donne[rz]?|trouve[rz]?) (?:la |le )"
+    rf"(?P<op>somme|différence|produit|quotient) (?:de |entre |des nombres |des fractions )?"
+    rf"(?P<a>{VALEUR_TEXTE}) (?:et|par) (?P<b>{VALEUR_TEXTE}) ?[?.!]?$", re.IGNORECASE)
+
+
+def operation_nommee(n: int, q: dict, enonce: str) -> Verdict | None:
+    m = OPERATION_NOMMEE.search(enonce)
+    if not m:
+        return None
+    op, a, b = m["op"].lower(), valeur(m["a"])[1], valeur(m["b"])[1]
+    if op == "somme":
+        resultat = a + b
+    elif op == "produit":
+        resultat = a * b
+    elif op == "quotient":
+        if b == 0:
+            return Verdict(A_RELIRE)
+        resultat = a / b
+    else:  # « la différence entre 1/3 et 5/6 » : l'ordre est ambigu si le premier est le plus petit
+        if a < b:
+            return Verdict(A_RELIRE)
+        resultat = a - b
+    en_fraction = "/" in m["a"] or "/" in m["b"]
+    lien = "par" if op == "quotient" else "et"
+    attendu = f"{'la' if op in ('somme', 'différence') else 'le'} {op} de {m['a']} {lien} {m['b']} vaut {formater(resultat, en_fraction)}"
+    return _selon_valeur(n, q, resultat, attendu)
+
+
+RECONNAISSEURS = (pythagore_hypotenuse, pythagore_reciproque, simplification, egalite, comparaison, operation_nommee,
+                  calcul_direct)
 
 
 # --- point d'entrée ------------------------------------------------------------------------------
