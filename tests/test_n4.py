@@ -76,6 +76,24 @@ def test_qcm_reel_du_3_octobre_troisieme_essai():
     assert [v.statut for v in verifier(instance)] == [A_RELIRE, FAUX, A_RELIRE, A_RELIRE, FAUX]
 
 
+def test_qcm_reel_du_5_octobre_gemma():
+    # premier QCM de gemma4:e4b-it-qat : les 5 réponses sont justes, mais rédigées en situation ; Q1 et Q3
+    # (« k parts sur n ») restent à relire : « il en reste » ou « non coloriées » inverseraient la réponse
+    instance = qcm(
+        question("Quelle fraction représente la partie coloriée d'une figure divisée en 8 parties égales, "
+                 "dont 3 sont coloriées ?", ["3/8", "8/3", "3/5", "5/8"], 0),
+        question("Le nombre 0,5 peut s'écrire sous quelle forme de fraction irréductible ?",
+                 ["1/5", "5/10", "1/2", "2/1"], 2),
+        question("Si tu as un gâteau coupé en 4 parts égales et que tu en manges 1, quelle fraction du gâteau "
+                 "as-tu mangée ?", ["1/4", "4/1", "3/4", "1/3"], 0),
+        question("Pour additionner 1/3 et 1/6, quel est le dénominateur commun le plus petit ?",
+                 ["3", "6", "18", "2"], 1),
+        question("Quelle est la fraction équivalente à 2/5 si on multiplie le numérateur et le dénominateur par 3 ?",
+                 ["6/15", "2/8", "5/15", "6/8"], 0),
+    )
+    assert valider(instance) == {"n4": A_RELIRE, "n4_questions": [A_RELIRE, VERIFIE, A_RELIRE, VERIFIE, VERIFIE]}
+
+
 def test_une_reformulation_de_la_bonne_reponse_empeche_le_verdict_verifie():
     enonce = "Quelle fraction est plus grande : 1/3 ou 2/5 ?"
     assert statut(enonce, ["1/3", "2/5", "1/3 est plus grande", "2/5 est plus grande"], 1) == A_RELIRE
@@ -174,6 +192,107 @@ def test_simplifier_n_exige_pas_la_forme_irreductible():
     # 2/4 est bien une simplification de 4/8 (on divise par 2) ; 3/6 n'en est pas une, bien qu'égale
     assert statut("Simplifie la fraction 4/8.", ["2/4", "1/3", "3/5"], 0) == VERIFIE
     assert statut("Simplifie la fraction 4/8.", ["3/6", "1/3", "3/5"], 0) == FAUX
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    ("Le nombre 0,5 peut s'écrire sous quelle forme de fraction irréductible ?", ["5/10", "1/2", "1/5"], 1, VERIFIE),
+    ("Le nombre 0,5 peut s'écrire sous quelle forme de fraction irréductible ?", ["5/10", "1/2", "1/5"], 0, FAUX),
+    ("Écris 25 % sous forme de fraction irréductible.", ["25/100", "1/4", "1/25"], 1, VERIFIE),
+    ("Écris 1,5 sous forme de fraction irréductible.", ["15/10", "3/2", "1/5"], 1, VERIFIE),
+    ("Écris 0,5 sous forme de fraction irréductible.", ["5/10", "un demi", "1/5"], 1, A_RELIRE),  # en lettres
+    ("Écris -0,5 sous forme de fraction irréductible.", ["-1/2", "1/2", "-5/10"], 0, A_RELIRE),   # négatif
+    ("Écris 3 sous forme de fraction irréductible.", ["3", "3/1", "6/2"], 0, A_RELIRE),           # entier seul
+    ("Simplifie 0,5.", ["1/2", "5/10", "0,05"], 0, A_RELIRE),                    # irréductible non demandée
+])
+def test_forme_irreductible_d_un_decimal(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+def test_forme_irreductible_d_un_decimal_message():
+    assert message("Écris 0,75 sous forme de fraction irréductible.", ["75/100", "3/4", "7/5"], 0) == (
+        "question 1 : la forme irréductible de 0,75 est 3/4, mais la réponse annoncée est « 75/100 » "
+        "au lieu de « 3/4 »")
+
+
+# --- même opération sur les deux termes d'une fraction --------------------------------------------
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    ("Quelle est la fraction équivalente à 2/5 si on multiplie le numérateur et le dénominateur par 3 ?",
+     ["6/15", "2/8", "5/15", "6/8"], 0, VERIFIE),
+    ("Quelle est la fraction équivalente à 2/5 si on multiplie le numérateur et le dénominateur par 3 ?",
+     ["6/15", "2/8", "5/15", "6/8"], 3, FAUX),
+    # 12/30 vaut aussi 2/5, mais ce n'est pas le résultat de la multiplication par 3
+    ("Quelle est la fraction équivalente à 2/5 si on multiplie le numérateur et le dénominateur par 3 ?",
+     ["12/30", "6/15", "5/15"], 1, VERIFIE),
+    ("Quelle fraction obtiens-tu en multipliant ses deux termes par 4 ? La fraction de départ est 3/7.",
+     ["12/28", "7/11", "12/7"], 0, VERIFIE),
+    ("Quelle fraction obtient-on si l'on divise le numérateur et le dénominateur de 6/15 par 3 ?",
+     ["2/5", "3/12", "2/15"], 0, VERIFIE),
+    ("Simplifie 6/15 en divisant le numérateur et le dénominateur par 3.", ["2/5", "3/12", "2/15"], 0, VERIFIE),
+    ("Simplifie 6/15 en divisant le numérateur et le dénominateur par 3.", ["2/5", "3/12", "2/15"], 2, FAUX),
+])
+def test_memes_termes(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+def test_memes_termes_message():
+    assert message("Quelle est la fraction équivalente à 2/5 si on multiplie le numérateur et le dénominateur "
+                   "par 3 ?", ["6/8", "6/15", "2/8"], 0) == (
+        "question 1 : en multipliant les deux termes de 2/5 par 3, on obtient 6/15, mais la réponse annoncée "
+        "est « 6/8 » au lieu de « 6/15 »")
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct", [
+    # la question porte sur un seul terme : la bonne réponse est un nombre, pas une fraction
+    ("Si on multiplie le numérateur et le dénominateur de 2/5 par 3, quel numérateur obtient-on ?",
+     ["6", "15", "5"], 0),
+    # une seconde transformation après la première
+    ("Quelle fraction obtient-on si on multiplie le numérateur et le dénominateur de 2/5 par 3, puis "
+     "qu'on ajoute 1 ?", ["21/15", "6/15", "7/16"], 0),
+    # 7 n'est pas divisible par 2
+    ("Quelle fraction obtient-on si on divise le numérateur et le dénominateur de 7/10 par 2 ?",
+     ["3,5/5", "7/5", "14/20"], 0),
+    # oui / non : rien à comparer
+    ("Si on multiplie le numérateur et le dénominateur de 2/5 par 3, la fraction change-t-elle de valeur ?",
+     ["Non, elle reste égale", "Oui, elle triple"], 0),
+])
+def test_memes_termes_prudence(enonce, propositions, index_correct):
+    assert statut(enonce, propositions, index_correct) == A_RELIRE
+
+
+# --- plus petit dénominateur commun ---------------------------------------------------------------
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    ("Pour additionner 1/3 et 1/6, quel est le dénominateur commun le plus petit ?", ["3", "6", "18", "2"], 1, VERIFIE),
+    ("Pour additionner 1/3 et 1/6, quel est le dénominateur commun le plus petit ?", ["3", "6", "18", "2"], 2, FAUX),
+    ("Quel est le plus petit dénominateur commun de 3/4 et 5/6 ?", ["24", "12", "10"], 1, VERIFIE),
+    ("Pour comparer 1/2, 2/3 et 3/4, quel est le plus petit dénominateur commun ?", ["12", "24", "9"], 0, VERIFIE),
+    ("Pour soustraire 1/4 de 5/6, quel est le plus petit dénominateur commun ?", ["24", "12", "10"], 0, FAUX),
+])
+def test_plus_petit_denominateur(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+def test_plus_petit_denominateur_message():
+    assert message("Quel est le plus petit dénominateur commun de 3/4 et 5/6 ?", ["24", "12", "10"], 0) == (
+        "question 1 : le plus petit dénominateur commun de 3/4 et 5/6 est 12, mais la réponse annoncée est "
+        "« 24 » au lieu de « 12 »")
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct", [
+    # « un » dénominateur commun : 6, 12 et 18 conviennent tous
+    ("Pour additionner 1/3 et 1/6, quel dénominateur commun peut-on utiliser ?", ["6", "12", "18"], 1),
+    # 2/4 n'est pas irréductible : 4 ou 2 selon qu'on simplifie d'abord
+    ("Quel est le plus petit dénominateur commun de 2/4 et 1/3 ?", ["12", "6", "7"], 0),
+    # la réponse attendue est une fraction réécrite, pas le dénominateur
+    ("Quel est le plus petit dénominateur commun de 1/3 et 1/6 ? Écris 1/3 avec ce dénominateur.",
+     ["2/6", "1/6", "3/6"], 0),
+    # le double de 1/3 n'est pas 1/3
+    ("Pour additionner le double de 1/3 et 1/6, quel est le dénominateur commun le plus petit ?",
+     ["6", "3", "18"], 0),
+])
+def test_plus_petit_denominateur_prudence(enonce, propositions, index_correct):
+    assert statut(enonce, propositions, index_correct) == A_RELIRE
 
 
 # --- Pythagore ------------------------------------------------------------------------------------

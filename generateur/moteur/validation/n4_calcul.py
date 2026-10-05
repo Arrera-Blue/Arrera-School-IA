@@ -291,18 +291,29 @@ FRACTION_ENTIERE = re.compile(r"^(\d+) ?/ ?(\d+)$")
 
 def simplification(n: int, q: dict, enonce: str) -> Verdict | None:
     """« Quelle est la forme irréductible de 4/8 ? » → 1/2 seulement.
-    « Simplifie 4/8. » → toute fraction obtenue en divisant 4 et 8 par un même entier (2/4 ou 1/2)."""
+    « Simplifie 4/8. » → toute fraction obtenue en divisant 4 et 8 par un même entier (2/4 ou 1/2).
+    « 0,5 s'écrit sous quelle forme de fraction irréductible ? » → 1/2 (départ décimal ou pourcentage)."""
     if not SIMPLIFICATION.search(enonce):
         return None
     if TRANSFORMATION.search(enonce) or calculs(enonce):
         return Verdict(A_RELIRE)
-    fractions = [m.group(0) for m in VALEUR_ENONCE.finditer(enonce) if "/" in m.group(0)]
+    irreductible_demandee = "irréductible" in enonce.lower()
+    cites = [m.group(0) for m in VALEUR_ENONCE.finditer(enonce)]
+    fractions = [c for c in cites if "/" in c]
+    if irreductible_demandee and not fractions and len(cites) == 1 and re.search(r"[.,%]", cites[0]):
+        # un décimal ou un pourcentage n'a qu'une forme irréductible ; un entier seul (« Écris 3… ») est
+        # trop ambigu pour être lu comme la valeur de départ
+        cible = valeur(cites[0])[1]
+        if cible <= 0:
+            return Verdict(A_RELIRE)  # forme_irreductible ne lit pas les négatifs : « -1/2 » serait jugée fausse
+        justes =[i for i, p in enumerate(q["propositions"]) if forme_irreductible(p) and valeur(p) == ("", cible)]
+        illisibles = [i for i, p in enumerate(q["propositions"]) if valeur(p) is None]
+        return trancher(n, q, justes, illisibles, f"la forme irréductible de {cites[0].strip()} est {formater(cible)}")
     depart = FRACTION_ENTIERE.match(normaliser(fractions[0])) if len(fractions) == 1 else None
     if depart is None:
         return Verdict(A_RELIRE)
     num, den = int(depart[1]), int(depart[2])
     cible = Fraction(num, den)
-    irreductible_demandee = "irréductible" in enonce.lower()
 
     def convient(p: str) -> bool:
         texte = normaliser(p)
@@ -320,6 +331,78 @@ def simplification(n: int, q: dict, enonce: str) -> Verdict | None:
     else:
         attendu = f"une simplification de {num}/{den} divise ses deux termes par un même nombre"
     return trancher(n, q, justes, illisibles, attendu)
+
+
+# « si on multiplie le numérateur et le dénominateur par 3 », « en divisant ses deux termes par 2 »
+MEMES_TERMES = re.compile(
+    r"(?:(?:si|quand|lorsque?) ?(?:on|l'on|tu) |en )?(?P<op>multipli|divis)\w* "
+    r"(?:le numérateur et le dénominateur|son numérateur et son dénominateur|ses deux termes|les deux termes)"
+    r"(?: de (?:cette fraction|la fraction|(?P<f>\d+ ?/ ?\d+)))? par (?P<k>\d+)", re.IGNORECASE)
+
+
+def memes_termes(n: int, q: dict, enonce: str) -> Verdict | None:
+    """« Quelle est la fraction équivalente à 2/5 si on multiplie le numérateur et le dénominateur par 3 ? »
+    → 6/15, sous cette forme exacte : 12/30 est aussi égale à 2/5, mais n'est pas le résultat demandé."""
+    m = MEMES_TERMES.search(enonce)
+    if not m:
+        return None
+    reste = enonce[:m.start()] + enonce[m.end():]
+    # une autre transformation (« puis on ajoute 1 »), ou une question sur un seul terme (« quel numérateur
+    # obtient-on ? ») : la réponse n'est plus la fraction transformée
+    if TRANSFORMATION.search(reste) or re.search(r"numérateur|dénominateur", reste, re.IGNORECASE):
+        return Verdict(A_RELIRE)
+    # la fraction de départ, dans la consigne (« de 6/15 par 3 ») ou ailleurs dans l'énoncé, citée une seule fois
+    cites = ([m["f"]] if m["f"] else []) + [x.group(0) for x in VALEUR_ENONCE.finditer(reste)]
+    depart = FRACTION_ENTIERE.match(normaliser(cites[0])) if len(cites) == 1 else None
+    k = int(m["k"])
+    if depart is None or k < 2:
+        return Verdict(A_RELIRE)
+    num, den = int(depart[1]), int(depart[2])
+    if m["op"].lower() == "multipli":
+        a, b, verbe = num * k, den * k, "multipliant"
+    elif num % k == 0 and den % k == 0:
+        a, b, verbe = num // k, den // k, "divisant"
+    else:
+        return Verdict(A_RELIRE)
+    if not FRACTION_ENTIERE.match(normaliser(q["propositions"][q["index_correct"]])):
+        return Verdict(A_RELIRE)  # la réponse annoncée n'est pas une fraction : autre chose est demandé
+
+    def convient(p: str) -> bool:
+        f = FRACTION_ENTIERE.match(normaliser(p))
+        return f is not None and (int(f[1]), int(f[2])) == (a, b)
+
+    justes = [i for i, p in enumerate(q["propositions"]) if convient(p)]
+    illisibles = [i for i, p in enumerate(q["propositions"]) if valeur(p) is None]
+    attendu = f"en {verbe} les deux termes de {num}/{den} par {k}, on obtient {a}/{b}"
+    return trancher(n, q, justes, illisibles, attendu)
+
+
+# « Pour additionner 1/3 et 1/6, quel est le dénominateur commun le plus petit ? »
+PLUS_PETIT_DENOMINATEUR = re.compile(
+    r"(?:plus petit dénominateur commun|dénominateur commun le plus petit)[^.?!]*\?$", re.IGNORECASE)
+# le but annoncé ne change pas les dénominateurs : on cherche le même pour ajouter, soustraire ou comparer
+BUT_DU_CALCUL = re.compile(r"^(additionn\w*|soustr\w*|somme|différence)$", re.IGNORECASE)
+
+
+def plus_petit_denominateur(n: int, q: dict, enonce: str) -> Verdict | None:
+    if "dénominateur commun" not in enonce.lower():
+        return None
+    # toute autre question sur un dénominateur commun est laissée à l'enseignant : sans cela, « le plus
+    # petit » serait lu par comparaison comme une comparaison des fractions citées
+    if not PLUS_PETIT_DENOMINATEUR.search(enonce):
+        return Verdict(A_RELIRE)
+    if any(not BUT_DU_CALCUL.match(t.group(0)) for t in TRANSFORMATION.finditer(enonce)) or calculs(enonce):
+        return Verdict(A_RELIRE)
+    cites = [m.group(0) for m in VALEUR_ENONCE.finditer(enonce)]
+    termes = [FRACTION_ENTIERE.match(normaliser(c)) for c in cites]
+    # au moins deux fractions, rien d'autre ; une fraction simplifiable (2/4) rend « le plus petit » ambigu
+    if len(termes) < 2 or not all(termes) or any(math.gcd(int(t[1]), int(t[2])) != 1 for t in termes):
+        return Verdict(A_RELIRE)
+    if not normaliser(q["propositions"][q["index_correct"]]).isdigit():
+        return Verdict(A_RELIRE)  # « 2/6 » annoncée : la question demande autre chose qu'un nombre
+    cible = Fraction(math.lcm(*(int(t[2]) for t in termes)))
+    attendu = f"le plus petit dénominateur commun de {' et '.join(cites)} est {formater(cible)}"
+    return _selon_valeur(n, q, cible, attendu)
 
 
 EGALITE = re.compile(rf"{QUESTION_DIRECTE} (?:égale?s?|équivalente?s?) (?:à|a) (?P<x>{VALEUR_TEXTE}) ?\?$",
@@ -438,8 +521,10 @@ def operation_nommee(n: int, q: dict, enonce: str) -> Verdict | None:
     return _selon_valeur(n, q, resultat, attendu)
 
 
-RECONNAISSEURS = (pythagore_hypotenuse, pythagore_reciproque, simplification, egalite, comparaison, operation_nommee,
-                  calcul_direct)
+# memes_termes avant simplification (« en divisant ses deux termes par 2 » nomme une simplification), et
+# plus_petit_denominateur avant comparaison (« le plus petit » n'y compare pas les valeurs citées)
+RECONNAISSEURS = (pythagore_hypotenuse, pythagore_reciproque, memes_termes, simplification, plus_petit_denominateur,
+                  egalite, comparaison, operation_nommee, calcul_direct)
 
 
 # --- point d'entrée ------------------------------------------------------------------------------
