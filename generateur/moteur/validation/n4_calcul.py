@@ -300,7 +300,10 @@ def simplification(n: int, q: dict, enonce: str) -> Verdict | None:
     irreductible_demandee = "irréductible" in enonce.lower()
     cites = [m.group(0) for m in VALEUR_ENONCE.finditer(enonce)]
     fractions = [c for c in cites if "/" in c]
-    if irreductible_demandee and not fractions and len(cites) == 1 and re.search(r"[.,%]", cites[0]):
+    # « 0,5 correspond à quelle fraction simplifiée ? » : partant d'un décimal, « simplifiée » ne peut
+    # désigner que la forme irréductible, puisqu'il n'y a pas de fraction de départ à diviser
+    irreductible_voulue = irreductible_demandee or re.search(r"simplifiée|plus simple", enonce, re.IGNORECASE)
+    if irreductible_voulue and not fractions and len(cites) == 1 and re.search(r"[.,%]", cites[0]):
         # un décimal ou un pourcentage n'a qu'une forme irréductible ; un entier seul (« Écris 3… ») est
         # trop ambigu pour être lu comme la valeur de départ
         cible = valeur(cites[0])[1]
@@ -405,12 +408,54 @@ def plus_petit_denominateur(n: int, q: dict, enonce: str) -> Verdict | None:
     return _selon_valeur(n, q, cible, attendu)
 
 
-EGALITE = re.compile(rf"{QUESTION_DIRECTE} (?:égale?s?|équivalente?s?) (?:à|a) (?P<x>{VALEUR_TEXTE}) ?\?$",
-                     re.IGNORECASE)
+# « une figure divisée en 8 parties égales, dont 3 sont coloriées », « un gâteau coupé en 4 parts »,
+# « si tu as 12 bonbons » : le nombre total de parts
+MOT = r"[a-zàâçéèêëîïôûùüÿœ-]+"
+TOUT = re.compile(r"\b(?:divisée?s?|coupée?s?|partagée?s?|découpée?s?) en (?P<n>\d+) (?:parts?|parties|morceaux)\b"
+                  rf"|\b(?:tu as|tu possèdes|il a|elle a|on a|il y a|j'ai) (?P<n2>\d+) {MOT}", re.IGNORECASE)
+# « dont 3 sont coloriées », « que tu en manges 1 » : les parts concernées, et ce qu'on leur fait
+PARTIE = re.compile(rf"\bdont (?P<k>\d+) (?:est|sont) (?P<v>{MOT})"
+                    rf"|\b(?:tu|il|elle|on|j') ?en (?P<v2>{MOT}) (?P<k2>\d+)\b", re.IGNORECASE)
+QUESTION_FRACTION = re.compile(r"\bquelle fraction[^?]*\?$", re.IGNORECASE)
+# ce qui inverse ou déplace la réponse : « la partie non coloriée », « ce qui reste », « les autres »
+COMPLEMENT = re.compile(r"\b(?:non|reste\w*|restant\w*|autres?|sauf|encore|blanche?s?)\b|\bn'|\bne\b", re.IGNORECASE)
+# un second découpage (« puis chaque part est coupée en deux ») ou un nombre écrit en lettres échappe au
+# décompte des nombres cités : le total ne serait plus celui qu'on croit lire
+DECOUPAGE = re.compile(r"\b(?:divis|coup|partag|découp)\w* en\b", re.IGNORECASE)
+NOMBRE_EN_LETTRES = re.compile(r"\b(?:deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|vingt|cent|"
+                               r"moitié|tiers|quarts?|chaque)\b", re.IGNORECASE)
+
+
+def parts_d_un_tout(n: int, q: dict, enonce: str) -> Verdict | None:
+    """« Quelle fraction représente la partie coloriée d'une figure divisée en 8 parties égales, dont 3 sont
+    coloriées ? » → 3/8. La question doit porter sur l'action même qui désigne les parts (« en manges 1 » …
+    « as-tu mangée ») : « quelle fraction reste-t-il ? » ou « la partie blanche » demanderaient 5/8."""
+    tout, partie, question_posee = TOUT.search(enonce), PARTIE.search(enonce), QUESTION_FRACTION.search(enonce)
+    if not (tout and partie and question_posee):
+        return None
+    # « divisée en 8 parties » décrit le tout ; une autre transformation (« le double de… ») le change
+    sans_le_tout = enonce[:tout.start()] + enonce[tout.end():]
+    if COMPLEMENT.search(enonce) or TRANSFORMATION.search(sans_le_tout) or NOMBRE_EN_LETTRES.search(enonce) \
+            or len(DECOUPAGE.findall(enonce)) > 1:
+        return Verdict(A_RELIRE)
+    total, k = int(tout["n"] or tout["n2"]), int(partie["k"] or partie["k2"])
+    action = (partie["v"] or partie["v2"]).lower()
+    cites = [m.group(0) for m in VALEUR_ENONCE.finditer(enonce)]
+    # exactement le total et la partie, en nombres entiers : « 3 en bleu et 2 en rouge » est hors champ
+    if sorted(cites) != sorted([str(total), str(k)]) or not 1 <= k < total or len(action) < 5:
+        return Verdict(A_RELIRE)
+    if action[:4] not in question_posee.group(0).lower():
+        return Verdict(A_RELIRE)  # « dont 3 sont coloriées » … « quelle fraction est mangée ? »
+    return _selon_valeur(n, q, Fraction(k, total), f"{k} parts sur {total} représentent {k}/{total}")
+
+
+EGALITE = re.compile(rf"{QUESTION_DIRECTE}(?: (?:la|une) fraction)? (?:égale?s?|équivalente?s?) (?:à|a) "
+                     rf"(?P<x>{VALEUR_TEXTE}) ?\?$", re.IGNORECASE)
 
 
 def egalite(n: int, q: dict, enonce: str) -> Verdict | None:
-    """« Quelle fraction est égale à 3/4 ? » — formulation directe uniquement."""
+    """« Quelle fraction est égale à 3/4 ? », « Quelle est la fraction équivalente à 2/4 ? » — formulation
+    directe uniquement."""
     m = EGALITE.search(enonce)
     if not m:
         return None
@@ -470,7 +515,7 @@ def comparaison(n: int, q: dict, enonce: str) -> Verdict | None:
 DEMANDE_DE_CALCUL = (r"(?:résultat (?:de|du)|calcule[rz]?|effectue[rz]?|combien (?:font|fait|vaut|valent|donne)|"
                      r"que (?:vaut|valent|donne)|valeur de)")
 SUPPORT = (r"(?: (?:l'|la |le |du |de l')?(?:opération|expression|calcul|addition|soustraction|multiplication|"
-           r"division)(?: suivante?)?)?")
+           r"division)(?: suivante?)?(?: de (?:deux|ces) (?:fractions|nombres))?)?")
 CALCUL_DIRECT = re.compile(rf"\b{DEMANDE_DE_CALCUL}{SUPPORT} ?:? ?(?P<expr>{EXPRESSION}) ?(?:= ?)?[?.!]?$",
                            re.IGNORECASE)
 CALCUL_A_COMPLETER = re.compile(rf"(?:^|[:.!?] )(?P<expr>{EXPRESSION}) ?= ?(?:\?|\.\.\.|…)$")
@@ -524,7 +569,7 @@ def operation_nommee(n: int, q: dict, enonce: str) -> Verdict | None:
 # memes_termes avant simplification (« en divisant ses deux termes par 2 » nomme une simplification), et
 # plus_petit_denominateur avant comparaison (« le plus petit » n'y compare pas les valeurs citées)
 RECONNAISSEURS = (pythagore_hypotenuse, pythagore_reciproque, memes_termes, simplification, plus_petit_denominateur,
-                  egalite, comparaison, operation_nommee, calcul_direct)
+                  parts_d_un_tout, egalite, comparaison, operation_nommee, calcul_direct)
 
 
 # --- point d'entrée ------------------------------------------------------------------------------
