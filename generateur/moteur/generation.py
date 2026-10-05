@@ -1,4 +1,4 @@
-"""Demande → modèle → JSON validé (N1, N2, N3, N4) → bloc meta → exercice HTML.
+"""Demande → modèle → JSON validé (N1, N2, N3, N4), avec reprise des questions fautives → meta → HTML.
 
 Exemples (dans le conteneur, depuis /app) :
     python -m generateur.moteur.generation --demande "un QCM de 5 questions sur les fractions pour des 6e"
@@ -47,6 +47,49 @@ def construire_messages(type_exo: registre.TypeExercice, schema: dict, demande: 
     return [{"role": "system", "content": type_exo.prompt}, {"role": "user", "content": utilisateur}]
 
 
+def schema_partiel(schema: dict, nombre: int) -> dict:
+    """Schéma d'une reprise : seulement les questions à remplacer, ni plus ni moins."""
+    questions = copy.deepcopy(schema["properties"]["questions"])
+    questions["minItems"] = questions["maxItems"] = nombre
+    return {"type": "object", "required": ["questions"], "additionalProperties": False,
+            "properties": {"questions": questions}}
+
+
+def _enumerer(numeros: list[int]) -> str:
+    """[2] → « la question 2 » ; [2, 4] → « les questions 2 et 4 »."""
+    if len(numeros) == 1:
+        return f"la question {numeros[0]}"
+    return f"les questions {', '.join(map(str, numeros[:-1]))} et {numeros[-1]}"
+
+
+def message_de_reprise(defauts: list[str], a_remplacer: list[int] | None, format_refuse: list[str]) -> str:
+    """Ce qu'on dit au modèle pour qu'il corrige : les messages de N1 → N4, tels quels, puis la consigne."""
+    lignes = ["Ta réponse a été refusée par la vérification automatique :"]
+    lignes += [f"- {d}" for d in defauts]
+    if format_refuse:
+        lignes += ["", "Ta dernière correction n'était pas utilisable :"] + [f"- {d}" for d in format_refuse]
+    lignes.append("")
+    if a_remplacer is None:
+        lignes.append("Corrige ces défauts et renvoie l'exercice complet, au format JSON demandé.")
+    else:
+        k = len(a_remplacer)
+        ordre = "" if k == 1 else ", dans cet ordre"
+        lignes.append(
+            f"Écris {k} nouvelle{'s' if k > 1 else ''} question{'s' if k > 1 else ''} pour remplacer "
+            f"{_enumerer(a_remplacer)}{ordre}. Même notion et même niveau ; ne reprends aucune des autres "
+            "questions de l'exercice ; respecte toutes les règles du message système. Réponds uniquement par un "
+            f"objet JSON de la forme {{\"questions\": [...]}}, avec exactement {k} question{'s' if k > 1 else ''}.")
+    return "\n".join(lignes)
+
+
+def questions_a_remplacer(erreur: ErreurValidation) -> list[int] | None:
+    """Les numéros des questions en faute, ou None si un défaut ne concerne pas une question précise
+    (titre, JSON illisible…) : il faut alors reprendre l'exercice entier."""
+    if erreur.niveau in ("N1", "N2") or not erreur.questions or any(_numero(m) == 0 for m in erreur.erreurs):
+        return None
+    return sorted(erreur.questions)
+
+
 def identifiant(type_: str, instance: dict, horodatage: str = "%Y%m%d-%H%M%S") -> str:
     texte = unicodedata.normalize("NFKD", instance.get("notion") or instance.get("titre") or "exercice")
     slug = re.sub(r"[^a-z0-9]+", "-", texte.encode("ascii", "ignore").decode().lower()).strip("-")[:40]
@@ -88,45 +131,122 @@ def valider_le_fond(instance: dict) -> tuple[list[str], dict]:
 
 
 def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = None) -> dict:
+    """Génère l'exercice, puis reprend les questions refusées par N3 ou N4 sans regénérer les autres.
+
+    La reprise prolonge la conversation : le modèle revoit sa réponse, lit les messages de la validation et
+    ne renvoie que les questions à remplacer. Le reste de l'exercice est conservé, puis tout est revalidé
+    (une nouvelle question peut dupliquer une ancienne). Au plus `tentatives_max` appels au modèle.
+    """
     cfg = config.charger()
     nom_fournisseur = nom_fournisseur or cfg["fournisseurs"]["ordre"][0]
     reglages = dict(cfg["fournisseurs"].get(nom_fournisseur, {}))
     if nom_fournisseur == "ollama":
         reglages["temperature"] = cfg["generation"]["temperature"]
     fournisseur = creer(nom_fournisseur, reglages)
+    tentatives_max = max(1, int(cfg["generation"].get("tentatives_max", 1)))
 
     type_exo = registre.charger(type_)
     schema = schema_de_sortie(type_exo.schema, demande)
     messages = construire_messages(type_exo, schema, demande)
 
     print(f"→ génération par {fournisseur.nom} ({fournisseur.modele})… cela peut prendre plusieurs minutes", flush=True)
-    debut = time.monotonic()
-    brut = fournisseur.generer(messages, schema)
-    duree = round(time.monotonic() - debut, 1)
-    print(f"→ réponse reçue en {duree} s", flush=True)
+    instance: dict | None = None       # dernier exercice complet et bien formé (N1, N2)
+    precedent = ""                     # ce que le modèle a « dit » en dernier, pour prolonger la conversation
+    defauts: ErreurValidation | None = None
+    format_refuse: list[str] = []      # N1/N2 d'une reprise ratée : redit au modèle à la tentative suivante
+    par_question: list[int] = []
+    reprises: list[dict] = []
+    duree_totale = 0.0
+    brut = ""
 
-    instance = None
-    try:
-        instance = extraire_json(brut)
-        valider(instance, schema)
-        avertissements, bilan_n4 = valider_le_fond(instance)
-    except ErreurValidation as e:
+    for tentative in range(1, tentatives_max + 1):
+        a_remplacer = None
+        if tentative == 1:
+            appel, schema_appel = messages, schema
+        else:
+            a_remplacer = questions_a_remplacer(defauts) if instance is not None else None
+            quoi = _enumerer(a_remplacer) if a_remplacer else "l'exercice entier"
+            print(f"→ reprise {tentative - 1}/{tentatives_max - 1} : {quoi}…", flush=True)
+            appel = messages + [{"role": "assistant", "content": precedent},
+                                {"role": "user", "content": message_de_reprise(defauts.erreurs, a_remplacer, format_refuse)}]
+            schema_appel = schema_partiel(schema, len(a_remplacer)) if a_remplacer else schema
+
+        debut = time.monotonic()
+        brut = fournisseur.generer(appel, schema_appel)
+        duree = round(time.monotonic() - debut, 1)
+        duree_totale += duree
+        print(f"→ réponse reçue en {duree} s", flush=True)
+
+        trace = {"tentative": tentative, "questions": a_remplacer or "toutes",
+                 "erreurs": list(defauts.erreurs) if defauts else [], "duree_s": duree}
+        # 1. la réponse est-elle bien formée (N1, N2) ?
+        try:
+            if a_remplacer:
+                partiel = extraire_json(brut)
+                valider(partiel, schema_appel)
+                remplacees = [instance["questions"][n - 1] for n in a_remplacer]
+                instance = copy.deepcopy(instance)
+                for n, q in zip(a_remplacer, partiel["questions"]):
+                    instance["questions"][n - 1] = q
+                    par_question[n - 1] += 1
+                trace |= {"resultat": "questions remplacées", "questions_remplacees": remplacees}
+                precedent = json.dumps(instance, ensure_ascii=False, indent=2)
+            else:
+                nouvelle = extraire_json(brut)
+                valider(nouvelle, schema)
+                if tentative > 1:
+                    trace |= {"resultat": "exercice regénéré",
+                              "questions_remplacees": instance["questions"] if instance else None}
+                par_question = [p + 1 for p in par_question] if instance and len(par_question) == len(
+                    nouvelle["questions"]) else [1] * len(nouvelle["questions"])
+                instance, precedent = nouvelle, brut
+            format_refuse = []
+        except ErreurValidation as e:
+            if tentative > 1:
+                reprises.append(trace | {"resultat": f"réponse inutilisable ({e.niveau})", "erreurs_reponse": e.erreurs})
+            print(f"✗ tentative {tentative} : réponse inutilisable ({e.niveau}) — {e.erreurs[0]}", flush=True)
+            if instance is None:
+                defauts, precedent = e, brut
+            else:
+                format_refuse = e.erreurs
+            continue
+        if tentative > 1:
+            reprises.append(trace)
+
+        # 2. le fond est-il juste (N3, N4) ?
+        try:
+            avertissements, bilan_n4 = valider_le_fond(instance)
+        except ErreurValidation as e:
+            defauts = e
+            if tentative < tentatives_max:  # le dernier refus est détaillé par l'appelant
+                quoi = _enumerer(list(e.questions)) if e.questions else "l'exercice"
+                print(f"✗ tentative {tentative} refusée ({e.niveau}) : {quoi}", flush=True)
+                for message in e.erreurs:
+                    print(f"   - {message}", flush=True)
+            continue
+        defauts = None
+        break
+
+    if defauts is not None:
         # on garde la réponse fautive : c'est elle qu'il faut regarder pour corriger le prompt, et elle
         # compte dans les mesures (taux d'erreur du modèle, point de décision de N4)
         ecrire_brut(brut)
         try:
-            e.rejet = enregistrer_rejet(e, brut, instance, demande, type_, fournisseur, duree)
+            defauts.rejet = enregistrer_rejet(defauts, brut, instance, demande, type_, fournisseur,
+                                              round(duree_totale, 1), tentative, reprises)
         except OSError as erreur_disque:  # ne jamais masquer le rejet lui-même
             print(f"⚠ rejet non enregistré : {erreur_disque}", file=sys.stderr)
-        raise
+        raise defauts
 
     instance["meta"] = {
         "id": identifiant(type_, instance),
         "fournisseur": fournisseur.nom,
         "modele": fournisseur.modele,
         "date": datetime.now().isoformat(timespec="seconds"),
-        "duree_s": duree,
-        "tentatives": 1,
+        "duree_s": round(duree_totale, 1),
+        "tentatives": tentative,
+        "tentatives_par_question": par_question,
+        "reprises": reprises,
         "validation": {"n1": True, "n2": True, "n3": True, **bilan_n4},
         "avertissements": avertissements,
         "statut": "genere",
@@ -136,23 +256,26 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
 
 
 def enregistrer_rejet(erreur: ErreurValidation, brut: str, instance: dict | None, demande: dict, type_: str,
-                      fournisseur, duree: float) -> Path:
+                      fournisseur, duree: float, tentatives: int = 1, reprises: list[dict] | None = None) -> Path:
     """Conserve chaque génération rejetée dans banque/rejets/.
 
     Sans cela, les exercices faux disparaîtraient et le taux d'erreur du modèle serait invisible : c'est
     pourtant la donnée du point de décision de N4 (docs/etapes/etape-1.3.md §8). Quand N1 et N2 sont
     passés, l'instance est gardée telle quelle : N4 pourra être recalculée dessus à chaque amélioration.
+    Les reprises tentées, avec les versions fautives des questions remplacées, sont gardées aussi.
     """
     rejet = {
         "date": datetime.now().isoformat(timespec="seconds"),
         "fournisseur": fournisseur.nom,
         "modele": fournisseur.modele,
         "duree_s": duree,
+        "tentatives": tentatives,
+        "reprises": reprises or [],
         "demande": demande,
         "niveau": erreur.niveau,
         "erreurs": erreur.erreurs,
         "questions": list(erreur.questions),
-        "instance": instance if erreur.niveau not in ("N1", "N2") else None,
+        "instance": instance,
         "brut": brut,
     }
     chemin = config.chemin("rejets") / f"{identifiant(type_, instance or {}, '%Y%m%d-%H%M%S-%f')}.json"
@@ -213,7 +336,7 @@ def main() -> None:
     except ErreurFournisseur as e:
         sys.exit(f"✗ fournisseur : {e}")
     except ErreurValidation as e:
-        print(f"✗ réponse du modèle rejetée ({e.niveau}) :", file=sys.stderr)
+        print(f"✗ réponse du modèle rejetée ({e.niveau}), après toutes les tentatives :", file=sys.stderr)
         for erreur in e.erreurs:
             print(f"   - {erreur}", file=sys.stderr)
         print(f"   réponse brute conservée dans {config.chemin('sortie') / 'derniere_reponse_brute.txt'}", file=sys.stderr)
@@ -225,7 +348,12 @@ def main() -> None:
     json_chemin.write_text(json.dumps(instance, ensure_ascii=False, indent=2), encoding="utf-8")
 
     html_chemin = rendu.ecrire(rendu.rendre(instance, args.type), args.sortie or config.chemin("sortie") / f"{ident}.html")
-    print(f"✓ {len(instance['questions'])} questions — « {instance['titre']} »")
+    meta = instance["meta"]
+    if meta["tentatives"] > 1:
+        print(f"✓ {len(instance['questions'])} questions — « {instance['titre']} » — en {meta['tentatives']} "
+              f"tentatives, {meta['duree_s']} s au total")
+    else:
+        print(f"✓ {len(instance['questions'])} questions — « {instance['titre']} »")
     for avertissement in instance["meta"]["avertissements"]:
         print(f"   ⚠ à relire : {avertissement}")
     print(f"   {resume_n4(instance)}")
