@@ -1,7 +1,7 @@
 fournisseurs:
   ordre: [ollama]                 # défaut : le VPS uniquement, aucun tiers
   ollama:
-    modele: "qwen3:4b"
+    modele: "gemma4:e4b-it-qat"
     url: "http://127.0.0.1:11434" # le conteneur est en --network=host : 127.0.0.1 est l'hôte
     delai_max: 600                # secondes — 4 vCPU sans GPU ; mesuré : 231 s (ancien prompt), 381 s (prompt du 29/09)
     num_ctx: 8192                 # INDISPENSABLE : schéma + exemple dépassent les 4096 par défaut
