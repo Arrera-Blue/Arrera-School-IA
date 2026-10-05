@@ -58,6 +58,29 @@ def test_filtre_depuis_une_date(tmp_path):
     assert nouveau_prompt.statuts == Counter({VERIFIE: 5})
 
 
+def test_filtre_par_modele(tmp_path):
+    # cas réel du 05/10 : un essai de qwen3:4b et un de gemma4 le même jour, à ne pas mélanger
+    instances, rejets = tmp_path / "instances", tmp_path / "rejets"
+    juste = json.loads((DONNEES / "qcm-fractions-6e-20261003-rejete-a-tort.json").read_text(encoding="utf-8"))
+    juste["meta"] = {"date": "2026-10-05T08:45:08", "modele": "gemma4:e4b-it-qat"}
+    faux = json.loads((DONNEES / "qcm-fractions-6e-20261003-rejete-a-raison.json").read_text(encoding="utf-8"))
+    ecrire(instances / "gemma.json", juste)
+    ecrire(rejets / "qwen.json", {"date": "2026-10-05T07:07:19", "modele": "qwen3:4b", "niveau": "N4",
+                                  "instance": faux})
+    ecrire(rejets / "illisible.json", {"date": "2026-10-05T09:00:00", "modele": "qwen3:4b", "niveau": "N1",
+                                       "instance": None, "demande": {}})
+
+    gemma = mesurer(instances, rejets, depuis="2026-10-05", modele="gemma4:e4b-it-qat")
+    assert (gemma.acceptees, gemma.rejetees, gemma.rejets_non_mesurables) == (1, 0, 0)
+    assert gemma.statuts == Counter({VERIFIE: 5})
+
+    qwen = mesurer(instances, rejets, modele="qwen3:4b")
+    assert (qwen.acceptees, qwen.rejetees, qwen.rejets_non_mesurables) == (0, 1, 1)
+    assert qwen.statuts == Counter({FAUX: 5})
+
+    assert mesurer(instances, rejets).generations == 2
+
+
 def test_dossiers_absents(tmp_path):
     bilan = mesurer(tmp_path / "rien", tmp_path / "rien non plus")
     assert bilan.questions == 0 and "aucune question" in decision(bilan)

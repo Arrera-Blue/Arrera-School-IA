@@ -134,6 +134,22 @@ def propositions_vides(n: int, q: dict) -> list[Constat]:
     return []
 
 
+FRACTION_DANS_TEXTE = re.compile(r"(?<![\d/,.])\d+ ?/ ?\d+(?![\d/]|[.,]\d)")
+
+
+def _sans_espaces(texte: str) -> str:
+    return normaliser(texte).replace(" ", "")
+
+
+def fraction_a_simplifier(enonce: str) -> str | None:
+    """« Simplifier la fraction 6/12 donne : » → « 6/12 » ; None si l'énoncé ne demande pas de simplifier
+    une seule fraction citée."""
+    if "simplifi" not in normaliser(enonce):
+        return None
+    fractions = FRACTION_DANS_TEXTE.findall(enonce)
+    return _sans_espaces(fractions[0]) if len(fractions) == 1 else None
+
+
 def propositions_equivalentes(n: int, q: dict) -> list[Constat]:
     """Doublons exacts, et valeurs égales écrites différemment (3/4 et 6/8, 1 m et 100 cm).
 
@@ -144,10 +160,13 @@ def propositions_equivalentes(n: int, q: dict) -> list[Constat]:
       avertissement. Le QCM est juste, mais un élève peut éliminer les deux d'un coup (cas réel du 03/10).
       Si c'est en fait la réponse annoncée qui est fausse, N4 le verra en recalculant.
 
-    Exception : quand l'énoncé demande la forme irréductible, « 2/4 » et « 1/2 » ont la même valeur mais
-    une seule est irréductible. Ce sont alors les distracteurs naturels de la question, pas une ambiguïté.
+    Exceptions, où des valeurs égales sont les distracteurs naturels de la question et non une ambiguïté :
+    - l'énoncé demande la forme irréductible : « 2/4 » et « 1/2 » ont la même valeur, une seule est irréductible ;
+    - l'énoncé demande de simplifier une fraction : la recopier telle quelle (« 6/12 » pour « Simplifier 6/12 »)
+      n'est pas la simplifier (cas réel du 05/10). Une autre simplification (« 2/4 ») reste, elle, juste.
     """
     irreductible_demandee = "irréductible" in normaliser(q["enonce"])
+    depart = fraction_a_simplifier(q["enonce"])
     groupes = defaultdict(list)
     for i, p in enumerate(q["propositions"]):
         if p.strip():  # les propositions vides relèvent de propositions_vides
@@ -160,7 +179,17 @@ def propositions_equivalentes(n: int, q: dict) -> list[Constat]:
         if len({normaliser(m) for m in membres}) == 1:
             constats.append(Constat(f"question {n} : la proposition « {membres[0]} » apparaît "
                                     f"{len(membres)} fois", True, n))
-        elif irreductible_demandee and sum(forme_irreductible(m) for m in membres) <= 1:
+            continue
+        if depart is not None:
+            recopies = [i for i in indices if _sans_espaces(q["propositions"][i]) == depart]
+            if len(recopies) > 1:  # « 6/12 » et « 6 / 12 » : un doublon que l'espace a masqué
+                constats.append(Constat(f"question {n} : la proposition « {q['propositions'][recopies[0]]} » "
+                                        f"apparaît {len(recopies)} fois", True, n))
+            indices = [i for i in indices if i not in recopies]
+            membres = [q["propositions"][i] for i in indices]
+            if len(indices) < 2:
+                continue
+        if irreductible_demandee and sum(forme_irreductible(m) for m in membres) <= 1:
             continue
         elif q["index_correct"] in indices:
             constats.append(Constat(f"question {n} : les propositions {_liste(membres)} ont la même valeur ; "
@@ -234,8 +263,26 @@ def enonce_flou(n: int, q: dict) -> list[Constat]:
     return []
 
 
+# « la figure ci-jointe », « le schéma suivant » : l'exercice n'est que du texte, la figure n'existe pas.
+# Seulement un support visuel suivi d'un renvoi : « les fractions ci-dessous » désigne les propositions, et
+# « une figure divisée en 8 parts, dont 3 coloriées » décrit la figure au lieu d'y renvoyer.
+SUPPORT_VISUEL = r"(?:figure|schéma|dessin|image|illustration|graphique|croquis|droite graduée)s?"
+FIGURE_ABSENTE = re.compile(
+    rf"\b{SUPPORT_VISUEL} (?:suivante?s?|ci-(?:jointe?s?|dessous|dessus|contre))\b"
+    rf"|\b(?:regarde|observe)z? (?:la|le|les|cette|ce|ces) {SUPPORT_VISUEL}\b", re.IGNORECASE)
+
+
+def figure_absente(n: int, q: dict) -> list[Constat]:
+    m = FIGURE_ABSENTE.search(q["enonce"])
+    if m:
+        return [Constat(f"question {n} : l'énoncé renvoie à « {m.group(0)} », mais l'exercice ne contient "
+                        "aucune image ; décrire la situation en mots", True, n)]
+    return []
+
+
 REGLES_PAR_QUESTION = (propositions_vides, propositions_equivalentes, formules_interdites,
-                       explication_recopiee, bonne_reponse_trop_longue, bonne_reponse_contenue, enonce_flou)
+                       explication_recopiee, bonne_reponse_trop_longue, bonne_reponse_contenue, enonce_flou,
+                       figure_absente)
 
 
 def enonces_dupliques(questions: list[dict]) -> list[Constat]:

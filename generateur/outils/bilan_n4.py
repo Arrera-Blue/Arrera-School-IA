@@ -8,6 +8,7 @@ Les seuils sont ceux de docs/etapes/etape-1.3.md §8.
 
     python -m generateur.outils.bilan_n4
     python -m generateur.outils.bilan_n4 --depuis 2026-10-03     # seulement le prompt actuel
+    python -m generateur.outils.bilan_n4 --modele gemma4:e4b-it-qat   # seulement ce modèle
 """
 
 import argparse
@@ -61,21 +62,24 @@ def _lire(chemin: Path) -> dict | None:
         return None
 
 
-def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = None) -> Bilan:
+def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = None,
+            modele: str | None = None) -> Bilan:
     """`depuis` (« 2026-10-03 ») ne garde que les générations de cette date ou après : utile pour juger
-    un nouveau prompt sans le mélanger aux générations de l'ancien."""
-    def retenue(date: str | None) -> bool:
-        return depuis is None or (date or "") >= depuis
+    un nouveau prompt sans le mélanger aux générations de l'ancien. `modele` (« gemma4:e4b-it-qat ») ne
+    garde que les générations de ce modèle : utile pour comparer deux modèles essayés le même jour."""
+    def retenue(date: str | None, modele_utilise: str | None = None) -> bool:
+        return (depuis is None or (date or "") >= depuis) and (modele is None or modele_utilise == modele)
 
     bilan = Bilan()
     for chemin in sorted(dossier_instances.glob("*.json")) if dossier_instances.is_dir() else []:
         instance = _lire(chemin)
-        if instance and instance.get("matiere") == "maths" and retenue((instance.get("meta") or {}).get("date")):
+        meta = (instance or {}).get("meta") or {}
+        if instance and instance.get("matiere") == "maths" and retenue(meta.get("date"), meta.get("modele")):
             bilan.acceptees += 1
             bilan.compter(instance)
     for chemin in sorted(dossier_rejets.glob("*.json")) if dossier_rejets.is_dir() else []:
         rejet = _lire(chemin) or {}
-        if not retenue(rejet.get("date")):
+        if not retenue(rejet.get("date"), rejet.get("modele")):
             continue
         instance = rejet.get("instance")
         if instance is None:
@@ -134,10 +138,14 @@ def main() -> None:
     parser.add_argument("--rejets", type=Path, default=config.chemin("rejets"))
     parser.add_argument("--depuis", metavar="AAAA-MM-JJ",
                         help="ne compter que les générations de cette date ou après (par exemple depuis un changement de prompt)")
+    parser.add_argument("--modele", metavar="NOM",
+                        help="ne compter que les générations de ce modèle, tel que le nomme config.yaml (par exemple gemma4:e4b-it-qat)")
     args = parser.parse_args()
     if args.depuis:
         print(f"Générations retenues : depuis le {args.depuis}")
-    print(rapport(mesurer(args.instances, args.rejets, args.depuis)))
+    if args.modele:
+        print(f"Générations retenues : modèle {args.modele}")
+    print(rapport(mesurer(args.instances, args.rejets, args.depuis, args.modele)))
 
 
 if __name__ == "__main__":
