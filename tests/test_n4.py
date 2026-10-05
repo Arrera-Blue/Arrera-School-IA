@@ -76,22 +76,77 @@ def test_qcm_reel_du_3_octobre_troisieme_essai():
     assert [v.statut for v in verifier(instance)] == [A_RELIRE, FAUX, A_RELIRE, A_RELIRE, FAUX]
 
 
-def test_qcm_reel_du_5_octobre_gemma():
-    # premier QCM de gemma4:e4b-it-qat : les 5 réponses sont justes, mais rédigées en situation ; Q1 et Q3
-    # (« k parts sur n ») restent à relire : « il en reste » ou « non coloriées » inverseraient la réponse
-    instance = qcm(
-        question("Quelle fraction représente la partie coloriée d'une figure divisée en 8 parties égales, "
-                 "dont 3 sont coloriées ?", ["3/8", "8/3", "3/5", "5/8"], 0),
-        question("Le nombre 0,5 peut s'écrire sous quelle forme de fraction irréductible ?",
-                 ["1/5", "5/10", "1/2", "2/1"], 2),
-        question("Si tu as un gâteau coupé en 4 parts égales et que tu en manges 1, quelle fraction du gâteau "
-                 "as-tu mangée ?", ["1/4", "4/1", "3/4", "1/3"], 0),
-        question("Pour additionner 1/3 et 1/6, quel est le dénominateur commun le plus petit ?",
-                 ["3", "6", "18", "2"], 1),
-        question("Quelle est la fraction équivalente à 2/5 si on multiplie le numérateur et le dénominateur par 3 ?",
-                 ["6/15", "2/8", "5/15", "6/8"], 0),
-    )
-    assert valider(instance) == {"n4": A_RELIRE, "n4_questions": [A_RELIRE, VERIFIE, A_RELIRE, VERIFIE, VERIFIE]}
+# Les 5 QCM de gemma4:e4b-it-qat du 05/10 (même demande : « un QCM de 5 questions sur les fractions pour
+# des 6e »). Les 25 réponses annoncées sont justes ; les « faux » sont des questions à plusieurs bonnes
+# réponses, que N3 rejetait déjà.
+GEMMA_20261005 = [
+    ("084508 accepté", [
+        ("Quelle fraction représente la partie coloriée d'une figure divisée en 8 parties égales, dont 3 sont "
+         "coloriées ?", ["3/8", "8/3", "3/5", "5/8"], 0, VERIFIE),
+        ("Le nombre 0,5 peut s'écrire sous quelle forme de fraction irréductible ?",
+         ["1/5", "5/10", "1/2", "2/1"], 2, VERIFIE),
+        ("Si tu as un gâteau coupé en 4 parts égales et que tu en manges 1, quelle fraction du gâteau as-tu "
+         "mangée ?", ["1/4", "4/1", "3/4", "1/3"], 0, VERIFIE),
+        ("Pour additionner 1/3 et 1/6, quel est le dénominateur commun le plus petit ?",
+         ["3", "6", "18", "2"], 1, VERIFIE),
+        ("Quelle est la fraction équivalente à 2/5 si on multiplie le numérateur et le dénominateur par 3 ?",
+         ["6/15", "2/8", "5/15", "6/8"], 0, VERIFIE),
+    ]),
+    ("091759 rejeté", [
+        ("Quelle fraction représente la partie hachurée de la figure ci-jointe ?",          # figure absente : N3
+         ["1/3", "1/2", "2/3", "3/4"], 1, A_RELIRE),
+        ("Simplifier la fraction 6/12 donne :", ["2/6", "3/4", "1/2", "6/12"], 2, VERIFIE),
+        ("Le nombre 3/5 est égal à quel nombre décimal ?", ["0,35", "0,53", "0,6", "3,5"], 2, A_RELIRE),
+        ("Quelle est la fraction équivalente à 2/4 ?", ["1/2", "2/8", "4/8", "3/6"], 0, FAUX),
+        ("Si tu as 10 parts et que tu en manges 3, quelle fraction as-tu mangée ?",
+         ["3/10", "7/10", "10/3", "3/7"], 0, VERIFIE),
+    ]),
+    ("124620 rejeté", [
+        ("Quelle fraction représente la partie coloriée d'une figure divisée en 4 parties égales, dont 1 est "
+         "colorée ?", ["1/2", "1/3", "1/4", "4/1"], 2, VERIFIE),
+        ("Dans la fraction 3/5, quel nombre est le dénominateur ?", ["3", "5", "8", "1"], 1, A_RELIRE),
+        ("Quelle fraction est équivalente à 1/2 ?", ["2/5", "1/4", "3/6", "2/3"], 2, VERIFIE),
+        ("Si tu as 12 bonbons et que tu en donnes 4, quelle fraction des bonbons as-tu donnés ?",
+         ["4/12", "8/12", "1/3", "1/4"], 0, FAUX),
+        ("Simplifie la fraction 6/9 en trouvant la fraction équivalente la plus simple.",
+         ["2/3", "3/6", "6/18", "1/9"], 0, VERIFIE),
+    ]),
+    ("124848 rejeté", [
+        ("Quelle fraction représente la partie coloriée d'une figure divisée en 4 parts égales, dont 1 est "
+         "colorée ?", ["4/1", "1/4", "1/3", "3/4"], 1, VERIFIE),
+        ("Pour simplifier la fraction 6/12, quel est le plus grand diviseur commun au numérateur et au "
+         "dénominateur ?", ["2", "3", "6", "12"], 2, A_RELIRE),
+        ("Comment écrire le nombre 0,5 sous forme de fraction irréductible ?",
+         ["5/10", "1/2", "2/5", "5/5"], 1, VERIFIE),
+        ("Quel est le résultat de l'addition de deux fractions : 1/4 + 1/4 ?",
+         ["2/8", "2/4", "1/2", "2/16"], 1, FAUX),
+        ("Si tu as une tarte entière et que tu en manges 2/3, quelle fraction de tarte te reste-t-il ?",
+         ["1/3", "2/3", "3/2", "1/6"], 0, A_RELIRE),
+    ]),
+    ("125113 accepté", [
+        ("Quelle fraction représente la partie coloriée d'un rectangle divisé en 8 parties, dont 3 sont "
+         "coloriées ?", ["3/8", "8/3", "3+8", "1/8"], 0, VERIFIE),
+        ("L'écriture décimale 0,5 correspond à quelle fraction simplifiée ?",
+         ["1/5", "5/100", "1/2", "2/5"], 2, VERIFIE),
+        ("Si tu as une tarte coupée en 10 parts égales et que tu en manges 4, quelle fraction as-tu mangée ?",
+         ["4/10", "10/4", "4/6", "1/4"], 0, VERIFIE),
+        ("Pour additionner 1/4 et 1/2, quel est le dénominateur commun le plus petit ?",
+         ["2", "4", "8", "1/2"], 1, VERIFIE),
+        ("Quelle fraction est équivalente à 2/3 ?", ["4/5", "6/9", "2/6", "3/6"], 1, VERIFIE),
+    ]),
+]
+
+
+@pytest.mark.parametrize("nom, questions", GEMMA_20261005, ids=[nom for nom, _ in GEMMA_20261005])
+def test_qcm_reels_du_5_octobre_gemma(nom, questions):
+    instance = qcm(*(question(e, p, i) for e, p, i, _ in questions))
+    assert [v.statut for v in verifier(instance)] == [attendu for *_, attendu in questions]
+
+
+def test_bilan_des_5_qcm_gemma():
+    # avant les extensions du 05/10 : 9 vérifiées, 0 fausse, 16 à relire
+    statuts = [attendu for _, questions in GEMMA_20261005 for *_, attendu in questions]
+    assert (statuts.count(VERIFIE), statuts.count(FAUX), statuts.count(A_RELIRE)) == (17, 3, 5)
 
 
 def test_une_reformulation_de_la_bonne_reponse_empeche_le_verdict_verifie():
@@ -203,6 +258,8 @@ def test_simplifier_n_exige_pas_la_forme_irreductible():
     ("Écris -0,5 sous forme de fraction irréductible.", ["-1/2", "1/2", "-5/10"], 0, A_RELIRE),   # négatif
     ("Écris 3 sous forme de fraction irréductible.", ["3", "3/1", "6/2"], 0, A_RELIRE),           # entier seul
     ("Simplifie 0,5.", ["1/2", "5/10", "0,05"], 0, A_RELIRE),                    # irréductible non demandée
+    ("L'écriture décimale 0,5 correspond à quelle fraction simplifiée ?", ["5/10", "1/2", "1/5"], 1, VERIFIE),
+    ("L'écriture décimale 0,5 correspond à quelle fraction simplifiée ?", ["5/10", "1/2", "1/5"], 0, FAUX),
 ])
 def test_forme_irreductible_d_un_decimal(enonce, propositions, index_correct, attendu):
     assert statut(enonce, propositions, index_correct) == attendu
@@ -212,6 +269,65 @@ def test_forme_irreductible_d_un_decimal_message():
     assert message("Écris 0,75 sous forme de fraction irréductible.", ["75/100", "3/4", "7/5"], 0) == (
         "question 1 : la forme irréductible de 0,75 est 3/4, mais la réponse annoncée est « 75/100 » "
         "au lieu de « 3/4 »")
+
+
+# --- parts d'un tout ------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    ("Une pizza est coupée en 8 parts. Tu en manges 3. Quelle fraction de la pizza as-tu mangée ?",
+     ["3/8", "5/8", "8/3"], 0, VERIFIE),
+    ("Une pizza est coupée en 8 parts. Tu en manges 3. Quelle fraction de la pizza as-tu mangée ?",
+     ["3/8", "5/8", "8/3"], 1, FAUX),
+    ("Une figure est partagée en 6 parties égales, dont 2 sont hachurées. Quelle fraction de la figure est "
+     "hachurée ?", ["2/6", "4/6", "2/4"], 0, VERIFIE),
+    ("Une figure est partagée en 6 parties égales, dont 2 sont hachurées. Quelle fraction de la figure est "
+     "hachurée ?", ["2/6", "1/3", "2/4"], 0, FAUX),                                    # 2/6 et 1/3
+])
+def test_parts_d_un_tout(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+def test_parts_d_un_tout_message():
+    assert message("Si tu as 10 parts et que tu en manges 3, quelle fraction as-tu mangée ?",
+                   ["7/10", "3/10", "3/7"], 0) == (
+        "question 1 : 3 parts sur 10 représentent 3/10, mais la réponse annoncée est « 7/10 » au lieu de « 3/10 »")
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct", [
+    # la partie restante ou non coloriée : la réponse est 5/8, pas 3/8
+    ("Une pizza est coupée en 8 parts et tu en manges 3. Quelle fraction de la pizza reste-t-il ?",
+     ["5/8", "3/8", "8/5"], 0),
+    ("Une figure divisée en 8 parties égales, dont 3 sont coloriées. Quelle fraction n'est pas coloriée ?",
+     ["5/8", "3/8", "8/5"], 0),
+    ("Une figure divisée en 8 parties égales, dont 3 sont coloriées. Quelle fraction est non coloriée ?",
+     ["5/8", "3/8", "8/5"], 0),
+    ("Une figure divisée en 8 parties égales, dont 3 sont coloriées. Quelle fraction de la figure est blanche ?",
+     ["5/8", "3/8", "8/5"], 0),
+    # la question porte sur une autre action que celle qui désigne les parts
+    ("Un gâteau est coupé en 8 parts, dont 3 sont mangées par Léo. Quelle fraction Léa a-t-elle prise ?",
+     ["2/8", "3/8", "5/8"], 0),
+    # deux groupes de parts : trois nombres cités
+    ("Un gâteau est coupé en 8 parts. Tu en manges 3 et ton frère 2. Quelle fraction as-tu mangée ?",
+     ["3/8", "5/8", "2/8"], 0),
+    # la partie est elle-même une fraction
+    ("Si tu as une tarte entière et que tu en manges 2/3, quelle fraction de tarte te reste-t-il ?",
+     ["1/3", "2/3", "3/2"], 0),
+    # le tout est transformé
+    ("Un gâteau est coupé en 8 parts, puis chaque part est coupée en deux. Tu en manges 3. Quelle fraction "
+     "as-tu mangée ?", ["3/16", "3/8", "6/16"], 0),
+])
+def test_parts_d_un_tout_prudence(enonce, propositions, index_correct):
+    assert statut(enonce, propositions, index_correct) == A_RELIRE
+
+
+def test_egalite_avec_la_fraction():
+    assert statut("Quelle est la fraction équivalente à 2/3 ?", ["4/5", "6/9", "2/6"], 1) == VERIFIE
+    assert statut("Quelle est une fraction égale à 3/4 ?", ["6/8", "3/8", "4/3"], 1) == FAUX
+
+
+def test_resultat_de_l_addition_de_deux_fractions():
+    assert statut("Quel est le résultat de l'addition de deux fractions : 1/4 + 1/2 ?",
+                  ["3/4", "2/6", "1/8"], 0) == VERIFIE
 
 
 # --- même opération sur les deux termes d'une fraction --------------------------------------------
