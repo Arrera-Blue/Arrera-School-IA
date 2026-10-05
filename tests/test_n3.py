@@ -125,6 +125,61 @@ def test_simplifiee_sans_irreductible_reste_ambigu():
     assert any("même valeur" in m for m in bloquants(qcm(q)))
 
 
+def test_simplifier_la_fraction_de_depart_recopiee_est_un_distracteur():
+    # cas réel du 05/10 (gemma4) : « 6/12 » recopie la fraction de départ, ce n'est pas une simplification
+    q = question(["2/6", "3/4", "1/2", "6/12"], index_correct=2, enonce="Simplifier la fraction 6/12 donne :",
+                 explication="On divise 6 et 12 par 6 : on obtient 1/2.")
+    assert bloquants(qcm(q)) == []
+
+
+def test_simplifier_une_autre_simplification_reste_une_seconde_bonne_reponse():
+    # 2/4 est 6/12 divisé par 3 : c'est aussi une simplification juste
+    q = question(["2/4", "3/4", "1/2", "6/12"], index_correct=2, enonce="Simplifier la fraction 6/12 donne :",
+                 explication="On divise 6 et 12 par 6 : on obtient 1/2.")
+    assert bloquants(qcm(q)) == ["question 1 : les propositions « 2/4 » et « 1/2 » ont la même valeur ; une seule "
+                                 "proposition peut être juste, les autres doivent être fausses"]
+
+
+def test_simplifier_la_fraction_de_depart_en_double_reste_un_doublon():
+    q = question(["6/12", "3/4", "1/2", "6 / 12"], index_correct=2, enonce="Simplifie 6/12.",
+                 explication="On divise 6 et 12 par 6 : on obtient 1/2.")
+    assert bloquants(qcm(q)) == ["question 1 : la proposition « 6/12 » apparaît 2 fois"]
+
+
+def test_sans_simplifier_la_fraction_de_depart_reste_une_bonne_reponse():
+    # « équivalente à 6/12 » : 6/12 est bel et bien égale à elle-même
+    q = question(["6/12", "3/4", "1/2"], index_correct=2, enonce="Quelle fraction est équivalente à 6/12 ?",
+                 explication="On divise 6 et 12 par 6 : on obtient 1/2.")
+    assert any("même valeur" in m for m in bloquants(qcm(q)))
+
+
+@pytest.mark.parametrize("enonce", [
+    "Quelle fraction représente la partie hachurée de la figure ci-jointe ?",   # cas réel du 05/10 (gemma4)
+    "Quelle fraction est représentée sur le schéma suivant ?",
+    "Observe la figure : quelle fraction est coloriée ?",
+    "Quel nombre est placé sur la droite graduée ci-dessous ?",
+    "Regardez le dessin ci-contre. Quelle part a été mangée ?",
+])
+def test_figure_absente(enonce):
+    q = question(["1/3", "1/2", "2/3"], index_correct=1, enonce=enonce,
+                 explication="Deux parts sur quatre sont coloriées, soit la moitié.")
+    messages = bloquants(qcm(q))
+    assert len(messages) == 1 and "aucune image" in messages[0]
+
+
+@pytest.mark.parametrize("enonce", [
+    # la figure est décrite en mots (cas réel du 05/10, accepté)
+    "Quelle fraction représente la partie coloriée d'une figure divisée en 8 parties égales, dont 3 sont coloriées ?",
+    "Laquelle des fractions ci-dessous est égale à 1/2 ?",                       # renvoie aux propositions
+    "Parmi les nombres suivants, lequel est le plus grand ?",
+    "Un carré est partagé en 4 parts égales et 1 part est coloriée. Quelle fraction de la figure est coloriée ?",
+])
+def test_figure_decrite_ou_renvoi_aux_propositions(enonce):
+    q = question(["1/3", "1/2", "3/8"], index_correct=1, enonce=enonce,
+                 explication="On compte les parts coloriées et le nombre total de parts.")
+    assert not any("aucune image" in m for m in bloquants(qcm(q)))
+
+
 @pytest.mark.parametrize("texte, attendu", [
     ("1/2", True), ("3", True), ("5 / 7", True), ("2/4", False), ("0,5", False), ("6/3", False), ("4/1", False),
 ])
