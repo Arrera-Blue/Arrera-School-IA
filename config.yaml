@@ -7,7 +7,7 @@ fournisseurs:
     num_ctx: 8192                 # INDISPENSABLE : schéma + exemple dépassent les 4096 par défaut
     think: false                  # Qwen 3 : le mode « raisonnement » coûte des minutes pour rien ici
 generation:
-  tentatives_max: 1               # les reprises sur erreur arrivent à l'étape 1.4 (plan-suite.md)
+  tentatives_max: 3               # appels au modèle : la génération, puis 2 reprises des seules questions refusées
   temperature: 0.5
 chemins:                          # relatifs à la racine du dépôt (/app dans le conteneur)
   types: "generateur/types"
