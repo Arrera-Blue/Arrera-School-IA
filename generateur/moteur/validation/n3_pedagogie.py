@@ -110,6 +110,17 @@ def cle_de_comparaison(proposition: str) -> tuple:
 
 FRACTION_ECRITE = re.compile(r"^(\d+) ?/ ?(\d+)$")
 
+# « irréductible », mais aussi « à sa forme la plus simple », « simplifie au maximum » (cas réel du 06/10) ;
+# « simplifiée » seul n'en fait pas partie : 2/4 et 1/2 sont toutes deux des simplifications de 4/8
+IRREDUCTIBLE = re.compile(
+    r"irréductible|(?:forme|écriture|fraction)s? (?:\w+ )?la plus simple"
+    r"|simplifi\w* (?:\S+ ){0,3}?(?:au maximum|le plus possible|au plus simple|complètement)")
+
+
+def irreductible_demandee(enonce: str) -> bool:
+    """« Quelle est la forme irréductible de 4/8 ? », « Simplifie 6/12 à sa forme la plus simple. » : oui."""
+    return IRREDUCTIBLE.search(normaliser(enonce)) is not None
+
 
 def forme_irreductible(proposition: str) -> bool:
     """« 1/2 » ou « 3 » : oui ; « 2/4 », « 0,5 » ou « 6/3 » : non."""
@@ -161,11 +172,12 @@ def propositions_equivalentes(n: int, q: dict) -> list[Constat]:
       Si c'est en fait la réponse annoncée qui est fausse, N4 le verra en recalculant.
 
     Exceptions, où des valeurs égales sont les distracteurs naturels de la question et non une ambiguïté :
-    - l'énoncé demande la forme irréductible : « 2/4 » et « 1/2 » ont la même valeur, une seule est irréductible ;
+    - l'énoncé demande la forme irréductible (ou « la plus simple ») : « 2/4 » et « 1/2 » ont la même valeur,
+      une seule est irréductible ;
     - l'énoncé demande de simplifier une fraction : la recopier telle quelle (« 6/12 » pour « Simplifier 6/12 »)
       n'est pas la simplifier (cas réel du 05/10). Une autre simplification (« 2/4 ») reste, elle, juste.
     """
-    irreductible_demandee = "irréductible" in normaliser(q["enonce"])
+    irreductible = irreductible_demandee(q["enonce"])
     depart = fraction_a_simplifier(q["enonce"])
     groupes = defaultdict(list)
     for i, p in enumerate(q["propositions"]):
@@ -189,7 +201,7 @@ def propositions_equivalentes(n: int, q: dict) -> list[Constat]:
             membres = [q["propositions"][i] for i in indices]
             if len(indices) < 2:
                 continue
-        if irreductible_demandee and sum(forme_irreductible(m) for m in membres) <= 1:
+        if irreductible and sum(forme_irreductible(m) for m in membres) <= 1:
             continue
         elif q["index_correct"] in indices:
             constats.append(Constat(f"question {n} : les propositions {_liste(membres)} ont la même valeur ; "

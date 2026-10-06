@@ -8,7 +8,7 @@ import pytest
 
 from generateur.moteur import registre
 from generateur.moteur.validation import ErreurValidation
-from generateur.moteur.validation.n3_pedagogie import forme_irreductible, valeur, valider, verifier
+from generateur.moteur.validation.n3_pedagogie import forme_irreductible, irreductible_demandee, valeur, valider, verifier
 
 DONNEES = Path(__file__).parent / "donnees"
 
@@ -117,6 +117,30 @@ def test_forme_irreductible_demandee_les_fractions_egales_sont_les_distracteurs(
     q = question(["2/4", "1/2", "4/2"], index_correct=1, enonce="Quelle est la forme irréductible de 4/8 ?",
                  explication="On divise 4 et 8 par leur plus grand diviseur commun, 4 : on obtient 1/2.")
     assert bloquants(qcm(q)) == []
+
+
+def test_forme_la_plus_simple_vaut_irreductible():
+    # cas réel du 06/10 (gemma4), rejeté à tort : seule 1/2 est « la forme la plus simple » de 6/12
+    q = question(["3/6", "1/2", "2/4", "6/12"], index_correct=1,
+                 enonce="Simplifie la fraction 6/12 à sa forme la plus simple.",
+                 explication="On divise 6 et 12 par 6, leur plus grand diviseur commun : on obtient 1/2.")
+    assert bloquants(qcm(q)) == []
+
+
+@pytest.mark.parametrize("enonce, demandee", [
+    ("Quelle est la forme irréductible de 4/8 ?", True),
+    ("Simplifie la fraction 6/12 à sa forme la plus simple.", True),
+    ("Écris 6/12 sous sa forme la plus simple.", True),
+    ("Quelle est la fraction la plus simple égale à 6/12 ?", True),
+    ("Simplifie 6/12 au maximum.", True),
+    ("Simplifie la fraction 6/12 le plus possible.", True),
+    ("Simplifie complètement 18/24.", True),
+    ("Quelle fraction est simplifiée dans l'écriture 4/8 ?", False),   # 2/4 et 1/2 conviennent toutes deux
+    ("Simplifie la fraction 6/12.", False),
+    ("Quelle est la méthode la plus simple pour comparer 2/3 et 3/4 ?", False),
+])
+def test_irreductible_demandee(enonce, demandee):
+    assert irreductible_demandee(enonce) is demandee
 
 
 def test_simplifiee_sans_irreductible_reste_ambigu():
