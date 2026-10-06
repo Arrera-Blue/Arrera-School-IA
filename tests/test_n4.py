@@ -249,6 +249,14 @@ def test_simplifier_n_exige_pas_la_forme_irreductible():
     assert statut("Simplifie la fraction 4/8.", ["3/6", "1/3", "3/5"], 0) == FAUX
 
 
+def test_forme_la_plus_simple_vaut_irreductible():
+    # cas réel du 06/10 (gemma4) : 3/6 et 2/4 simplifient bien 6/12, mais pas « à sa forme la plus simple »
+    enonce = "Simplifie la fraction 6/12 à sa forme la plus simple."
+    assert statut(enonce, ["3/6", "1/2", "2/4", "6/12"], 1) == VERIFIE
+    assert statut(enonce, ["3/6", "1/2", "2/4", "6/12"], 0) == FAUX
+    assert statut("Écris 6/12 sous sa forme la plus simple.", ["3/6", "1/2", "2/4"], 1) == VERIFIE
+
+
 @pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
     ("Le nombre 0,5 peut s'écrire sous quelle forme de fraction irréductible ?", ["5/10", "1/2", "1/5"], 1, VERIFIE),
     ("Le nombre 0,5 peut s'écrire sous quelle forme de fraction irréductible ?", ["5/10", "1/2", "1/5"], 0, FAUX),

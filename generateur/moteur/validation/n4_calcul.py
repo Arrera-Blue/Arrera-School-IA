@@ -25,8 +25,8 @@ from dataclasses import dataclass
 from fractions import Fraction
 
 from generateur.moteur.validation import ErreurValidation
-from generateur.moteur.validation.n3_pedagogie import (SEPARATEUR_MILLIERS, UNITES, forme_irreductible,
-                                                       normaliser, valeur)
+from generateur.moteur.validation.n3_pedagogie import (IRREDUCTIBLE, SEPARATEUR_MILLIERS, UNITES,
+                                                       forme_irreductible, normaliser, valeur)
 
 VERIFIE, FAUX, A_RELIRE = "verifie", "faux", "a_relire"
 
@@ -285,19 +285,20 @@ def pythagore_reciproque(n: int, q: dict, enonce: str) -> Verdict | None:
     return Verdict(A_RELIRE)
 
 
-SIMPLIFICATION = re.compile(r"simplifi|irréductible", re.IGNORECASE)
+SIMPLIFICATION = re.compile(rf"simplifi|{IRREDUCTIBLE.pattern}", re.IGNORECASE)
 FRACTION_ENTIERE = re.compile(r"^(\d+) ?/ ?(\d+)$")
 
 
 def simplification(n: int, q: dict, enonce: str) -> Verdict | None:
     """« Quelle est la forme irréductible de 4/8 ? » → 1/2 seulement.
     « Simplifie 4/8. » → toute fraction obtenue en divisant 4 et 8 par un même entier (2/4 ou 1/2).
+    « Simplifie 6/12 à sa forme la plus simple. » → 1/2 seulement, comme pour « irréductible ».
     « 0,5 s'écrit sous quelle forme de fraction irréductible ? » → 1/2 (départ décimal ou pourcentage)."""
     if not SIMPLIFICATION.search(enonce):
         return None
     if TRANSFORMATION.search(enonce) or calculs(enonce):
         return Verdict(A_RELIRE)
-    irreductible_demandee = "irréductible" in enonce.lower()
+    irreductible_demandee = IRREDUCTIBLE.search(normaliser(enonce)) is not None
     cites = [m.group(0) for m in VALEUR_ENONCE.finditer(enonce)]
     fractions = [c for c in cites if "/" in c]
     # « 0,5 correspond à quelle fraction simplifiée ? » : partant d'un décimal, « simplifiée » ne peut
