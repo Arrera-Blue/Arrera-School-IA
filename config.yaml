@@ -9,6 +9,7 @@ fournisseurs:
 generation:
   tentatives_max: 3               # appels au modèle : la génération, puis 2 reprises des seules questions refusées
   temperature: 0.5
+  habillage_min: 2                # générateur procédural : le modèle réécrit les énoncés s'il y en a au moins 2 à réécrire (≈ 60 s par appel)
 chemins:                          # relatifs à la racine du dépôt (/app dans le conteneur)
   types: "generateur/types"
   sortie: "sortie"
