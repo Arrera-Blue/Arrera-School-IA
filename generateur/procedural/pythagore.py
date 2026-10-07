@@ -62,9 +62,10 @@ def cote(rng: random.Random) -> Squelette:
         enonce=f"L'hypoténuse d'un triangle rectangle mesure {c} {u} et un côté de l'angle droit mesure "
                f"{connu} {u}. Quelle est la longueur de l'autre côté de l'angle droit ?",
         reponse=reponse,
-        # la différence, la somme, le carré sans la racine
-        distracteurs=distracteurs(reponse, [f"{c - connu} {u}", f"{c + connu} {u}",
-                                            f"{c * c - connu * connu} {u}", f"{cherche + 1} {u}"]),
+        # la différence (si elle n'est pas absurde : 25 − 24 = 1), la somme, le carré sans la racine
+        distracteurs=distracteurs(reponse, [*([f"{c - connu} {u}"] if c - connu >= 3 else []), f"{c + connu} {u}",
+                                            f"{c * c - connu * connu} {u}", f"{cherche + 1} {u}",
+                                            f"{cherche - 1} {u}"]),
         explication=f"D'après le théorème de Pythagore, {c}² = {connu}² + ?², donc ?² = {c * c} − {connu * connu} "
                     f"= {cherche * cherche}, et ? = √{cherche * cherche} = {cherche}. L'autre côté mesure "
                     f"{cherche} {u}.",

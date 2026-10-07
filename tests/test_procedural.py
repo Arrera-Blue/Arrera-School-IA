@@ -265,3 +265,12 @@ def test_bilan_n4_ecarte_le_procedural(dossiers):
     (dossier / "proc.json").write_text(json.dumps(instance, ensure_ascii=False), encoding="utf-8")
     bilan = mesurer(dossier, dossiers / "rejets")
     assert (bilan.procedurales, bilan.acceptees, bilan.questions) == (1, 0, 0)
+
+
+def test_pas_de_distracteur_absurde_pour_pythagore():
+    # cas réel du 07/10 : « 1 cm » proposé pour l'autre côté d'un triangle d'hypoténuse 25 cm et de côté 24 cm
+    rng = random.Random(0)
+    for _ in range(TIRAGES):
+        for s in (pythagore.cote(rng), pythagore.hypotenuse(rng)):
+            # 2 cm reste plausible pour un côté de 3 cm (triangle 3-4-5) ; 1 cm face à 24 et 25 cm ne l'est pas
+            assert all(int(d.split()[0]) >= 2 for d in s.distracteurs), s
