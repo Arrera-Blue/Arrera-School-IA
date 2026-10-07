@@ -174,7 +174,7 @@ def test_habiller_accepte_et_refuse_question_par_question():
     h = habillage.habiller(squelettes, "5e", fournisseur)
     assert h.enonces == [bon, REMISE.enonce]
     assert h.par_question[0] == {"habillage": "modele"} and h.par_question[1]["habillage"] == "gabarit"
-    assert "sens modifié" in h.par_question[1]["refus"]
+    assert "sens modifié" in h.par_question[1]["refus"] and "augmente" in h.par_question[1]["texte_refuse"]
     assert h.appel["tokens_ecrits"] == 120
     messages, schema = fournisseur.recu
     assert json.loads(messages[1]["content"]) == {"niveau": "5e", "enonces": [REMISE.enonce, REMISE.enonce]}
@@ -284,3 +284,15 @@ def test_pas_de_distracteur_absurde_pour_pythagore():
         for s in (pythagore.cote(rng), pythagore.hypotenuse(rng)):
             # 2 cm reste plausible pour un côté de 3 cm (triangle 3-4-5) ; 1 cm face à 24 et 25 cm ne l'est pas
             assert all(int(d.split()[0]) >= 2 for d in s.distracteurs), s
+
+
+def test_controle_de_l_habillage_partie_d_un_tout():
+    from generateur.procedural import fractions
+    s = fractions.partie(random.Random(2))
+    n, k = re.findall(r"\d+", s.enonce)
+    ok = f"Une pizza est coupée en {n} parts égales. Léa en mange {k}. Quelle fraction de la pizza a-t-elle mangée ?"
+    assert controler(s, ok) is None
+    assert controler(s, ok.replace("parts égales", "parts identiques")) is None
+    # cas réel du 07/10 : « égales » disparaît ; et la question sur ce qui reste
+    assert "il manque" in controler(s, ok.replace(" égales", ""))
+    assert controler(s, ok.replace("a-t-elle mangée", "reste-t-il")) is not None
