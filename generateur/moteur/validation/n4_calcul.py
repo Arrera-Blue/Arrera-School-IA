@@ -696,11 +696,15 @@ def calcul_direct(n: int, q: dict, enonce: str) -> Verdict | None:
     return _selon_valeur(n, q, resultat, f"{expression} = {formater(resultat, en_fraction)}")
 
 
-# « Quelle est la somme de 1/3 et 1/6 ? », « Calcule le produit de 3 et 4. », « le quotient de 12 par 4 »
+# « Quelle est la somme de 1/3 et 1/6 ? », « Calcule le produit de 3 et 4. », « le quotient de 12 par 4 »,
+# « Quel est le résultat de la division 3/4 par 2/4 ? » (cas réel du 07/10 : 1/2 annoncé, 3/2 juste)
 OPERATION_NOMMEE = re.compile(
-    rf"(?:^|[.!?] )(?:quel(?:le)? est|calcule[rz]?|donne[rz]?|trouve[rz]?) (?:la |le )"
-    rf"(?P<op>somme|différence|produit|quotient) (?:de |entre |des nombres |des fractions )?"
+    rf"(?:^|[.!?] )(?:quel(?:le)? est|calcule[rz]?|donne[rz]?|trouve[rz]?) (?:le résultat (?:de |d'))?(?:la |le |l')"
+    rf"(?P<op>somme|différence|produit|quotient|addition|soustraction|multiplication|division) "
+    rf"(?:de |d'|entre |des nombres |des fractions )?"
     rf"(?P<a>{VALEUR_TEXTE}) (?:et|par) (?P<b>{VALEUR_TEXTE}) ?[?.!]?$", re.IGNORECASE)
+# l'opération nommée par son résultat : « la division de 3/4 par 2/4 » est leur quotient
+RESULTAT_DE = {"addition": "somme", "soustraction": "différence", "multiplication": "produit", "division": "quotient"}
 
 
 def operation_nommee(n: int, q: dict, enonce: str) -> Verdict | None:
@@ -708,6 +712,7 @@ def operation_nommee(n: int, q: dict, enonce: str) -> Verdict | None:
     if not m:
         return None
     op, a, b = m["op"].lower(), valeur(m["a"])[1], valeur(m["b"])[1]
+    op = RESULTAT_DE.get(op, op)
     if op == "somme":
         resultat = a + b
     elif op == "produit":
@@ -729,8 +734,8 @@ def operation_nommee(n: int, q: dict, enonce: str) -> Verdict | None:
 # memes_termes avant simplification (« en divisant ses deux termes par 2 » nomme une simplification), et
 # plus_petit_denominateur avant comparaison (« le plus petit » n'y compare pas les valeurs citées)
 RECONNAISSEURS = (pythagore_cote, pythagore_hypotenuse, pythagore_reciproque, memes_termes, simplification,
-                  plus_petit_denominateur, parts_d_un_tout, nouveau_prix, pourcentage_de, pourcentage, egalite, comparaison,
-                  operation_nommee, calcul_direct)
+                  plus_petit_denominateur, parts_d_un_tout, nouveau_prix, pourcentage_de, pourcentage, egalite,
+                  comparaison, operation_nommee, calcul_direct)
 
 
 # --- point d'entrée ------------------------------------------------------------------------------

@@ -640,3 +640,15 @@ PRIX = "Un article coûte 50 €. Il est soldé à 30 %. Quel est son nouveau pr
 ])
 def test_nouveau_prix(enonce, propositions, index_correct, attendu):
     assert statut(enonce, propositions, index_correct) == attendu
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    # cas réel du 07/10 (gemma4), accepté ce jour-là : 3/4 ÷ 2/4 = 3/2, et non 1/2
+    ("Quel est le résultat de la division 3/4 par 2/4 ?", ["3/8", "1/2", "6/16", "3/2"], 1, FAUX),
+    ("Quel est le résultat de la division 3/4 par 2/4 ?", ["3/8", "1/2", "6/16", "3/2"], 3, VERIFIE),
+    ("Quel est le résultat de l'addition de 1/4 et 1/4 ?", ["2/8", "1/2", "1/16"], 1, VERIFIE),
+    ("Calcule la multiplication de 3 par 4.", ["12", "7"], 0, VERIFIE),
+    ("Quel est le résultat de la soustraction de 1/3 et 5/6 ?", ["1/2", "4/3"], 0, A_RELIRE),  # ordre ambigu
+])
+def test_operation_nommee_par_son_nom(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
