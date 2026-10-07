@@ -11,6 +11,7 @@ from generateur.procedural import Squelette, Retirer, distracteurs
 NOM, TITRE, NOTION, NIVEAU = "calcul_mental", "Calcul mental", "calcul mental", "6e"
 MOTS_CLES = ("calcul mental", "table de multiplication", "tables de multiplication", "addition", "soustraction",
              "multiplication", "quatre operations")
+EXCLUS = ("fraction",)  # « l'addition de fractions » relève du générateur des fractions
 
 
 def _enonce(rng: random.Random, calcul: str, en_lettres: str | None = None) -> str:

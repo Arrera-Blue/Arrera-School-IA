@@ -294,9 +294,25 @@ def figure_absente(n: int, q: dict) -> list[Constat]:
     return []
 
 
+# « Quel est le numérateur… », « quel est le plus petit dénominateur possible… » : un nombre est demandé
+TERME_DEMANDE = re.compile(r"\bquel(?:le)? est (?:le |son )?(?:\S+ ){0,3}?(?P<terme>numérateur|dénominateur)\b",
+                           re.IGNORECASE)
+
+
+def reponse_hors_sujet(n: int, q: dict) -> list[Constat]:
+    """La question demande un numérateur ou un dénominateur, et la réponse annoncée est une fraction (cas réel
+    du 07/10 : « quel est le plus petit dénominateur possible après simplification ? » → « 1/2 »)."""
+    m = TERME_DEMANDE.search(q["enonce"])
+    annoncee = q["propositions"][q["index_correct"]]
+    if m and FRACTION_ECRITE.match(normaliser(annoncee)):
+        return [Constat(f"question {n} : l'énoncé demande un {m['terme'].lower()}, c'est-à-dire un nombre entier, "
+                        f"mais la réponse annoncée « {annoncee} » est une fraction", True, n)]
+    return []
+
+
 REGLES_PAR_QUESTION = (propositions_vides, propositions_equivalentes, formules_interdites,
                        explication_recopiee, bonne_reponse_trop_longue, bonne_reponse_contenue, enonce_flou,
-                       figure_absente)
+                       figure_absente, reponse_hors_sujet)
 
 
 def enonces_dupliques(questions: list[dict]) -> list[Constat]:

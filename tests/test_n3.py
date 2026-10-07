@@ -284,3 +284,18 @@ def test_enonce_flou():
 def test_les_avertissements_ne_bloquent_pas():
     q = question(["4", "5", "6"], enonce="Combien font généralement deux plus deux ?")
     assert valider(qcm(q)) == avertissements(qcm(q))
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, rejet", [
+    # cas réel du 07/10 (gemma4) : un dénominateur demandé, une fraction annoncée
+    ("Dans la fraction 5/10, quel est le plus petit dénominateur possible après simplification ?",
+     ["1/2", "5/10", "1/5", "10/5"], 0, True),
+    ("Dans la fraction 5/10, quel est le plus petit dénominateur possible après simplification ?",
+     ["2", "10", "5", "1"], 0, False),
+    ("Dans la fraction 3/5, quel est le numérateur ?", ["5", "1", "3", "Le dénominateur"], 2, False),
+    ("Quelle fraction a pour dénominateur 5 ?", ["3/5", "5/3", "1/4"], 0, False),
+])
+def test_reponse_hors_sujet(enonce, propositions, index_correct, rejet):
+    q = question(propositions, index_correct, enonce=enonce,
+                 explication="Explication de test, assez longue pour les règles de N3.")
+    assert any("demande un dénominateur" in m or "demande un numérateur" in m for m in bloquants(qcm(q))) is rejet

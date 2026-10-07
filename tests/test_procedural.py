@@ -19,6 +19,9 @@ from generateur.procedural import habillage, pourcentages, pythagore
 from generateur.procedural.habillage import controler
 
 GENRES = [g for module in procedural.notions().values() for g in module.GENRES]
+# N3 demande au moins deux questions pour certaines règles : une seconde, neutre
+AUTRE = {"enonce": "Quelle est la capitale de la France ?", "propositions": ["Paris", "Lyon", "Marseille"],
+         "index_correct": 0, "explication": "Paris est la capitale de la France."}
 TIRAGES = 1000
 
 
@@ -38,10 +41,13 @@ def test_tirages_en_masse(genre):
         # N4 recalcule l'énoncé-gabarit de son côté : un contrôle indépendant du calcul du générateur
         verdict = verifier_question(1, q)
         assert verdict.statut == VERIFIE, (s.enonce, s.reponse, s.distracteurs, verdict)
-        # propositions distinctes en valeur, et aucune règle bloquante de N3
-        assert len({cle_de_comparaison(p) for p in q["propositions"]}) == len(q["propositions"])
+        # propositions distinctes en valeur (sauf la forme irréductible, où une simplification partielle, de même
+        # valeur, est un piège voulu), et aucune règle bloquante de N3
+        if s.genre != "fractions.irreductible":
+            assert len({cle_de_comparaison(p) for p in q["propositions"]}) == len(q["propositions"])
+        assert len(set(q["propositions"])) == len(q["propositions"])
         instance = {"type": "qcm", "titre": "Test", "matiere": "maths", "niveau": "5e", "notion": "test",
-                    "questions": [q, q | {"enonce": "Autre énoncé, pour N3."}]}
+                    "questions": [q, AUTRE]}
         assert [c.message for c in n3_pedagogie.verifier(instance) if c.bloquant] == []
     assert tires > TIRAGES * 0.8  # les tirages refusés (Retirer) restent rares
 
@@ -77,10 +83,14 @@ def test_exercice_assemble_conforme_au_schema():
     ({"notion": "Théorème de Pythagore", "matiere": "maths"}, "pythagore"),
     ({"demande_enseignant": "les soldes et les remises, pour des 5e"}, "pourcentages"),
     ({"demande_enseignant": "un QCM sur le triangle rectangle"}, "pythagore"),         # « angle » n'exclut rien
-    ({"demande_enseignant": "un QCM de 5 questions sur les fractions pour des 6e"}, None),
-    ({"demande_enseignant": "fractions et pourcentages"}, None),                       # une notion non couverte
+    ({"demande_enseignant": "un QCM de 5 questions sur les fractions pour des 6e"}, "fractions"),
+    ({"demande_enseignant": "l'addition de fractions"}, "fractions"),               # pas le calcul mental
+    ({"demande_enseignant": "l'addition et la soustraction"}, "calcul_mental"),
+    ({"demande_enseignant": "fractions et pourcentages"}, None),                       # deux générateurs
+    ({"demande_enseignant": "les fractions et les nombres décimaux"}, None),          # une notion non couverte
     ({"demande_enseignant": "pourcentages et Pythagore"}, None),                       # deux générateurs
     ({"demande_enseignant": "la multiplication des nombres décimaux"}, None),
+    ({"demande_enseignant": "les équations"}, None),
     ({"demande_enseignant": "les aires et le théorème de Pythagore"}, None),
     ({"demande_enseignant": "la Révolution française", "matiere": "histoire-geo"}, None),
     ({"notion": "pourcentages", "matiere": "svt"}, None),
@@ -255,7 +265,7 @@ def test_modes(dossiers):
     ia = generation.generer({"type": "qcm", "notion": "pourcentages"}, "qcm", "maquette", mode="ia")
     assert "origine" not in ia["meta"]                                            # l'exemple de la maquette
     with pytest.raises(generation.AucunGenerateur):
-        generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "maquette", mode="procedural")
+        generation.generer({"type": "qcm", "notion": "les équations"}, "qcm", "maquette", mode="procedural")
 
 
 def test_bilan_n4_ecarte_le_procedural(dossiers):

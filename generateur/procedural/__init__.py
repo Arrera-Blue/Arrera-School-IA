@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from fractions import Fraction
 
-from generateur.moteur.validation.n3_pedagogie import cle_de_comparaison, valeur
+from generateur.moteur.validation.n3_pedagogie import cle_de_comparaison, normaliser, valeur
 
 
 @dataclass(frozen=True)
@@ -55,13 +55,17 @@ def ecrire(x: Fraction | int) -> str:
     return texte.replace(".", ",")
 
 
-def distracteurs(reponse: str, candidats: list[str], nombre: int = 3) -> tuple[str, ...]:
+def distracteurs(reponse: str, candidats: list[str], nombre: int = 3,
+                 egales_permises: bool = False) -> tuple[str, ...]:
     """Les premiers candidats valables, dans l'ordre (le plus plausible d'abord) : distincts en valeur entre eux
-    et de la réponse (sinon N3 rejetterait le QCM), et jamais nuls ni négatifs."""
-    vus, retenus = {cle_de_comparaison(reponse)}, []
+    et de la réponse (sinon N3 rejetterait le QCM), et jamais nuls ni négatifs.
+
+    `egales_permises` : des écritures différentes d'une même valeur sont admises (« 6/9 » pour la forme
+    irréductible 2/3 de 12/18 : N3 l'accepte quand l'énoncé demande la forme irréductible)."""
+    vus, retenus = {cle_de_comparaison(reponse), normaliser(reponse)}, []
     for candidat in candidats:
         v = valeur(candidat)
-        cle = cle_de_comparaison(candidat)
+        cle = normaliser(candidat) if egales_permises else cle_de_comparaison(candidat)
         if cle in vus or (v is not None and v[1] <= 0):
             continue
         vus.add(cle)
@@ -79,26 +83,29 @@ def sans_accents(texte: str) -> str:
 
 # d'autres notions de maths : si la demande en cite une, elle n'est pas couverte en entier par un générateur ;
 # en début de mot (« aire » n'est pas dans « scolaire », ni « angle » dans « triangle »)
-AUTRES_NOTIONS = re.compile(r"\b(?:fraction|decima|equation|relatif|proportionnal|aires?\b|perimetre|volume|"
+AUTRES_NOTIONS = re.compile(r"\b(?:decima|equation|relatif|proportionnal|aires?\b|perimetre|volume|"
                             r"puissance|racine|statisti|probabilit|thales|trigonometr|fonction|geometr|symetr|"
                             r"conversion|division euclidienne)")
 
 
 def notions() -> dict:
     """Les générateurs disponibles, par nom. Import local : le paquet reste léger à charger."""
-    from generateur.procedural import calcul_mental, pourcentages, pythagore
-    return {m.NOM: m for m in (calcul_mental, pourcentages, pythagore)}
+    from generateur.procedural import calcul_mental, fractions, pourcentages, pythagore
+    return {m.NOM: m for m in (calcul_mental, fractions, pourcentages, pythagore)}
 
 
 def aiguiller(demande: dict) -> str | None:
     """Le générateur qui couvre la demande, ou None pour la chaîne habituelle (modèle → N1…N4 → reprise).
 
-    Une seule notion couverte, et aucune autre notion de maths citée : « les pourcentages » → oui ;
-    « les fractions », « fractions et pourcentages » → non."""
+    Une seule notion couverte, et aucune autre notion de maths citée : « les pourcentages », « l'addition de
+    fractions » → oui ; « fractions et pourcentages », « les nombres décimaux » → non. Un générateur peut
+    déclarer des mots qui l'excluent (EXCLUS) : « addition » désigne le calcul mental, sauf s'il s'agit de
+    fractions."""
     if demande.get("matiere") not in (None, "maths"):
         return None
     texte = sans_accents(" ".join(str(demande.get(c) or "") for c in ("notion", "demande_enseignant")))
-    couvertes = [nom for nom, module in notions().items() if any(m in texte for m in module.MOTS_CLES)]
+    couvertes = [nom for nom, module in notions().items()
+                 if any(m in texte for m in module.MOTS_CLES) and not any(x in texte for x in getattr(module, "EXCLUS", ()))]
     if len(couvertes) != 1 or AUTRES_NOTIONS.search(texte):
         return None
     return couvertes[0]
