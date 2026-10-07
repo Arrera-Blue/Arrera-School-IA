@@ -6,7 +6,7 @@ from pathlib import Path
 
 from generateur.moteur import registre
 from generateur.moteur.validation.n4_calcul import A_RELIRE, FAUX, VERIFIE
-from generateur.outils.bilan_n4 import Bilan, decision, mesurer, rapport
+from generateur.outils.bilan_n4 import Bilan, decision, mesurer, premier_essai, rapport
 
 DONNEES = Path(__file__).parent / "donnees"
 
@@ -94,3 +94,85 @@ def test_seuils_de_decision():
     assert "se trompe trop souvent" in decision(bilan(50, 25, 25))
     assert "ne vérifie pas assez" in decision(bilan(40, 15, 45))
     assert decision(bilan(55, 15, 30)).startswith("zone intermédiaire")
+
+
+# --- premier essai et après reprise (étape 1.4) --------------------------------------------------
+
+def q(enonce: str, propositions: list[str], index_correct: int) -> dict:
+    return {"enonce": enonce, "propositions": propositions, "index_correct": index_correct,
+            "explication": "Explication de test, sans importance pour N4."}
+
+
+JUSTE_1 = q("Quelle fraction est équivalente à 2/3 ?", ["4/5", "6/9", "2/6", "3/6"], 1)
+JUSTE_2 = q("Le nombre 0,5 peut s'écrire sous quelle forme de fraction irréductible ?", ["1/5", "5/10", "1/2", "2/1"], 2)
+# défaut réel du 05/10 : 1/2, 4/8 et 3/6 valent toutes 2/4
+EGALES = q("Quelle est la fraction équivalente à 2/4 ?", ["1/2", "2/8", "4/8", "3/6"], 0)
+REMPLACANTE = q("Quelle fraction est équivalente à 1/2 ?", ["2/5", "1/4", "3/6", "2/3"], 2)
+
+
+def exercice(*questions: dict, **meta) -> dict:
+    return {"type": "qcm", "titre": "Les fractions", "matiere": "maths", "niveau": "6e", "notion": "fractions",
+            "questions": list(questions), "meta": meta}
+
+
+def test_premier_essai_defait_les_reprises_de_la_derniere_a_la_premiere():
+    autre = q("Quelle fraction est équivalente à 3/4 ?", ["6/8", "3/8", "4/3"], 0)
+    final = exercice(JUSTE_1, REMPLACANTE, JUSTE_2)
+    reprises = [
+        {"tentative": 2, "questions": [2], "resultat": "questions remplacées", "questions_remplacees": [EGALES]},
+        {"tentative": 3, "questions": [2], "resultat": "réponse inutilisable (N1)"},
+        {"tentative": 4, "questions": [2], "resultat": "questions remplacées", "questions_remplacees": [autre]},
+    ]
+    assert premier_essai(final, reprises)["questions"] == [JUSTE_1, EGALES, JUSTE_2]
+    assert final["questions"] == [JUSTE_1, REMPLACANTE, JUSTE_2]            # l'instance n'est pas modifiée
+    assert premier_essai(final, []) is final and premier_essai(final, None) is final
+
+
+def test_premier_essai_apres_un_exercice_regenere():
+    final = exercice(JUSTE_1, JUSTE_2)
+    tout = [{"tentative": 2, "questions": "toutes", "resultat": "exercice regénéré",
+             "questions_remplacees": [EGALES, JUSTE_2]}]
+    assert premier_essai(final, tout)["questions"] == [EGALES, JUSTE_2]
+    # premier essai illisible (N1) : rien de bien formé à reconstituer, on garde la première version lisible
+    illisible = [{"tentative": 2, "questions": "toutes", "resultat": "exercice regénéré", "questions_remplacees": None}]
+    assert premier_essai(final, illisible)["questions"] == [JUSTE_1, JUSTE_2]
+
+
+def test_bilan_au_premier_essai_et_apres_reprise(tmp_path):
+    instances, rejets = tmp_path / "instances", tmp_path / "rejets"
+    # cas du 06/10 : question 2 refusée au premier essai, réparée par la reprise
+    ecrire(instances / "repare.json", exercice(JUSTE_1, REMPLACANTE, JUSTE_2, reprises=[
+        {"tentative": 2, "questions": [2], "resultat": "questions remplacées", "questions_remplacees": [EGALES]}]))
+    ecrire(instances / "direct.json", exercice(JUSTE_1, JUSTE_2))
+    # abandon après 3 tentatives : la question 1 reste fausse
+    ecrire(rejets / "abandon.json", {"niveau": "N4", "instance": exercice(EGALES, JUSTE_2), "reprises": [
+        {"tentative": 2, "questions": [1], "resultat": "questions remplacées", "questions_remplacees": [EGALES]},
+        {"tentative": 3, "questions": [1], "resultat": "questions remplacées", "questions_remplacees": [EGALES]}]})
+
+    bilan = mesurer(instances, rejets)
+
+    assert (bilan.acceptees, bilan.rejetees, bilan.reprises, bilan.questions_remplacees) == (2, 1, 1, 1)
+    assert bilan.statuts == Counter({VERIFIE: 5, FAUX: 2})                # le modèle : 2 fausses sur 7
+    assert bilan.statuts_finaux == Counter({VERIFIE: 6, FAUX: 1})         # l'enseignant : 1, dans un rejet
+    texte = rapport(bilan)
+    assert "Questions : 7, au premier essai" in texte
+    assert "Après reprise (1 génération(s) reprise(s), 1 question(s) remplacée(s)) :" in texte
+    assert "  fausses   :   1  (14%)" in texte
+    assert "ne les corrige pas assez" in decision(bilan)                   # 14 % de fausses après reprise
+
+
+def test_sans_reprise_le_rapport_ne_change_pas(tmp_path):
+    ecrire(tmp_path / "instances" / "direct.json", exercice(JUSTE_1, JUSTE_2))
+    texte = rapport(mesurer(tmp_path / "instances", tmp_path / "rejets"))
+    assert "Questions : 2\n" in texte and "Après reprise" not in texte
+
+
+def test_decision_quand_la_reprise_corrige_les_plusieurs_bonnes_reponses():
+    def bilan(faux_final: int) -> Bilan:
+        return Bilan(acceptees=10, reprises=4, statuts=Counter({VERIFIE: 60, FAUX: 25, A_RELIRE: 15}),
+                     faux_par_nature=Counter({"plusieurs bonnes réponses": 25}),
+                     statuts_finaux=Counter({VERIFIE: 85 - faux_final, FAUX: faux_final, A_RELIRE: 15}))
+
+    assert "la reprise sur erreur (1.4) les corrige" in decision(bilan(0))
+    assert "ne les corrige pas assez" in decision(bilan(20))               # la reprise ne suffit pas
+    assert "GÉNÉRATEUR PROCÉDURAL" in decision(bilan(20))

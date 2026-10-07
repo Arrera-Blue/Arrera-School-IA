@@ -6,6 +6,11 @@ Recalcule N4, avec le code actuel, sur toutes les générations de maths conserv
 Recalculer plutôt que relire le meta permet de remesurer le même corpus après chaque amélioration de N4.
 Les seuils sont ceux de docs/etapes/etape-1.3.md §8.
 
+Depuis la reprise sur erreur (étape 1.4), un exercice peut avoir été réparé : ses questions fautives ont été
+remplacées. La mesure porte donc sur le **premier essai** (l'exercice tel que le modèle l'a écrit, reconstitué
+à partir des versions fautives gardées dans les reprises) : c'est la qualité du modèle, sur laquelle portent
+les seuils. Le rapport donne aussi le résultat **après reprise**, c'est-à-dire ce qu'obtient l'enseignant.
+
     python -m generateur.outils.bilan_n4
     python -m generateur.outils.bilan_n4 --depuis 2026-10-03     # seulement le prompt actuel
     python -m generateur.outils.bilan_n4 --modele gemma4:e4b-it-qat   # seulement ce modèle
@@ -24,6 +29,7 @@ GENERATIONS_MIN = 10
 FAUX_FAIBLE, FAUX_ELEVE = 0.10, 0.20
 VERIFIE_ELEVE, VERIFIE_FAIBLE = 0.60, 0.50
 REPONSE_FAUSSE, PLUSIEURS_JUSTES = "réponse annoncée fausse", "plusieurs bonnes réponses"
+LIBELLES = ((VERIFIE, "vérifiées "), (FAUX, "fausses   "), (A_RELIRE, "à relire  "))
 
 
 @dataclass
@@ -31,17 +37,28 @@ class Bilan:
     acceptees: int = 0
     rejetees: int = 0
     rejets_non_mesurables: int = 0  # rejetés en N1 ou N2 : pas d'instance exploitable
-    statuts: Counter = field(default_factory=Counter)
+    statuts: Counter = field(default_factory=Counter)           # au premier essai
     # nature des « faux » : une réponse annoncée fausse (erreur de calcul) n'appelle pas le même remède que
     # plusieurs bonnes réponses (défaut de conception du QCM, que la reprise ou le prompt peuvent corriger)
     faux_par_nature: Counter = field(default_factory=Counter)
+    statuts_finaux: Counter = field(default_factory=Counter)    # après reprise
+    reprises: int = 0                                           # générations dont des questions ont été remplacées
+    questions_remplacees: int = 0
 
-    def compter(self, instance: dict) -> None:
-        for v in verifier(instance):
+    def compter(self, instance: dict, reprises: list[dict] | None = None) -> None:
+        premier = premier_essai(instance, reprises)
+        verdicts = verifier(premier)
+        for v in verdicts:
             self.statuts[v.statut] += 1
             if v.statut == FAUX:
                 nature = PLUSIEURS_JUSTES if "plusieurs propositions conviennent" in v.message else REPONSE_FAUSSE
                 self.faux_par_nature[nature] += 1
+        finaux = verdicts if premier is instance else verifier(instance)
+        self.statuts_finaux.update(v.statut for v in finaux)
+        remplacees = sum(a != b for a, b in zip(premier["questions"], instance["questions"]))
+        if remplacees:
+            self.reprises += 1
+            self.questions_remplacees += remplacees
 
     @property
     def generations(self) -> int:
@@ -51,8 +68,31 @@ class Bilan:
     def questions(self) -> int:
         return sum(self.statuts.values())
 
-    def part(self, statut: str) -> float:
-        return self.statuts[statut] / self.questions if self.questions else 0.0
+    def part(self, statut: str, statuts: Counter | None = None) -> float:
+        statuts = self.statuts if statuts is None else statuts
+        total = sum(statuts.values())
+        return statuts[statut] / total if total else 0.0
+
+
+def premier_essai(instance: dict, reprises: list[dict] | None) -> dict:
+    """L'exercice tel que le modèle l'a écrit au premier essai : on défait les reprises, de la dernière à la
+    première, avec les versions fautives qu'elles ont gardées (`questions_remplacees`).
+
+    Si le premier essai était illisible (N1, N2), il n'y a rien à reconstituer : on garde la première version
+    bien formée. Sans reprise, l'instance est renvoyée telle quelle."""
+    if not reprises:
+        return instance
+    questions = list(instance["questions"])
+    for reprise in reversed(reprises):
+        anciennes = reprise.get("questions_remplacees")
+        if not anciennes:  # reprise inutilisable, ou rien de bien formé avant elle
+            continue
+        if reprise["questions"] == "toutes":
+            questions = list(anciennes)
+        else:
+            for n, ancienne in zip(reprise["questions"], anciennes):
+                questions[n - 1] = ancienne
+    return instance | {"questions": questions}
 
 
 def _lire(chemin: Path) -> dict | None:
@@ -76,7 +116,7 @@ def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = 
         meta = (instance or {}).get("meta") or {}
         if instance and instance.get("matiere") == "maths" and retenue(meta.get("date"), meta.get("modele")):
             bilan.acceptees += 1
-            bilan.compter(instance)
+            bilan.compter(instance, meta.get("reprises"))
     for chemin in sorted(dossier_rejets.glob("*.json")) if dossier_rejets.is_dir() else []:
         rejet = _lire(chemin) or {}
         if not retenue(rejet.get("date"), rejet.get("modele")):
@@ -88,7 +128,7 @@ def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = 
             continue
         if instance.get("matiere") == "maths":
             bilan.rejetees += 1
-            bilan.compter(instance)
+            bilan.compter(instance, rejet.get("reprises"))
     return bilan
 
 
@@ -96,7 +136,15 @@ def decision(bilan: Bilan) -> str:
     if bilan.questions == 0:
         return "aucune question de maths à analyser : lancer des générations d'abord"
     faux, verifie = bilan.part(FAUX), bilan.part(VERIFIE)
-    if faux > FAUX_ELEVE and bilan.faux_par_nature[PLUSIEURS_JUSTES] > bilan.faux_par_nature[REPONSE_FAUSSE]:
+    conception = bilan.faux_par_nature[PLUSIEURS_JUSTES] > bilan.faux_par_nature[REPONSE_FAUSSE]
+    corrige = bilan.part(FAUX, bilan.statuts_finaux) < FAUX_FAIBLE
+    if faux > FAUX_ELEVE and conception and bilan.reprises and corrige:
+        conseil = ("le modèle propose souvent plusieurs bonnes réponses, mais la reprise sur erreur (1.4) les "
+                   "corrige : garder la chaîne actuelle, en surveillant le temps passé en reprises")
+    elif faux > FAUX_ELEVE and conception and bilan.reprises:
+        conseil = ("trop de questions fausses, surtout à plusieurs bonnes réponses, et la reprise sur erreur (1.4) "
+                   "ne les corrige pas assez : passer au GÉNÉRATEUR PROCÉDURAL pour les maths")
+    elif faux > FAUX_ELEVE and conception:
         conseil = ("trop de questions fausses, surtout à plusieurs bonnes réponses : remesurer après la reprise "
                    "sur erreur (1.4), qui renvoie ces défauts au modèle ; si le taux reste élevé, passer au "
                    "GÉNÉRATEUR PROCÉDURAL pour les maths")
@@ -121,12 +169,18 @@ def rapport(bilan: Bilan) -> str:
     ]
     if bilan.rejets_non_mesurables:
         lignes.append(f"Rejets en N1/N2, sans instance exploitable : {bilan.rejets_non_mesurables}")
-    lignes.append(f"Questions : {bilan.questions}")
-    for statut, libelle in ((VERIFIE, "vérifiées "), (FAUX, "fausses   "), (A_RELIRE, "à relire  ")):
+    lignes.append(f"Questions : {bilan.questions}" + (", au premier essai" if bilan.reprises else ""))
+    for statut, libelle in LIBELLES:
         lignes.append(f"  {libelle}: {bilan.statuts[statut]:3d}  ({bilan.part(statut):.0%})")
         if statut == FAUX and bilan.statuts[FAUX]:
             for nature in (REPONSE_FAUSSE, PLUSIEURS_JUSTES):
                 lignes.append(f"      dont {nature} : {bilan.faux_par_nature[nature]}")
+    if bilan.reprises:
+        lignes.append(f"Après reprise ({bilan.reprises} génération(s) reprise(s), "
+                      f"{bilan.questions_remplacees} question(s) remplacée(s)) :")
+        for statut, libelle in LIBELLES:
+            lignes.append(f"  {libelle}: {bilan.statuts_finaux[statut]:3d}  "
+                          f"({bilan.part(statut, bilan.statuts_finaux):.0%})")
     lignes.append(f"Décision suggérée : {decision(bilan)}")
     lignes.append("Seuils : docs/etapes/etape-1.3.md §8 — ce sont des ordres de grandeur, pas une règle.")
     return "\n".join(lignes)
