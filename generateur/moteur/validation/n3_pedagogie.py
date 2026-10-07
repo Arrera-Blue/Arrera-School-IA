@@ -256,6 +256,8 @@ def bonne_reponse_contenue(n: int, q: dict) -> list[Constat]:
         autre = normaliser(p)
         if i == q["index_correct"] or not autre or autre == bonne:
             continue
+        if valeur(bonne) is not None and valeur(autre) is not None:
+            continue  # « 25 % » et « 0,25 % » : deux nombres, égaux ou non, relèvent de propositions_equivalentes
         courte, longue = sorted((bonne, autre), key=len)
         if re.search(rf"(?<!\w){re.escape(courte)}(?!\w)", longue):
             return [Constat(f"question {n} : la bonne réponse « {q['propositions'][q['index_correct']]} » et la "
