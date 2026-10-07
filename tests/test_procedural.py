@@ -249,7 +249,7 @@ def test_refus_apres_habillage_puis_nouveau_tirage(dossiers, monkeypatch, capsys
         return vrai(instance)
     monkeypatch.setattr(generation, "valider_le_fond", valider_le_fond)
     monkeypatch.setattr(generation, "creer", lambda nom, reglages: Habilleur(None))
-    monkeypatch.setattr(habillage, "habiller", lambda squelettes, niveau, f: habillage.Habillage(
+    monkeypatch.setattr(habillage, "habiller", lambda squelettes, niveau, f, minimum=1: habillage.Habillage(
         [s.enonce for s in squelettes], [{"habillage": "modele"} for _ in squelettes]))
 
     instance = generation.generer({"type": "qcm", "notion": "pythagore"}, "qcm", "habilleur", graine=3)
@@ -296,3 +296,19 @@ def test_controle_de_l_habillage_partie_d_un_tout():
     # cas réel du 07/10 : « égales » disparaît ; et la question sur ce qui reste
     assert "il manque" in controler(s, ok.replace(" égales", ""))
     assert controler(s, ok.replace("a-t-elle mangée", "reste-t-il")) is not None
+
+
+def test_pas_d_appel_au_modele_sous_le_seuil(capsys):
+    # décision du 07/10 : un seul énoncé à réécrire ne vaut pas un appel au modèle (≈ 60 s)
+    fournisseur = Habilleur(AssertionError("le modèle ne doit pas être appelé"))
+    h = habillage.habiller([REMISE] + procedural.tirer("calcul_mental", 2, random.Random(0)), "5e", fournisseur,
+                           minimum=2)
+    assert h.appel is None and all(q["habillage"] == "gabarit" for q in h.par_question)
+    assert "moins que le seuil (2)" in capsys.readouterr().out
+    # à partir du seuil, le modèle est appelé
+    deux = Habilleur({"questions": [{"enonce": REMISE.enonce}, {"enonce": REMISE.enonce}]})
+    assert habillage.habiller([REMISE, REMISE], "5e", deux, minimum=2).appel is not None
+
+
+def test_seuil_lu_dans_la_configuration():
+    assert config.charger()["generation"]["habillage_min"] == 2

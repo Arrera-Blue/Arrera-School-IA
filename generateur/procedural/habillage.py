@@ -94,11 +94,18 @@ def messages(squelettes: list[Squelette], niveau: str) -> list[dict]:
             {"role": "user", "content": json.dumps(donnees, ensure_ascii=False, indent=2)}]
 
 
-def habiller(squelettes: list[Squelette], niveau: str, fournisseur: Fournisseur | None) -> Habillage:
+def habiller(squelettes: list[Squelette], niveau: str, fournisseur: Fournisseur | None,
+             minimum: int = 1) -> Habillage:
+    """`minimum` : en dessous de ce nombre d'énoncés à réécrire, le modèle n'est pas appelé ; un appel coûte
+    environ 60 s, trop pour un seul énoncé (décision du 07/10, `habillage_min` dans config.yaml)."""
     enonces = [s.enonce for s in squelettes]
     par_question = [{"habillage": "gabarit"} for _ in squelettes]
     a_habiller = [i for i, s in enumerate(squelettes) if s.habillable]
     if fournisseur is None or not a_habiller:
+        return Habillage(enonces, par_question)
+    if len(a_habiller) < minimum:
+        print(f"→ {len(a_habiller)} énoncé à réécrire, moins que le seuil ({minimum}) : énoncés-gabarits, "
+              "sans appel au modèle", flush=True)
         return Habillage(enonces, par_question)
 
     print(f"→ habillage par {fournisseur.nom} ({fournisseur.modele})…", flush=True)

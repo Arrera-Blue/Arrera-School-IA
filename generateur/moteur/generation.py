@@ -305,7 +305,8 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
 
     squelettes = procedural.tirer(notion, nombre, rng)
     print(f"→ génération procédurale ({module.NOTION}) : {nombre} questions tirées (graine {graine})", flush=True)
-    habille = habillage.habiller(squelettes, niveau, None if fournisseur.nom == "maquette" else fournisseur)
+    habille = habillage.habiller(squelettes, niveau, None if fournisseur.nom == "maquette" else fournisseur,
+                                 int(config.charger()["generation"].get("habillage_min", 1)))
     if habille.appel:
         print(f"→ réponse reçue en {habille.appel['duree_s']} s{detail_appel(habille.appel)}", flush=True)
     enonces, par_question = habille.enonces, habille.par_question
