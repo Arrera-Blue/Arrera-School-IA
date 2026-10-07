@@ -1,14 +1,19 @@
 """Demande → modèle → JSON validé (N1, N2, N3, N4), avec reprise des questions fautives → meta → HTML.
 
+Pour le calcul mental, les pourcentages et Pythagore, la demande passe par le générateur procédural (étape
+1.7) : le programme tire les nombres et calcule les réponses, le modèle ne fait que réécrire les énoncés.
+
 Exemples (dans le conteneur, depuis /app) :
     python -m generateur.moteur.generation --demande "un QCM de 5 questions sur les fractions pour des 6e"
     python -m generateur.moteur.generation --matiere maths --niveau 4e --notion "théorème de Pythagore" --questions 5
     python -m generateur.moteur.generation --fournisseur maquette --notion test      # sans modèle
+    python -m generateur.moteur.generation --notion pourcentages --fournisseur maquette --graine 42   # procédural, sans modèle
 """
 
 import argparse
 import copy
 import json
+import random
 import re
 import sys
 import time
@@ -16,11 +21,19 @@ import unicodedata
 from datetime import datetime
 from pathlib import Path
 
+from generateur import procedural
 from generateur.moteur import config, registre, rendu
 from generateur.moteur.fournisseurs import ErreurFournisseur, creer
 from generateur.moteur.validation import ErreurValidation, n3_pedagogie, n4_calcul
 from generateur.moteur.validation.n1_syntaxe import extraire_json
 from generateur.moteur.validation.n2_schema import valider
+from generateur.procedural import habillage
+
+MODES = ("auto", "ia", "procedural")
+
+
+class AucunGenerateur(Exception):
+    """--mode procedural pour une demande qu'aucun générateur procédural ne couvre."""
 
 
 def schema_de_sortie(schema: dict, demande: dict) -> dict:
@@ -130,19 +143,29 @@ def valider_le_fond(instance: dict) -> tuple[list[str], dict]:
     return avertissements, bilan_n4
 
 
-def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = None) -> dict:
+def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = None, mode: str = "auto",
+            graine: int | None = None) -> dict:
     """Génère l'exercice, puis reprend les questions refusées par N3 ou N4 sans regénérer les autres.
 
     La reprise prolonge la conversation : le modèle revoit sa réponse, lit les messages de la validation et
     ne renvoie que les questions à remplacer. Le reste de l'exercice est conservé, puis tout est revalidé
     (une nouvelle question peut dupliquer une ancienne). Au plus `tentatives_max` appels au modèle.
+
+    `mode` : « auto » confie au générateur procédural les demandes qu'il couvre, « ia » ne passe jamais par lui,
+    « procedural » l'exige. `graine` rend un exercice procédural reproductible.
     """
+    notion = procedural.aiguiller(demande) if mode != "ia" and type_ == "qcm" else None
+    if mode == "procedural" and notion is None:
+        raise AucunGenerateur(f"aucun générateur procédural ne couvre cette demande (disponibles : "
+                              f"{', '.join(procedural.notions())}) ; une seule notion par exercice")
     cfg = config.charger()
     nom_fournisseur = nom_fournisseur or cfg["fournisseurs"]["ordre"][0]
     reglages = dict(cfg["fournisseurs"].get(nom_fournisseur, {}))
     if nom_fournisseur == "ollama":
         reglages["temperature"] = cfg["generation"]["temperature"]
     fournisseur = creer(nom_fournisseur, reglages)
+    if notion is not None:
+        return generer_procedural(demande, notion, fournisseur, graine)
     tentatives_max = max(1, int(cfg["generation"].get("tentatives_max", 1)))
 
     type_exo = registre.charger(type_)
@@ -156,6 +179,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     format_refuse: list[str] = []      # N1/N2 d'une reprise ratée : redit au modèle à la tentative suivante
     par_question: list[int] = []
     reprises: list[dict] = []
+    appels: list[dict] = []            # un par appel au modèle : durée, tokens (étape 1.5)
     duree_totale = 0.0
     brut = ""
 
@@ -175,7 +199,8 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         brut = fournisseur.generer(appel, schema_appel)
         duree = round(time.monotonic() - debut, 1)
         duree_totale += duree
-        print(f"→ réponse reçue en {duree} s", flush=True)
+        appels.append({"tentative": tentative, "duree_s": duree, **(fournisseur.compteurs or {})})
+        print(f"→ réponse reçue en {duree} s{detail_appel(fournisseur.compteurs)}", flush=True)
 
         trace = {"tentative": tentative, "questions": a_remplacer or "toutes",
                  "erreurs": list(defauts.erreurs) if defauts else [], "duree_s": duree}
@@ -233,7 +258,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         ecrire_brut(brut)
         try:
             defauts.rejet = enregistrer_rejet(defauts, brut, instance, demande, type_, fournisseur,
-                                              round(duree_totale, 1), tentative, reprises)
+                                              round(duree_totale, 1), tentative, reprises, appels)
         except OSError as erreur_disque:  # ne jamais masquer le rejet lui-même
             print(f"⚠ rejet non enregistré : {erreur_disque}", file=sys.stderr)
         raise defauts
@@ -247,6 +272,83 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         "tentatives": tentative,
         "tentatives_par_question": par_question,
         "reprises": reprises,
+        "appels": appels,
+        "validation": {"n1": True, "n2": True, "n3": True, **bilan_n4},
+        "avertissements": avertissements,
+        "statut": "genere",
+        "prompt_origine": demande.get("demande_enseignant") or demande,
+    }
+    return instance
+
+
+def detail_appel(compteurs: dict | None) -> str:
+    """« (1 830 tokens lus, 412 écrits ; chargement 0.1 s) », ou rien si le fournisseur ne compte pas."""
+    if not compteurs or "tokens_ecrits" not in compteurs:
+        return ""
+    lus = f"{compteurs['tokens_lus']} tokens lus, " if "tokens_lus" in compteurs else ""
+    chargement = f" ; chargement {compteurs['chargement_s']} s" if "chargement_s" in compteurs else ""
+    return f" ({lus}{compteurs['tokens_ecrits']} écrits{chargement})"
+
+
+def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | None = None) -> dict:
+    """Étape 1.7 : le programme tire les questions, le modèle réécrit les énoncés, puis N2, N3 et N4 contrôlent.
+
+    Une question que N3 ou N4 refuse après habillage reprend son énoncé-gabarit ; refusée avec son
+    énoncé-gabarit, elle est tirée à nouveau. Le modèle n'est appelé qu'une fois : aucune reprise ne passe par
+    lui. `fournisseur` « maquette » : pas d'habillage, l'exercice garde ses énoncés-gabarits."""
+    module = procedural.notions()[notion]
+    graine = graine if graine is not None else random.SystemRandom().randrange(1_000_000)
+    rng = random.Random(graine)
+    niveau = demande.get("niveau") or module.NIVEAU
+    nombre = demande.get("nb_questions") or 5
+    debut = time.monotonic()
+
+    squelettes = procedural.tirer(notion, nombre, rng)
+    print(f"→ génération procédurale ({module.NOTION}) : {nombre} questions tirées (graine {graine})", flush=True)
+    habille = habillage.habiller(squelettes, niveau, None if fournisseur.nom == "maquette" else fournisseur)
+    if habille.appel:
+        print(f"→ réponse reçue en {habille.appel['duree_s']} s{detail_appel(habille.appel)}", flush=True)
+    enonces, par_question = habille.enonces, habille.par_question
+    instance = procedural.assembler(notion, niveau, squelettes, enonces, rng)
+    # N2 : le générateur doit produire un QCM conforme au schéma, comme le modèle
+    valider(instance, schema_de_sortie(registre.charger("qcm").schema, demande))
+
+    for _ in range(3):
+        try:
+            avertissements, bilan_n4 = valider_le_fond(instance)
+            break
+        except ErreurValidation as e:
+            fautives = sorted(e.questions) or [i + 1 for i, h in enumerate(par_question) if h["habillage"] == "modele"]
+            deja = {s.cle for s in squelettes}
+            for n in fautives:
+                i, message = n - 1, next((m for m in e.erreurs if _numero(m) == n), e.erreurs[0])
+                if par_question[i]["habillage"] == "modele":
+                    enonces[i] = squelettes[i].enonce
+                    par_question[i] = {"habillage": "gabarit", "refus": f"{e.niveau} : {message}"}
+                    print(f"   ⚠ question {n} : refusée après habillage ({e.niveau}) → énoncé-gabarit", flush=True)
+                else:
+                    genre = next(g for g in module.GENRES if squelettes[i].genre.endswith(f".{g.__name__}"))
+                    squelettes[i] = procedural.tirer_une(genre, rng, deja)
+                    enonces[i] = squelettes[i].enonce
+                    par_question[i] = {"habillage": "gabarit", "retiree": message}
+                    print(f"   ⚠ question {n} : refusée ({e.niveau}) → tirée à nouveau", flush=True)
+                instance["questions"][i] = procedural.question(squelettes[i], enonces[i], rng)
+    else:
+        raise ErreurValidation(e.niveau, e.erreurs, e.questions)  # un bug du générateur : à corriger, pas à cacher
+
+    appels = [habille.appel] if habille.appel else []
+    instance["meta"] = {
+        "id": identifiant("qcm", instance),
+        "fournisseur": fournisseur.nom if appels else "procedural",
+        "modele": fournisseur.modele if appels else None,
+        "date": datetime.now().isoformat(timespec="seconds"),
+        "duree_s": round(time.monotonic() - debut, 1),
+        "tentatives": 1,
+        "origine": "procedural",
+        "generateur": notion,
+        "graine": graine,
+        "questions": [{"genre": s.genre, **h} for s, h in zip(squelettes, par_question)],
+        "appels": appels,
         "validation": {"n1": True, "n2": True, "n3": True, **bilan_n4},
         "avertissements": avertissements,
         "statut": "genere",
@@ -256,7 +358,8 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
 
 
 def enregistrer_rejet(erreur: ErreurValidation, brut: str, instance: dict | None, demande: dict, type_: str,
-                      fournisseur, duree: float, tentatives: int = 1, reprises: list[dict] | None = None) -> Path:
+                      fournisseur, duree: float, tentatives: int = 1, reprises: list[dict] | None = None,
+                      appels: list[dict] | None = None) -> Path:
     """Conserve chaque génération rejetée dans banque/rejets/.
 
     Sans cela, les exercices faux disparaîtraient et le taux d'erreur du modèle serait invisible : c'est
@@ -271,6 +374,7 @@ def enregistrer_rejet(erreur: ErreurValidation, brut: str, instance: dict | None
         "duree_s": duree,
         "tentatives": tentatives,
         "reprises": reprises or [],
+        "appels": appels or [],
         "demande": demande,
         "niveau": erreur.niveau,
         "erreurs": erreur.erreurs,
@@ -315,6 +419,10 @@ def main() -> None:
     parser.add_argument("--difficulte", choices=["facile", "moyen", "difficile"])
     parser.add_argument("--fournisseur", help="ollama (défaut) ou maquette")
     parser.add_argument("--sortie", type=Path, help="fichier HTML produit (défaut : sortie/<id>.html)")
+    parser.add_argument("--mode", choices=MODES, default="auto",
+                        help="auto (défaut) : générateur procédural pour les notions qu'il couvre ; ia : toujours le "
+                             "modèle ; procedural : toujours le générateur")
+    parser.add_argument("--graine", type=int, help="graine du générateur procédural (exercice reproductible)")
     args = parser.parse_args()
 
     if not (args.demande or args.notion):
@@ -332,9 +440,11 @@ def main() -> None:
     demande = {k: v for k, v in demande.items() if v is not None}
 
     try:
-        instance = generer(demande, args.type, args.fournisseur)
+        instance = generer(demande, args.type, args.fournisseur, args.mode, args.graine)
     except ErreurFournisseur as e:
         sys.exit(f"✗ fournisseur : {e}")
+    except AucunGenerateur as e:
+        sys.exit(f"✗ {e}")
     except ErreurValidation as e:
         print(f"✗ réponse du modèle rejetée ({e.niveau}), après toutes les tentatives :", file=sys.stderr)
         for erreur in e.erreurs:
@@ -349,7 +459,11 @@ def main() -> None:
 
     html_chemin = rendu.ecrire(rendu.rendre(instance, args.type), args.sortie or config.chemin("sortie") / f"{ident}.html")
     meta = instance["meta"]
-    if meta["tentatives"] > 1:
+    if meta.get("origine") == "procedural":
+        habilles = sum(q["habillage"] == "modele" for q in meta["questions"])
+        print(f"✓ {len(instance['questions'])} questions — « {instance['titre']} » — calculs justes par construction "
+              f"({habilles} énoncé(s) réécrit(s) par le modèle, {meta['duree_s']} s)")
+    elif meta["tentatives"] > 1:
         print(f"✓ {len(instance['questions'])} questions — « {instance['titre']} » — en {meta['tentatives']} "
               f"tentatives, {meta['duree_s']} s au total")
     else:

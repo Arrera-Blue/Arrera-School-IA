@@ -11,6 +11,9 @@ remplacées. La mesure porte donc sur le **premier essai** (l'exercice tel que l
 à partir des versions fautives gardées dans les reprises) : c'est la qualité du modèle, sur laquelle portent
 les seuils. Le rapport donne aussi le résultat **après reprise**, c'est-à-dire ce qu'obtient l'enseignant.
 
+Les exercices du générateur procédural (étape 1.7) sont écartés : leurs calculs sont faits par le programme,
+ils ne disent rien du modèle. Ils sont seulement comptés.
+
     python -m generateur.outils.bilan_n4
     python -m generateur.outils.bilan_n4 --depuis 2026-10-03     # seulement le prompt actuel
     python -m generateur.outils.bilan_n4 --modele gemma4:e4b-it-qat   # seulement ce modèle
@@ -37,6 +40,7 @@ class Bilan:
     acceptees: int = 0
     rejetees: int = 0
     rejets_non_mesurables: int = 0  # rejetés en N1 ou N2 : pas d'instance exploitable
+    procedurales: int = 0           # écartées : calculs du programme, pas du modèle
     statuts: Counter = field(default_factory=Counter)           # au premier essai
     # nature des « faux » : une réponse annoncée fausse (erreur de calcul) n'appelle pas le même remède que
     # plusieurs bonnes réponses (défaut de conception du QCM, que la reprise ou le prompt peuvent corriger)
@@ -115,6 +119,9 @@ def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = 
         instance = _lire(chemin)
         meta = (instance or {}).get("meta") or {}
         if instance and instance.get("matiere") == "maths" and retenue(meta.get("date"), meta.get("modele")):
+            if meta.get("origine") == "procedural":
+                bilan.procedurales += 1
+                continue
             bilan.acceptees += 1
             bilan.compter(instance, meta.get("reprises"))
     for chemin in sorted(dossier_rejets.glob("*.json")) if dossier_rejets.is_dir() else []:
@@ -167,6 +174,9 @@ def rapport(bilan: Bilan) -> str:
         f"Générations de maths analysées : {bilan.generations} "
         f"({bilan.acceptees} acceptée(s), {bilan.rejetees} rejetée(s))",
     ]
+    if bilan.procedurales:
+        lignes.append(f"Générations procédurales écartées : {bilan.procedurales} (calculs faits par le programme, "
+                      "pas par le modèle)")
     if bilan.rejets_non_mesurables:
         lignes.append(f"Rejets en N1/N2, sans instance exploitable : {bilan.rejets_non_mesurables}")
     lignes.append(f"Questions : {bilan.questions}" + (", au premier essai" if bilan.reprises else ""))

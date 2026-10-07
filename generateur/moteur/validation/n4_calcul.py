@@ -571,6 +571,42 @@ def pourcentage(n: int, q: dict, enonce: str) -> Verdict | None:
     return _en_pourcentage(n, q, cible, f"{k} sur {total} représentent {formater(cible * 100, False)} %")
 
 
+# « Un article coûte 50 €. Il est soldé à 30 %. Quel est son nouveau prix ? » (cas réel du 07/10 : 20 € annoncé,
+# 35 € juste) ; « Le prix d'un article de 80 € augmente de 10 %. Quel est son nouveau prix ? »
+NOUVEAU_PRIX = re.compile(
+    rf"(?:coûte|prix (?:\S+ ){{0,3}}?de) (?P<x>{NOMBRE}) ?€.*?\b(?P<sens>soldée?s? à|réduite?s? de|réduction de|remise de|"
+    rf"baisse de|diminue de|augmente de|augmentée?s? de|hausse de) (?P<p>{NOMBRE}) ?%.*?"
+    rf"(?:^|[.!?,;] )quel (?:est|sera) (?:son|le) nouveau prix ?\?$", re.IGNORECASE)
+BAISSE = re.compile(r"sold|rédu|remise|baisse|diminue", re.IGNORECASE)
+NEGATION = re.compile(r"\bne\b|\bn'|\bpas\b|\bnon\b", re.IGNORECASE)
+
+
+def nouveau_prix(n: int, q: dict, enonce: str) -> Verdict | None:
+    m = NOUVEAU_PRIX.search(enonce)
+    if not m:
+        return None
+    # exactement le prix et le pourcentage : « 2 articles », « puis encore 10 % » changent le calcul
+    if len(valeurs_enonce(enonce)) != 2 or NEGATION.search(enonce) or re.search(r"\bpuis\b|\bencore\b", enonce):
+        return Verdict(A_RELIRE)
+    if "%" in q["propositions"][q["index_correct"]]:
+        return Verdict(A_RELIRE)  # « 35 % » annoncée pour un prix : maladresse d'écriture, pas un calcul faux
+    x, p = _nombre_ecrit(m["x"]), _nombre_ecrit(m["p"])
+    variation = x * p / 100
+    baisse = BAISSE.match(m["sens"]) is not None
+    cible = x - variation if baisse else x + variation
+    justes, illisibles = [], []
+    for i, proposition in enumerate(q["propositions"]):
+        v = valeur(proposition)
+        if v is None or v[0] not in MONNAIE:
+            illisibles.append(i)
+        elif v[1] == cible and "%" not in proposition:
+            justes.append(i)
+    signe = "−" if baisse else "+"
+    attendu = (f"{formater(x, False)} € {signe} {formater(p, False)} % de {formater(x, False)} € = "
+               f"{formater(x, False)} {signe} {formater(variation, False)} = {formater(cible, False)} €")
+    return trancher(n, q, justes, illisibles, attendu)
+
+
 EGALITE = re.compile(rf"{QUESTION_DIRECTE}(?: (?:la|une) fraction)? (?:égale?s?|équivalente?s?) (?:à|a) "
                      rf"(?P<x>{VALEUR_TEXTE}) ?\?$", re.IGNORECASE)
 
@@ -693,7 +729,7 @@ def operation_nommee(n: int, q: dict, enonce: str) -> Verdict | None:
 # memes_termes avant simplification (« en divisant ses deux termes par 2 » nomme une simplification), et
 # plus_petit_denominateur avant comparaison (« le plus petit » n'y compare pas les valeurs citées)
 RECONNAISSEURS = (pythagore_cote, pythagore_hypotenuse, pythagore_reciproque, memes_termes, simplification,
-                  plus_petit_denominateur, parts_d_un_tout, pourcentage_de, pourcentage, egalite, comparaison,
+                  plus_petit_denominateur, parts_d_un_tout, nouveau_prix, pourcentage_de, pourcentage, egalite, comparaison,
                   operation_nommee, calcul_direct)
 
 

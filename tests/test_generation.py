@@ -285,3 +285,29 @@ def test_message_de_reprise_au_singulier():
                      "reprends aucune des autres questions de l'exercice ; respecte toutes les règles du message "
                      "système. Réponds uniquement par un objet JSON de la forme {\"questions\": [...]}, avec "
                      "exactement 1 question.")
+
+
+# --- compteurs du modèle dans le meta (étape 1.5) ------------------------------------------------
+
+class Compte(Suite):
+    """Suite qui annonce aussi des compteurs, comme Ollama."""
+    def generer(self, messages: list[dict], schema: dict) -> str:
+        self.compteurs = {"tokens_lus": 1000 * (len(self.appels) + 1), "tokens_ecrits": 300, "chargement_s": 0.1}
+        return super().generer(messages, schema)
+
+
+def test_meta_garde_les_compteurs_de_chaque_appel(dossiers, monkeypatch, capsys):
+    fournisseur = Compte([exercice(JUSTES[0], EGALES, *JUSTES[2:]), {"questions": [REMPLACANTE_2]}])
+    monkeypatch.setattr(generation, "creer", lambda nom, reglages: fournisseur)
+
+    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "compte")
+
+    appels = instance["meta"]["appels"]
+    assert [a["tentative"] for a in appels] == [1, 2]
+    assert [a["tokens_lus"] for a in appels] == [1000, 2000] and all(a["tokens_ecrits"] == 300 for a in appels)
+    assert "(1000 tokens lus, 300 écrits ; chargement 0.1 s)" in capsys.readouterr().out
+
+
+def test_detail_appel_sans_compteurs():
+    assert generation.detail_appel(None) == "" and generation.detail_appel({}) == ""
+    assert generation.detail_appel({"tokens_ecrits": 12}) == " (12 écrits)"
