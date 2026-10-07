@@ -2,7 +2,8 @@
 
 Règle d'architecture n° 4 : l'IA n'est jamais seule juge d'un calcul. Pour chaque question, N4 essaie de
 reconnaître un genre de question qu'elle sait recalculer (calcul direct, comparaison, égalité,
-simplification, Pythagore), refait le calcul en valeurs exactes, et compare le résultat aux propositions.
+simplification, pourcentages, Pythagore), refait le calcul en valeurs exactes, et compare le résultat aux
+propositions.
 
 Trois verdicts par question :
 - « verifie »  : calcul refait, la réponse annoncée est juste ;
@@ -163,6 +164,14 @@ TRANSFORMATION = re.compile(
 QUESTION_DIRECTE = (r"(?:^|[.!?] )(?:parmi [^,?]{1,40}, )?(?:quel|quelle|quels|quelles|lequel|laquelle)"
                     r"(?: [a-zàâçéèêëîïôûùüÿœ'-]+){0,4}? (?:est|sont)")
 
+# une demande de calcul : « Calcule », « Quel est le résultat de », « Combien font »…
+DEMANDE_DE_CALCUL = (r"(?:résultat (?:de|du)|calcule[rz]?|effectue[rz]?|combien (?:font|fait|vaut|valent|donne)|"
+                     r"que (?:vaut|valent|donne)|valeur de)")
+
+
+def _nombre_ecrit(texte: str) -> Fraction:
+    return Fraction(texte.replace(",", "."))
+
 
 def valeurs_enonce(enonce: str) -> list[Fraction]:
     return [valeur(m.group(0))[1] for m in VALEUR_ENONCE.finditer(enonce)]
@@ -235,10 +244,25 @@ def _selon_valeur(n: int, q: dict, cible: Fraction, attendu: str) -> Verdict:
 # Le premier qui reconnaît gagne.
 
 HYPOTENUSE = re.compile(r"(longueur|mesure) (de )?l'hypoténuse", re.IGNORECASE)
+# « les côtés de l'angle droit », ou « un triangle rectangle » : les deux longueurs citées sont alors celles
+# des côtés de l'angle droit, puisque c'est l'hypoténuse qu'on demande (cas réel du 07/10)
+ANGLE_DROIT = re.compile(r"angle droit|triangle (?:\S+ )?rectangle", re.IGNORECASE)
+# « l'hypoténuse d'un triangle rectangle mesure 10 cm », « une hypoténuse de 13 cm »
+HYPOTENUSE_DONNEE = re.compile(rf"hypoténuse (?:\S+ ){{0,4}}?(?:mesure|mesurant|vaut|fait|est de|de|=) ?"
+                               rf"(?P<h>{NOMBRE}) ?(?P<u>mm|cm|dm|km|m)\b", re.IGNORECASE)
+AUTRE_COTE = re.compile(r"\b(?:autre|deuxième|second|seconde|troisième|dernier) côté\b|\bcôté manquant\b",
+                        re.IGNORECASE)
+
+
+def _selon_longueur(n: int, q: dict, longueur: Fraction, unite: str, attendu: str) -> Verdict:
+    cible = ("longueur", longueur * UNITES[unite][1])
+    justes = [i for i, p in enumerate(q["propositions"]) if valeur(p) == cible]
+    illisibles = [i for i, p in enumerate(q["propositions"]) if valeur(p) is None]
+    return trancher(n, q, justes, illisibles, attendu)
 
 
 def pythagore_hypotenuse(n: int, q: dict, enonce: str) -> Verdict | None:
-    if not (HYPOTENUSE.search(enonce) and "angle droit" in enonce.lower()):
+    if not (HYPOTENUSE.search(enonce) and ANGLE_DROIT.search(enonce)) or HYPOTENUSE_DONNEE.search(enonce):
         return None
     longueurs = LONGUEUR.findall(enonce)
     if len(longueurs) != 2 or longueurs[0][1] != longueurs[1][1]:
@@ -248,15 +272,36 @@ def pythagore_hypotenuse(n: int, q: dict, enonce: str) -> Verdict | None:
     c = racine_exacte(a * a + b * b)
     if c is None:  # hypoténuse non entière : réponse forcément arrondie, hors du champ de N4
         return Verdict(A_RELIRE)
-    cible = ("longueur", c * UNITES[unite][1])
-    justes = [i for i, p in enumerate(q["propositions"]) if valeur(p) == cible]
-    illisibles = [i for i, p in enumerate(q["propositions"]) if valeur(p) is None]
     attendu = (f"l'hypoténuse mesure √({formater(a, False)}² + {formater(b, False)}²) = "
                f"{formater(c, False)} {unite}")
-    return trancher(n, q, justes, illisibles, attendu)
+    return _selon_longueur(n, q, c, unite, attendu)
 
 
-EST_RECTANGLE = re.compile(r"est-il (un triangle )?rectangle", re.IGNORECASE)
+def pythagore_cote(n: int, q: dict, enonce: str) -> Verdict | None:
+    """« Si l'hypoténuse d'un triangle rectangle mesure 10 cm et un côté de l'angle droit mesure 6 cm, quelle
+    est la longueur du deuxième côté ? » → √(10² − 6²) = 8 cm."""
+    h = HYPOTENUSE_DONNEE.search(enonce)
+    if not (h and AUTRE_COTE.search(enonce) and ANGLE_DROIT.search(enonce)):
+        return None
+    longueurs = LONGUEUR.findall(enonce)
+    if len(longueurs) != 2 or len({u for _, u in longueurs}) != 1 or h["u"] != longueurs[0][1]:
+        return Verdict(A_RELIRE)
+    unite = h["u"]
+    hyp = Fraction(h["h"].replace(",", "."))
+    autres = [Fraction(x.replace(",", ".")) for x, _ in longueurs]
+    autres.remove(hyp)
+    a = autres[0]
+    c = racine_exacte(hyp * hyp - a * a) if a < hyp else None
+    if c is None:  # côté non entier, ou « hypoténuse » plus courte qu'un côté : hors du champ de N4
+        return Verdict(A_RELIRE)
+    attendu = (f"le côté manquant mesure √({formater(hyp, False)}² − {formater(a, False)}²) = "
+               f"{formater(c, False)} {unite}")
+    return _selon_longueur(n, q, c, unite, attendu)
+
+
+# « Le triangle est-il rectangle ? », « Est-ce un triangle rectangle ? » (cas réel du 07/10)
+EST_RECTANGLE = re.compile(r"est-(?:il|elle|ce) (?:un triangle )?rectangle|s'agit-il d'un triangle rectangle",
+                           re.IGNORECASE)
 
 
 def pythagore_reciproque(n: int, q: dict, enonce: str) -> Verdict | None:
@@ -450,6 +495,82 @@ def parts_d_un_tout(n: int, q: dict, enonce: str) -> Verdict | None:
     return _selon_valeur(n, q, Fraction(k, total), f"{k} parts sur {total} représentent {k}/{total}")
 
 
+# « Calcule 20 % de 150. », « Combien font 25 % de 80 € ? », « Quel est 10 % de 50 ? »
+POURCENTAGE_DE = re.compile(
+    rf"(?:\b{DEMANDE_DE_CALCUL}|(?:^|[.!?] )quel(?:le)? est)(?: mentalement| de tête)? ?:? ?"
+    rf"(?P<p>{NOMBRE}) ?% (?:de |d')(?P<x>{NOMBRE}) ?(?:€|euros?)? ?[?.!]?$", re.IGNORECASE)
+MONNAIE = ("", "€^1", "euro^1", "euros^1")
+
+
+def pourcentage_de(n: int, q: dict, enonce: str) -> Verdict | None:
+    m = POURCENTAGE_DE.search(enonce)
+    if not m:
+        return None
+    if "%" in q["propositions"][q["index_correct"]]:
+        return Verdict(A_RELIRE)  # « 30 % » annoncée pour « 20 % de 150 » : maladresse d'écriture, pas un calcul faux
+    p, x = _nombre_ecrit(m["p"]), _nombre_ecrit(m["x"])
+    cible = p * x / 100
+    justes, illisibles = [], []
+    for i, proposition in enumerate(q["propositions"]):
+        v = valeur(proposition)
+        if v is None or v[0] not in MONNAIE:
+            illisibles.append(i)
+        elif v[1] == cible and "%" not in proposition:  # « 30 % » n'est pas « 30 »
+            justes.append(i)
+    attendu = f"{m['p']} % de {m['x']} = {formater(cible, False)}"
+    return trancher(n, q, justes, illisibles, attendu)
+
+
+# « Quel est le pourcentage correspondant à la fraction 25/100 ? », « Écris 3/4 en pourcentage. »
+EN_POURCENTAGE = re.compile(
+    rf"pourcentage (?:correspond(?:ant)?|équivalent|égal) (?:à|a) (?:la fraction |le nombre |l'écriture )?"
+    rf"(?P<x>{VALEUR_TEXTE}) ?\?$"
+    rf"|\b(?:écri[srtv]\w*|exprime\w*|convertis\w*|transforme\w*) (?:la fraction |le nombre )?(?P<y>{VALEUR_TEXTE}) "
+    rf"(?:en|sous (?:la )?forme d'un|sous (?:la )?forme de) pourcentage ?[?.!]?$", re.IGNORECASE)
+# « 18 bonnes réponses sur 25 » … « Quel est son pourcentage de réussite ? »
+SUR = re.compile(r"(?<![\d,./])(?P<k>\d+) (?:\S+ ){0,3}?sur (?P<n>\d+)(?![\d/]|[.,]\d)")
+QUESTION_POURCENTAGE = re.compile(
+    r"(?:^|[.!?] )quel(?:le)? est (?:le |son |sa |leur |ton |votre )?(?:pourcentage|taux)(?: de réussite| de "
+    r"bonnes réponses)? ?\?$", re.IGNORECASE)
+# ce qui inverse la question : le pourcentage d'erreurs, de ce qui reste, de ce qui n'est pas…
+CONTRAIRE = re.compile(r"\b(?:erreurs?|échecs?|faux|fausses?|mauvais\w*|rat\w*|manqu\w*|perd\w*|rest\w*|"
+                       r"autres?|non|sauf)\b|\bn'|\bne\b", re.IGNORECASE)
+
+
+def _en_pourcentage(n: int, q: dict, cible: Fraction, attendu: str) -> Verdict:
+    """Seules les propositions écrites en pourcentage peuvent répondre : 0,25 n'est pas « en pourcentage »."""
+    if "%" not in q["propositions"][q["index_correct"]]:
+        return Verdict(A_RELIRE)
+    justes, illisibles = [], []
+    for i, proposition in enumerate(q["propositions"]):
+        v = valeur(proposition)
+        if v is None:
+            illisibles.append(i)
+        elif "%" in proposition and v == ("", cible):
+            justes.append(i)
+    return trancher(n, q, justes, illisibles, attendu)
+
+
+def pourcentage(n: int, q: dict, enonce: str) -> Verdict | None:
+    m = EN_POURCENTAGE.search(enonce)
+    if m:
+        x = m["x"] or m["y"]
+        if "%" in x or TRANSFORMATION.search(enonce) or calculs(enonce):
+            return Verdict(A_RELIRE)
+        cible = valeur(x)[1]
+        return _en_pourcentage(n, q, cible, f"{x.strip()} = {formater(cible * 100, False)} %")
+    sur, question_posee = SUR.search(enonce), QUESTION_POURCENTAGE.search(enonce)
+    if not (sur and question_posee):
+        return None
+    k, total = int(sur["k"]), int(sur["n"])
+    # exactement ces deux nombres, sans transformation ni question inversée
+    if CONTRAIRE.search(enonce) or TRANSFORMATION.search(enonce) or len(valeurs_enonce(enonce)) != 2 \
+            or not 0 < k <= total:
+        return Verdict(A_RELIRE)
+    cible = Fraction(k, total)
+    return _en_pourcentage(n, q, cible, f"{k} sur {total} représentent {formater(cible * 100, False)} %")
+
+
 EGALITE = re.compile(rf"{QUESTION_DIRECTE}(?: (?:la|une) fraction)? (?:égale?s?|équivalente?s?) (?:à|a) "
                      rf"(?P<x>{VALEUR_TEXTE}) ?\?$", re.IGNORECASE)
 
@@ -513,16 +634,18 @@ def comparaison(n: int, q: dict, enonce: str) -> Verdict | None:
 
 # l'expression suit directement la demande de calcul et termine l'énoncé : « Calcule 7 × 8. »,
 # « Quel est le résultat de 1/2 + 1/3 ? », « Combien font 3² + 4² ? », « Complète : 3 + 4 = ? »
-DEMANDE_DE_CALCUL = (r"(?:résultat (?:de|du)|calcule[rz]?|effectue[rz]?|combien (?:font|fait|vaut|valent|donne)|"
-                     r"que (?:vaut|valent|donne)|valeur de)")
 SUPPORT = (r"(?: (?:l'|la |le |du |de l')?(?:opération|expression|calcul|addition|soustraction|multiplication|"
            r"division)(?: suivante?)?(?: de (?:deux|ces) (?:fractions|nombres))?)?")
-CALCUL_DIRECT = re.compile(rf"\b{DEMANDE_DE_CALCUL}{SUPPORT} ?:? ?(?P<expr>{EXPRESSION}) ?(?:= ?)?[?.!]?$",
-                           re.IGNORECASE)
+CALCUL_DIRECT = re.compile(rf"\b{DEMANDE_DE_CALCUL}(?: mentalement| de tête)?{SUPPORT} ?:? ?(?P<expr>{EXPRESSION}) ?"
+                           rf"(?:= ?)?[?.!]?$", re.IGNORECASE)
 CALCUL_A_COMPLETER = re.compile(rf"(?:^|[:.!?] )(?P<expr>{EXPRESSION}) ?= ?(?:\?|\.\.\.|…)$")
+# « 100 divisé par 5 », « 7 fois 8 » : seulement entre deux nombres, où ces mots ne peuvent être qu'une opération
+EN_TOUTES_LETTRES = re.compile(r"(?<=\d) (divisé par|multiplié par|fois|plus|moins) (?=\d)", re.IGNORECASE)
+SYMBOLES = {"divisé par": "÷", "multiplié par": "×", "fois": "×", "plus": "+", "moins": "-"}
 
 
 def calcul_direct(n: int, q: dict, enonce: str) -> Verdict | None:
+    enonce = EN_TOUTES_LETTRES.sub(lambda m: f" {SYMBOLES[m[1].lower()]} ", enonce)
     m = CALCUL_DIRECT.search(enonce) or CALCUL_A_COMPLETER.search(enonce)
     if not m:
         return None
@@ -569,8 +692,9 @@ def operation_nommee(n: int, q: dict, enonce: str) -> Verdict | None:
 
 # memes_termes avant simplification (« en divisant ses deux termes par 2 » nomme une simplification), et
 # plus_petit_denominateur avant comparaison (« le plus petit » n'y compare pas les valeurs citées)
-RECONNAISSEURS = (pythagore_hypotenuse, pythagore_reciproque, memes_termes, simplification, plus_petit_denominateur,
-                  parts_d_un_tout, egalite, comparaison, operation_nommee, calcul_direct)
+RECONNAISSEURS = (pythagore_cote, pythagore_hypotenuse, pythagore_reciproque, memes_termes, simplification,
+                  plus_petit_denominateur, parts_d_un_tout, pourcentage_de, pourcentage, egalite, comparaison,
+                  operation_nommee, calcul_direct)
 
 
 # --- point d'entrée ------------------------------------------------------------------------------

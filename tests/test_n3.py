@@ -110,6 +110,8 @@ def test_nombres_qui_se_ressemblent_ne_se_recoupent_pas():
     # « 8 » n'est pas contenu dans « 18 », ni « 1/2 » dans « 11/2 »
     assert not any("se recoupent" in m for m in avertissements(qcm(question(["8", "18", "28"]))))
     assert not any("se recoupent" in m for m in avertissements(qcm(question(["1/2", "11/2", "3/2"]))))
+    # cas réel du 07/10 : « 25 % » et « 0,25 % » sont deux valeurs différentes, la virgule n'y change rien
+    assert not any("se recoupent" in m for m in avertissements(qcm(question(["25 %", "125 %", "0,25 %", "2,5 %"]))))
 
 
 def test_forme_irreductible_demandee_les_fractions_egales_sont_les_distracteurs():

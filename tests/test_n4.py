@@ -523,3 +523,100 @@ def test_une_tentative_d_execution_dans_l_enonce_ne_fait_rien():
 ])
 def test_formater(valeur, en_fraction, texte):
     assert formater(valeur, en_fraction) == texte
+
+
+# --- cas réels du 07/10 (gemma4) : calcul mental, pourcentages, Pythagore ------------------------
+# 15 questions de 3 exercices acceptés ; 4 réponses annoncées étaient fausses, toutes laissées « à relire »
+
+REELS_0710 = [
+    ("Calcule mentalement : 12 + 15.", ["25", "37", "18", "27"], 0, FAUX),                  # 27
+    ("Quel est le résultat de 40 - 13 ?", ["27", "33", "53", "23"], 0, VERIFIE),
+    ("Calcule mentalement : 7 x 6.", ["36", "42", "48", "13"], 1, VERIFIE),
+    ("Combien font 100 divisé par 5 ?", ["20", "50", "10", "1000"], 0, VERIFIE),
+    ("Calcule mentalement : 25 + 50.", ["65", "75", "125", "55"], 1, VERIFIE),
+    ("Qu'est-ce que le pourcentage ?", ["Un nombre divisé par 100", "Un nombre exprimé en unités",
+                                        "Une fraction simplifiée", "Une mesure de longueur"], 0, A_RELIRE),
+    ("Quel est le pourcentage correspondant à la fraction 25/100 ?", ["25 %", "125 %", "0,25 %", "2,5 %"], 0, VERIFIE),
+    ("Calcule 20 % de 150.", ["20", "30", "15", "25"], 1, VERIFIE),
+    # 35 € : absente des propositions ; problème rédigé, hors du champ de N4
+    ("Si un article coûte 50 € et qu'il est soldé à 30 %, quel est son nouveau prix ?",
+     ["30 €", "15 €", "20 €", "40 €"], 2, A_RELIRE),
+    ("Un élève a obtenu 18 bonnes réponses sur 25. Quel est son pourcentage de réussite ?",
+     ["72 %", "18 %", "75 %", "80 %"], 3, FAUX),                                              # 72 %
+    ("Dans un triangle ABC rectangle en B, quels sont les côtés de l'angle droit ?",
+     ["AB et BC", "AC et AB", "BC et AC"], 0, A_RELIRE),
+    ("Un triangle rectangle possède des côtés de 5 cm et 12 cm. Quelle est la longueur de l'hypoténuse ?",
+     ["13 cm", "17 cm", "17 cm²", "7 cm"], 0, VERIFIE),
+    ("Un triangle a pour côtés 7 cm, 8 cm et 11 cm. Est-ce un triangle rectangle ?",
+     ["Oui, car 7² + 8² = 11²", "Non, car 7² + 11² = 8²", "Non, car 8² + 11² = 7²"], 0, FAUX),  # 113 ≠ 121
+    ("Si l'hypoténuse d'un triangle rectangle mesure 10 cm et un côté de l'angle droit mesure 6 cm, quelle est "
+     "la longueur du deuxième côté ?", ["8 cm", "16 cm", "100 cm", "4 cm"], 0, VERIFIE),
+    ("Un carré de côté 4 cm est divisé en deux par une diagonale. Quel est la longueur de cette diagonale ?",
+     ["4 cm", "8 cm", "4√2 cm", "16 cm"], 2, A_RELIRE),                                       # racine non lue
+]
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", REELS_0710)
+def test_cas_reels_du_0710(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+def test_cas_reels_du_0710_messages():
+    assert message(*REELS_0710[0][:3]) == "question 1 : 12 + 15 = 27, mais la réponse annoncée est « 25 » au lieu de « 27 »"
+    assert message(*REELS_0710[9][:3]) == ("question 1 : 18 sur 25 représentent 72 %, mais la réponse annoncée est "
+                                           "« 80 % » au lieu de « 72 % »")
+    assert message(*REELS_0710[12][:3]) == ("question 1 : 7² + 8² = 113 ≠ 11² = 121, donc le triangle n'est pas "
+                                            "rectangle, mais la réponse annoncée est « Oui, car 7² + 8² = 11² »")
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    ("Calcule 20 % de 150 €.", ["30 €", "20 €", "15 €"], 0, VERIFIE),
+    ("Calcule 20 % de 150 €.", ["20 €", "30 €", "15 €"], 0, FAUX),
+    ("Quel est 10 % de 50 ?", ["5", "10", "0,5"], 0, VERIFIE),
+    ("Calcule 20 % de 150.", ["30 %", "20", "15"], 0, A_RELIRE),             # « 30 % » : maladresse, pas un calcul
+    ("Calcule 20 % de 150 puis ajoute 5.", ["35", "30"], 0, A_RELIRE),       # le calcul continue
+])
+def test_pourcentage_d_un_nombre(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    ("Écris 3/4 en pourcentage.", ["75 %", "34 %", "0,75 %"], 0, VERIFIE),
+    ("Écris 0,5 sous forme de pourcentage.", ["5 %", "50 %", "0,5 %"], 0, FAUX),
+    ("Écris 3/4 en pourcentage.", ["0,75", "75 %", "34 %"], 0, A_RELIRE),   # 0,75 n'est pas écrit en pourcentage
+    # la question inversée : le pourcentage d'erreurs, ou les mauvaises réponses comptées
+    ("Un élève a obtenu 18 bonnes réponses sur 25. Quel est son pourcentage d'erreurs ?", ["28 %", "72 %"], 0, A_RELIRE),
+    ("Un élève a 7 mauvaises réponses sur 25. Quel est son pourcentage de réussite ?", ["72 %", "28 %"], 0, A_RELIRE),
+    ("Sur 25 questions, Léa en a réussi 18. Quel est son pourcentage de réussite ?", ["72 %", "80 %"], 0, A_RELIRE),
+])
+def test_ecriture_en_pourcentage(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+COTE = ("Dans un triangle rectangle, l'hypoténuse mesure 13 cm et un côté mesure 5 cm. "
+        "Quelle est la longueur de l'autre côté ?")
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    (COTE, ["12 cm", "8 cm", "18 cm"], 0, VERIFIE),
+    (COTE, ["8 cm", "12 cm", "18 cm"], 0, FAUX),
+    (COTE.replace("13", "10").replace("5 cm", "4 cm"), ["9,2 cm", "6 cm"], 0, A_RELIRE),  # √84 : arrondi
+    # l'hypoténuse est donnée : la demander n'a pas de sens, N4 ne s'y risque pas
+    ("Un triangle rectangle a une hypoténuse de 5 cm et un côté de 3 cm. Quelle est la mesure de l'hypoténuse ?",
+     ["5 cm", "4 cm"], 0, A_RELIRE),
+    ("Un triangle a pour côtés 6 cm, 8 cm et 10 cm. Est-ce un triangle rectangle ?",
+     ["Non, car 6² + 8² ≠ 10²", "Oui, car 6² + 8² = 10²"], 0, FAUX),
+])
+def test_pythagore_cote_manquant_et_reciproque(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    ("Combien font 7 fois 8 ?", ["54", "56", "15"], 0, FAUX),
+    ("Combien font 3 plus 4 ?", ["7", "12"], 0, VERIFIE),
+    ("Calcule de tête : 9 × 7.", ["63", "56"], 0, VERIFIE),
+    ("Calcule le double de 3 plus 4.", ["14", "10"], 0, A_RELIRE),          # transformation : non lu
+    ("Combien de fois 3 est-il contenu dans 12 ?", ["4", "3"], 0, A_RELIRE),
+])
+def test_operations_en_toutes_lettres(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
