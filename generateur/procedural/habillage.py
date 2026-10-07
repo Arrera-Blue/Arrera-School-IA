@@ -124,6 +124,7 @@ def habiller(squelettes: list[Squelette], niveau: str, fournisseur: Fournisseur 
         if refus is None:
             enonces[i], par_question[i] = texte, {"habillage": "modele"}
         else:
-            par_question[i]["refus"] = refus
+            # le texte refusé est gardé : c'est lui qui sert à régler le prompt et les contrôles
+            par_question[i] |= {"refus": refus, "texte_refuse": texte}
             print(f"   ⚠ question {i + 1} : habillage refusé ({refus}) → énoncé-gabarit", flush=True)
     return Habillage(enonces, par_question, appel)

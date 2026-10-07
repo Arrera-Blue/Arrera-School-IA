@@ -119,7 +119,7 @@ def partie(rng: random.Random) -> Squelette:
         cle=("partie", k, n),
         habillable=True,
         # des parts égales, et la question porte sur ces parts, pas sur ce qui reste
-        obligatoires=(r"égal", r"parts?\b|parties|morceaux|tranches|cases|carreaux"),
+        obligatoires=(r"égal|identiques|même taille|mêmes tailles", r"parts?\b|parties|morceaux|tranches|cases|carreaux"),
         interdits=(COMPLEMENT,),
         demande=(r"fraction",),
         demande_interdits=(COMPLEMENT,),

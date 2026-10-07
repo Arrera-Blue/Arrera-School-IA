@@ -19,7 +19,8 @@ Pour chaque énoncé, dans le même ordre, tu écris un nouvel énoncé qui :
 - n'ajoute AUCUN autre nombre : ni âge, ni date, ni quantité, ni nombre écrit en lettres
   (« deux », « trois », « la moitié »…) ;
 - demande EXACTEMENT la même chose que l'énoncé d'origine, avec les mêmes mots-clés : un « nouveau
-  prix » reste un nouveau prix, une « hypoténuse » reste une hypoténuse, une baisse reste une baisse ;
+  prix » reste un nouveau prix, une « hypoténuse » reste une hypoténuse, une baisse reste une baisse,
+  des « parts égales » restent des parts égales (écris toujours « égales ») ;
 - n'écrit jamais la réponse, ni un indice qui la donne ;
 - tient en une ou deux phrases, et se termine par une seule question, avec un point d'interrogation ;
 - ne renvoie à aucune figure, aucun schéma, aucun dessin ;
