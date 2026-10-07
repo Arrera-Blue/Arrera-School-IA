@@ -1,4 +1,7 @@
-"""Génération de bout en bout, sans modèle : le meta d'un exercice accepté, et la conservation des rejets."""
+"""Génération de bout en bout, sans modèle : le meta d'un exercice accepté, et la conservation des rejets.
+
+Ces tests portent sur la chaîne avec le modèle : `mode="ia"`, sinon « fractions » passerait par le générateur
+procédural (étape 1.7)."""
 
 import copy
 import json
@@ -54,7 +57,7 @@ def test_un_rejet_est_conserve_avec_son_instance(dossiers, monkeypatch):
     rejouer(monkeypatch, brut)
 
     with pytest.raises(ErreurValidation) as e:
-        generation.generer({"type": "qcm", "demande_enseignant": "fractions 6e"}, "qcm", "rejoue")
+        generation.generer({"type": "qcm", "demande_enseignant": "fractions 6e"}, "qcm", "rejoue", mode="ia")
 
     fichiers = list((dossiers / "rejets").glob("*.json"))
     assert len(fichiers) == 1 and e.value.rejet == fichiers[0]
@@ -72,7 +75,7 @@ def test_n3_et_n4_signalent_tous_les_defauts_d_un_coup(dossiers, monkeypatch):
     rejouer(monkeypatch, json.dumps(fautif, ensure_ascii=False))
 
     with pytest.raises(ErreurValidation) as e:
-        generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "rejoue")
+        generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "rejoue", mode="ia")
 
     assert e.value.niveau == "N3, N4"
     assert e.value.questions == (1, 2, 3, 4, 5)
@@ -86,7 +89,7 @@ def test_n3_et_n4_signalent_tous_les_defauts_d_un_coup(dossiers, monkeypatch):
 def test_un_rejet_n1_est_conserve_sans_instance(dossiers, monkeypatch):
     rejouer(monkeypatch, "Voici votre exercice ! (mais pas de JSON)")
     with pytest.raises(ErreurValidation):
-        generation.generer({"type": "qcm", "notion": "test"}, "qcm", "rejoue")
+        generation.generer({"type": "qcm", "notion": "test"}, "qcm", "rejoue", mode="ia")
     rejet = json.loads(next((dossiers / "rejets").glob("*.json")).read_text(encoding="utf-8"))
     assert rejet["niveau"] == "N1" and rejet["instance"] is None
 
@@ -95,7 +98,7 @@ def test_deux_rejets_rapproches_ne_s_ecrasent_pas(dossiers, monkeypatch):
     rejouer(monkeypatch, "pas de JSON")
     for _ in range(2):
         with pytest.raises(ErreurValidation):
-            generation.generer({"type": "qcm", "notion": "test"}, "qcm", "rejoue")
+            generation.generer({"type": "qcm", "notion": "test"}, "qcm", "rejoue", mode="ia")
     assert len(list((dossiers / "rejets").glob("*.json"))) == 2
 
 
@@ -168,7 +171,7 @@ def test_reprise_des_seules_questions_refusees(suite, capsys):
     initial = exercice(JUSTES[0], EGALES, JUSTES[2], FIGURE, JUSTES[4])
     fournisseur = suite([initial, {"questions": [REMPLACANTE_2, REMPLACANTE_4]}])
 
-    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite")
+    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite", mode="ia")
 
     # les questions 2 et 4 sont remplacées à leur place, les autres sont intactes
     assert instance["questions"] == [JUSTES[0], REMPLACANTE_2, JUSTES[2], REMPLACANTE_4, JUSTES[4]]
@@ -204,7 +207,7 @@ def test_abandon_apres_tentatives_max(suite):
     fournisseur = suite([initial, {"questions": [EGALES]}, {"questions": [EGALES]}])
 
     with pytest.raises(ErreurValidation) as e:
-        generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite")
+        generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite", mode="ia")
 
     assert len(fournisseur.appels) == 3 and e.value.questions == (2,)
     rejet = json.loads(e.value.rejet.read_text(encoding="utf-8"))
@@ -216,7 +219,7 @@ def test_une_reprise_illisible_est_redemandee(suite):
     initial = exercice(JUSTES[0], EGALES, *JUSTES[2:])
     fournisseur = suite([initial, "désolé, je ne peux pas", {"questions": [REMPLACANTE_2]}])
 
-    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite")
+    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite", mode="ia")
 
     assert instance["questions"][1] == REMPLACANTE_2
     assert instance["meta"]["tentatives"] == 3 and instance["meta"]["tentatives_par_question"] == [1, 2, 1, 1, 1]
@@ -231,7 +234,7 @@ def test_une_reprise_illisible_est_redemandee(suite):
 def test_un_json_initial_invalide_fait_reprendre_tout_l_exercice(suite):
     fournisseur = suite(["Voici votre exercice ! (mais pas de JSON)", exercice(*JUSTES)])
 
-    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite")
+    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite", mode="ia")
 
     messages, schema = fournisseur.appels[1]
     assert "renvoie l'exercice complet" in messages[3]["content"] and "aucun objet JSON" in messages[3]["content"]
@@ -246,7 +249,7 @@ def test_un_defaut_hors_question_fait_reprendre_tout_l_exercice(suite):
     avec_courriel["consigne"] = "Envoie tes réponses à prof@exemple.fr"
     fournisseur = suite([avec_courriel, exercice(*JUSTES)])
 
-    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite")
+    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite", mode="ia")
 
     assert "renvoie l'exercice complet" in fournisseur.appels[1][0][3]["content"]
     assert "consigne" not in instance and instance["meta"]["tentatives_par_question"] == [2] * 5
@@ -257,7 +260,7 @@ def test_tout_l_exercice_est_revalide_apres_une_reprise(suite):
     initial = exercice(JUSTES[0], EGALES, *JUSTES[2:])
     fournisseur = suite([initial, {"questions": [JUSTES[0]]}, {"questions": [REMPLACANTE_2]}])
 
-    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite")
+    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite", mode="ia")
 
     assert "même énoncé que la question 1" in fournisseur.appels[2][0][3]["content"]
     assert instance["questions"][1] == REMPLACANTE_2 and instance["meta"]["tentatives_par_question"][1] == 3
@@ -266,13 +269,13 @@ def test_tout_l_exercice_est_revalide_apres_une_reprise(suite):
 def test_sans_reprise_si_tentatives_max_vaut_1(suite):
     fournisseur = suite([exercice(JUSTES[0], EGALES, *JUSTES[2:])], tentatives_max=1)
     with pytest.raises(ErreurValidation):
-        generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite")
+        generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite", mode="ia")
     assert len(fournisseur.appels) == 1
 
 
 def test_premier_essai_reussi_sans_reprise(suite):
     suite([exercice(*JUSTES)])
-    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite")
+    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "suite", mode="ia")
     assert instance["meta"]["tentatives"] == 1 and instance["meta"]["reprises"] == []
     assert instance["meta"]["tentatives_par_question"] == [1] * 5
 
@@ -300,7 +303,7 @@ def test_meta_garde_les_compteurs_de_chaque_appel(dossiers, monkeypatch, capsys)
     fournisseur = Compte([exercice(JUSTES[0], EGALES, *JUSTES[2:]), {"questions": [REMPLACANTE_2]}])
     monkeypatch.setattr(generation, "creer", lambda nom, reglages: fournisseur)
 
-    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "compte")
+    instance = generation.generer({"type": "qcm", "notion": "fractions"}, "qcm", "compte", mode="ia")
 
     appels = instance["meta"]["appels"]
     assert [a["tentative"] for a in appels] == [1, 2]
