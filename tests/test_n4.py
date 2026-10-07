@@ -526,7 +526,7 @@ def test_formater(valeur, en_fraction, texte):
 
 
 # --- cas réels du 07/10 (gemma4) : calcul mental, pourcentages, Pythagore ------------------------
-# 15 questions de 3 exercices acceptés ; 4 réponses annoncées étaient fausses, toutes laissées « à relire »
+# 15 questions de 3 exercices acceptés ; 4 réponses annoncées étaient fausses, toutes laissées « à relire » ce jour-là
 
 REELS_0710 = [
     ("Calcule mentalement : 12 + 15.", ["25", "37", "18", "27"], 0, FAUX),                  # 27
@@ -538,9 +538,9 @@ REELS_0710 = [
                                         "Une fraction simplifiée", "Une mesure de longueur"], 0, A_RELIRE),
     ("Quel est le pourcentage correspondant à la fraction 25/100 ?", ["25 %", "125 %", "0,25 %", "2,5 %"], 0, VERIFIE),
     ("Calcule 20 % de 150.", ["20", "30", "15", "25"], 1, VERIFIE),
-    # 35 € : absente des propositions ; problème rédigé, hors du champ de N4
+    # 35 € : absente des propositions ; vue grâce à nouveau_prix (07/10, étape 1.7)
     ("Si un article coûte 50 € et qu'il est soldé à 30 %, quel est son nouveau prix ?",
-     ["30 €", "15 €", "20 €", "40 €"], 2, A_RELIRE),
+     ["30 €", "15 €", "20 €", "40 €"], 2, FAUX),
     ("Un élève a obtenu 18 bonnes réponses sur 25. Quel est son pourcentage de réussite ?",
      ["72 %", "18 %", "75 %", "80 %"], 3, FAUX),                                              # 72 %
     ("Dans un triangle ABC rectangle en B, quels sont les côtés de l'angle droit ?",
@@ -619,4 +619,24 @@ def test_pythagore_cote_manquant_et_reciproque(enonce, propositions, index_corre
     ("Combien de fois 3 est-il contenu dans 12 ?", ["4", "3"], 0, A_RELIRE),
 ])
 def test_operations_en_toutes_lettres(enonce, propositions, index_correct, attendu):
+    assert statut(enonce, propositions, index_correct) == attendu
+
+
+PRIX = "Un article coûte 50 €. Il est soldé à 30 %. Quel est son nouveau prix ?"
+
+
+@pytest.mark.parametrize("enonce, propositions, index_correct, attendu", [
+    (PRIX, ["35 €", "15 €", "20 €"], 0, VERIFIE),
+    (PRIX, ["15 €", "35 €", "20 €"], 0, FAUX),                               # le montant de la remise
+    ("Le prix d'un article de 180 € augmente de 25 %. Quel est son nouveau prix ?", ["45 €", "225 €", "205 €"], 1,
+     VERIFIE),
+    ("Le prix d'un article de 180 € augmente de 25 %. Quel est son nouveau prix ?", ["45 €", "225 €", "205 €"], 2,
+     FAUX),
+    # deux articles, ou deux remises successives : le calcul n'est plus celui qu'on lit
+    ("Deux articles coûtent 50 €. Ils sont soldés à 30 %. Quel est leur nouveau prix ?", ["35 €", "15 €"], 0, A_RELIRE),
+    ("Un article coûte 50 €. Il est soldé à 30 %, puis encore à 10 %. Quel est son nouveau prix ?", ["31,5 €", "35 €"],
+     0, A_RELIRE),
+    (PRIX, ["35 %", "15 €", "20 €"], 0, A_RELIRE),                           # « 35 % » : pas un prix
+])
+def test_nouveau_prix(enonce, propositions, index_correct, attendu):
     assert statut(enonce, propositions, index_correct) == attendu

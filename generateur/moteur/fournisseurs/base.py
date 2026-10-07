@@ -8,6 +8,8 @@ class ErreurFournisseur(Exception):
 class Fournisseur(ABC):
     nom: str
     modele: str
+    # compteurs du dernier appel (tokens lus et écrits, durées en secondes), quand le fournisseur les donne
+    compteurs: dict | None = None
 
     @abstractmethod
     def generer(self, messages: list[dict], schema: dict) -> str:

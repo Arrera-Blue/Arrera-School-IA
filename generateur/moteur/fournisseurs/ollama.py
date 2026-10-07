@@ -17,6 +17,7 @@ class Ollama(Fournisseur):
         self.temperature = temperature
 
     def generer(self, messages: list[dict], schema: dict) -> str:
+        self.compteurs = None
         corps = {
             "model": self.modele,
             "messages": messages,
@@ -43,4 +44,20 @@ class Ollama(Fournisseur):
             raise ErreurFournisseur(f"modèle « {self.modele} » absent de l'hôte : ollama pull {self.modele}")
         if reponse.status_code != 200:
             raise ErreurFournisseur(f"Ollama a répondu {reponse.status_code} : {reponse.text[:300]}")
-        return reponse.json()["message"]["content"]
+        donnees = reponse.json()
+        self.compteurs = compteurs(donnees)
+        return donnees["message"]["content"]
+
+
+DUREES = (("load_duration", "chargement_s"), ("prompt_eval_duration", "lecture_s"),
+          ("eval_duration", "ecriture_s"), ("total_duration", "total_s"))
+
+
+def compteurs(donnees: dict) -> dict:
+    """Ce qu'Ollama dit de l'appel : tokens lus (le prompt) et écrits (la réponse), et où le temps est passé
+    (chargement du modèle, lecture du prompt, écriture). Les durées d'Ollama sont en nanosecondes."""
+    resultat = {"tokens_lus": donnees.get("prompt_eval_count"), "tokens_ecrits": donnees.get("eval_count")}
+    for cle, nom in DUREES:
+        if donnees.get(cle) is not None:
+            resultat[nom] = round(donnees[cle] / 1e9, 1)
+    return {k: v for k, v in resultat.items() if v is not None}
