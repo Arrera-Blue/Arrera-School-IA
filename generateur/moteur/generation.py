@@ -314,7 +314,9 @@ def detail_appel(compteurs: dict | None) -> str:
         return ""
     lus = f"{compteurs['tokens_lus']} tokens lus, " if "tokens_lus" in compteurs else ""
     chargement = f" ; chargement {compteurs['chargement_s']} s" if "chargement_s" in compteurs else ""
-    return f" ({lus}{compteurs['tokens_ecrits']} écrits{chargement})"
+    durees = (f", lecture {compteurs['lecture_s']} s, écriture {compteurs['ecriture_s']} s"
+              if "lecture_s" in compteurs and "ecriture_s" in compteurs else "")
+    return f" ({lus}{compteurs['tokens_ecrits']} écrits{chargement}{durees})"
 
 
 def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | None = None) -> dict:

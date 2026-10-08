@@ -15,6 +15,7 @@ fournisseurs:
     # À réactiver ("cache/llamacpp") une fois la vitesse brute mesurée, en surveillant la mémoire.
     cache: null
     cache_max_go: 2
+    verbose: false                # true : les journaux de llama.cpp, dont ses mesures de vitesse, sur la sortie d'erreur
     options:                      # autres réglages de llama_cpp.Llama
       flash_attn: true            # Gemma 4 : sans elle, llama.cpp agrandit le cache des couches à 1024 (« padding V cache »)
       n_batch: 256                # 512 par défaut : le tableau des scores (vocabulaire de 262 000 mots) pèse 0,5 Go
