@@ -314,6 +314,9 @@ def test_meta_garde_les_compteurs_de_chaque_appel(dossiers, monkeypatch, capsys)
 def test_detail_appel_sans_compteurs():
     assert generation.detail_appel(None) == "" and generation.detail_appel({}) == ""
     assert generation.detail_appel({"tokens_ecrits": 12}) == " (12 écrits)"
+    assert generation.detail_appel({"tokens_lus": 3318, "tokens_ecrits": 544, "chargement_s": 7.9, "lecture_s": 300.2,
+                                    "ecriture_s": 122.5}) == (" (3318 tokens lus, 544 écrits ; chargement 7.9 s, "
+                                                              "lecture 300.2 s, écriture 122.5 s)")
 
 
 # --- la demande de l'enseignant : nombre de questions et classe (recette 1.6) --------------------

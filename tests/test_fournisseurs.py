@@ -41,6 +41,7 @@ class FauxLlama:
     charges = 0
 
     def __init__(self, model_path, n_ctx, n_threads, verbose, swa_full=False):
+        self.verbose = verbose
         FauxLlama.charges += 1
         self.model_path, self.n_ctx, self.cache, self.recu = model_path, n_ctx, None, None
         self.swa_full = swa_full
@@ -48,10 +49,12 @@ class FauxLlama:
     def set_cache(self, cache):
         self.cache = cache
 
-    def create_chat_completion(self, messages, temperature, response_format):
-        self.recu = (messages, temperature, response_format)
-        return {"choices": [{"message": {"content": "{\"questions\": []}"}}],
-                "usage": {"prompt_tokens": 3300, "completion_tokens": 800, "total_tokens": 4100}}
+    def create_chat_completion(self, messages, temperature, response_format, stream):
+        self.recu = (messages, temperature, response_format, stream)
+        self.n_tokens = 3300  # le prompt lu, puis un token par morceau écrit
+        for texte in ("", "{\"questions\"", ": []", "}"):
+            self.n_tokens += bool(texte)
+            yield {"choices": [{"delta": {"content": texte} if texte else {"role": "assistant"}}]}
 
 
 @pytest.fixture
@@ -72,11 +75,11 @@ def test_llamacpp_genere_avec_le_schema_et_garde_les_compteurs(faux_llama_cpp, t
     assert f.nom == "llamacpp" and f.modele == "gemma-4-E4B_q4_0-it.gguf"
     schema = {"type": "object", "properties": {"questions": {"type": "array"}}}
     assert f.generer([{"role": "user", "content": "…"}], schema) == "{\"questions\": []}"
-    llm = llamacpp._CHARGES[(str(faux_llama_cpp), 8192, None, ())]
-    assert llm.recu[1] == 0.5 and llm.recu[2] == {"type": "json_object", "schema": schema}
+    llm = llamacpp._CHARGES[(str(faux_llama_cpp), 8192, None, False, ())]
+    assert llm.recu[1] == 0.5 and llm.recu[2] == {"type": "json_object", "schema": schema} and llm.recu[3]
     assert llm.cache == ("disque", str(tmp_path / "cache"), 1024 ** 3)            # cache du prompt sur disque
-    assert f.compteurs["tokens_lus"] == 3300 and f.compteurs["tokens_ecrits"] == 800
-    assert "chargement_s" in f.compteurs
+    assert f.compteurs["tokens_lus"] == 3300 and f.compteurs["tokens_ecrits"] == 3
+    assert {"chargement_s", "lecture_s", "ecriture_s", "total_s"} <= set(f.compteurs)
 
 
 def test_llamacpp_charge_le_modele_une_seule_fois(faux_llama_cpp):
