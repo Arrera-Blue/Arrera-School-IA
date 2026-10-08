@@ -8,13 +8,18 @@ fournisseurs:
     think: false                  # Qwen 3 : le mode « raisonnement » coûte des minutes pour rien ici
   llamacpp:                       # le modèle dans le processus Python (docs/etapes/migration-llamacpp.md)
     modele: "modeles/gemma-4-E4B_q4_0-it.gguf"   # relatif à la racine du dépôt (/app) ; le même Gemma 4 E4B QAT qu'Ollama
-    n_ctx: 8192
+    n_ctx: 6144                   # prompt ~3 300 tokens + réponse 800 à 2 000 ; chaque token de contexte coûte de la mémoire
     n_threads: 4                  # les 4 vCPU du VPS
-    cache: "cache/llamacpp"       # état du modèle après lecture du prompt, réutilisé d'une génération à l'autre
+    # état du modèle après lecture du prompt, réutilisé d'une génération à l'autre ; DÉSACTIVÉ le 08/10 :
+    # chaque sauvegarde recopie trois fois l'état du modèle en mémoire, et le VPS a débordé sur le swap.
+    # À réactiver ("cache/llamacpp") une fois la vitesse brute mesurée, en surveillant la mémoire.
+    cache: null
     cache_max_go: 2
     options:                      # autres réglages de llama_cpp.Llama
       flash_attn: true            # Gemma 4 : sans elle, llama.cpp agrandit le cache des couches à 1024 (« padding V cache »)
-      # swa_full: true            # si le début du prompt n'est pas repris d'une génération à l'autre (migration-llamacpp.md, étape 5)
+      n_batch: 256                # 512 par défaut : le tableau des scores (vocabulaire de 262 000 mots) pèse 0,5 Go
+      type_k: 8                   # cache d'attention compressé en q8_0 (8 = GGML_TYPE_Q8_0) : moitié moins de mémoire ;
+      type_v: 8                   #   possible grâce à la flash attention
 generation:
   tentatives_max: 3               # appels au modèle : la génération, puis 2 reprises des seules questions refusées
   temperature: 0.5
