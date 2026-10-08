@@ -314,3 +314,30 @@ def test_meta_garde_les_compteurs_de_chaque_appel(dossiers, monkeypatch, capsys)
 def test_detail_appel_sans_compteurs():
     assert generation.detail_appel(None) == "" and generation.detail_appel({}) == ""
     assert generation.detail_appel({"tokens_ecrits": 12}) == " (12 écrits)"
+
+
+# --- la demande de l'enseignant : nombre de questions et classe (recette 1.6) --------------------
+
+@pytest.mark.parametrize("phrase, nb_questions, niveau", [
+    ("un QCM de 15 questions sur le calcul mental pour des 6e", 15, "6e"),   # cas réel du 08/10 : 5 produites
+    ("un QCM de 3 questions sur le passé composé pour des 5e", 3, "5e"),
+    ("10 questions de Pythagore en 4ème", 10, "4e"),
+    ("les fractions, classe de sixième", None, "6e"),
+    ("un QCM de 40 questions sur les fractions", None, None),                 # hors des bornes du schéma
+    ("une question sur les fractions", None, None),
+])
+def test_completer_demande(phrase, nb_questions, niveau):
+    demande = generation.completer_demande({"demande_enseignant": phrase})
+    assert (demande.get("nb_questions"), demande.get("niveau")) == (nb_questions, niveau)
+
+
+def test_completer_demande_respecte_les_options():
+    demande = generation.completer_demande({"demande_enseignant": "15 questions pour des 6e", "nb_questions": 4,
+                                            "niveau": "5e"})
+    assert (demande["nb_questions"], demande["niveau"]) == (4, "5e")
+
+
+def test_le_procedural_respecte_le_nombre_demande(dossiers):
+    instance = generation.generer({"type": "qcm", "demande_enseignant": "un QCM de 15 questions sur le calcul "
+                                   "mental pour des 6e"}, "qcm", "maquette", graine=1)
+    assert len(instance["questions"]) == 15 and instance["niveau"] == "6e"

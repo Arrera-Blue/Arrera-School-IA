@@ -17,8 +17,8 @@
 | 4 | Grammaire 5e | modèle | 339,8 s | 1 | 0 / 1 / 1 / 2 | 0 |
 | 5 | Histoire 4e | modèle | 347,7 s | 1 | 0 / 1 / 0 / 3 | 0 |
 | 6 | Maths mixtes 5e | modèle, contrôlé par N4 | 137,9 s (modèle déjà chargé) | 1 | 0 / 0 / 0 / 1 | 0 |
-| 7 | Rendu, 15 questions | | | | | |
-| 8 | Rendu, 3 questions | | | | | |
+| 7 | Rendu, 15 questions | procédural | 0,0 s | 1 | **bug : 5 questions au lieu de 15** (corrigé, à refaire) | 0 |
+| 8 | Rendu, 3 questions | modèle | 80,3 s (modèle déjà chargé) | 1 | 1 / 1 / 0 / 2 | 0 (à relire) |
 
 **Jalon A** (aucun défaut de fond non détecté) : ☐
 
@@ -99,3 +99,22 @@ demande mixte, l'enseignant doit encore refaire 4 calculs sur 5.
 | 3 | 40 % = 2/5 (juste) : « quelle fraction représente 40 % » n'est pas lu par N4 | outil | à relire |
 | 4 | 20 % de 50 € = 10 € (juste) : « le montant de la réduction » n'est pas lu par N4 | outil | à relire |
 | 5 | dénominateur commun de 1/3 et 1/6 → 6 (juste) ; distracteurs « 1/9 » et « 1/18 » : des fractions quand un nombre est demandé | forme | à relire |
+
+### 7 — Rendu à 15 questions (`qcm-calcul-mental-6e-20261008-113141.json`, graine 130728) — 08/10
+
+**Bug : 5 questions produites au lieu de 15.** Le générateur procédural ne lisait que l'option
+`--questions` ; le nombre écrit dans la phrase de l'enseignant (« un QCM de 15 questions ») était ignoré,
+et la classe aussi (« pour des 3e »). Le modèle, lui, lit la phrase : le défaut ne se voyait pas. **Corrigé
+le 08/10** (`completer_demande`, 378 tests) : nombre de questions (3 à 15) et classe lus dans la phrase quand
+ils ne sont pas donnés. Les 5 questions produites sont justes. **À refaire** pour tester le rendu à 15.
+
+### 8 — Rendu à 3 questions, passé composé 5e (`qcm-formation-et-utilisation-du-passe-compos-5e-20261008-113341.json`) — 08/10
+
+3 réponses justes, en une tentative.
+
+| Q | Défaut | Gravité | Détecté |
+|---|---|---|---|
+| 1 | explication : « pour les verbes du premier groupe, on utilise l'auxiliaire avoir » : **règle fausse** (« aller », 1er groupe, prend « être », comme le dit la question 2) | fond (explication) | à relire (hors maths) |
+| 3 | « Elle est allée » : « quel est le participe passé du verbe aller ? » → « allée » ; mais « allé » se défend (le participe passé du verbe, avant accord) | ambiguïté | à relire (hors maths) |
+| 1 | distracteur « J'ai mangéais » : forme inventée, absurde | forme | non |
+| 3 | distracteur « au » : absurde | forme | non |

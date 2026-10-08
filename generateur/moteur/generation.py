@@ -36,6 +36,28 @@ class AucunGenerateur(Exception):
     """--mode procedural pour une demande qu'aucun générateur procédural ne couvre."""
 
 
+# « un QCM de 15 questions sur … pour des 6e » : en attendant l'extraction d'intention (phase 3)
+NOMBRE_DE_QUESTIONS = re.compile(r"\b(\d{1,2}) questions?\b", re.IGNORECASE)
+CLASSE = re.compile(r"\b([3-6])(?:e|è|ème|eme)\b|\b(sixième|cinquième|quatrième|troisième)s?\b", re.IGNORECASE)
+CLASSES_EN_LETTRES = {"sixième": "6e", "cinquième": "5e", "quatrième": "4e", "troisième": "3e"}
+QUESTIONS_MIN, QUESTIONS_MAX = 3, 15  # les bornes du schéma QCM
+
+
+def completer_demande(demande: dict) -> dict:
+    """Le nombre de questions et la classe, lus dans la phrase de l'enseignant s'ils ne sont pas donnés.
+
+    Sans cela, le générateur procédural produisait 5 questions pour « un QCM de 15 questions » (recette 1.6,
+    08/10) ; et le schéma donné au modèle n'imposait pas le nombre demandé."""
+    texte = demande.get("demande_enseignant") or ""
+    complete = dict(demande)
+    if not complete.get("nb_questions") and (m := NOMBRE_DE_QUESTIONS.search(texte)):
+        if QUESTIONS_MIN <= int(m[1]) <= QUESTIONS_MAX:
+            complete["nb_questions"] = int(m[1])
+    if not complete.get("niveau") and (m := CLASSE.search(texte)):
+        complete["niveau"] = f"{m[1]}e" if m[1] else CLASSES_EN_LETTRES[m[2].lower()]
+    return complete
+
+
 def schema_de_sortie(schema: dict, demande: dict) -> dict:
     """Schéma passé au modèle : sans « meta », et resserré sur ce que la demande impose déjà."""
     s = copy.deepcopy(schema)
@@ -154,6 +176,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     `mode` : « auto » confie au générateur procédural les demandes qu'il couvre, « ia » ne passe jamais par lui,
     « procedural » l'exige. `graine` rend un exercice procédural reproductible.
     """
+    demande = completer_demande(demande)
     notion = procedural.aiguiller(demande) if mode != "ia" and type_ == "qcm" else None
     if mode == "procedural" and notion is None:
         raise AucunGenerateur(f"aucun générateur procédural ne couvre cette demande (disponibles : "
