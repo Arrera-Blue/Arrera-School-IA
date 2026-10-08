@@ -13,7 +13,7 @@
 |---|---|---|---|---|---|---|
 | 1 | Fractions 6e | procédural (gabarits, sous le seuil d'habillage) | 0,0 s | 1 | 0 / 0 / 0 / 2 | 0 |
 | 2 | Pythagore 4e | procédural + réécriture (4 énoncés sur 5) | 108,0 s | 1 | 0 / 0 / 0 / 2 | 0 |
-| 3 | Conjugaison 6e | | | | | |
+| 3 | Conjugaison 6e | modèle | 418,2 s | 2 | 0 / 0 / 1 / 4 | 0 |
 | 4 | Grammaire 5e | | | | | |
 | 5 | Histoire 4e | | | | | |
 | 6 | Maths mixtes 5e | | | | | |
@@ -51,3 +51,17 @@ triangulaires (panneau, support, toit, morceau de bois) : la consigne du 07/10 f
 | 1 | réécriture refusée pour « deux » (sans doute « les deux côtés de l'angle droit ») : contrôle trop strict, l'énoncé reste le gabarit | outil | — |
 | 2 | « un morceau de bois a des longueurs de 50 cm, 40 cm et 30 cm » : compréhensible, mais flou | forme | — |
 | 5 | « un toit de forme triangulaire » de 40 cm : l'unité du tirage (cm) ne va pas avec l'objet choisi | forme | — |
+
+### 3 — Conjugaison 6e (`qcm-le-present-de-l-indicatif-des-verbes-du--6e-20261008-083441.json`) — 08/10
+
+5 réponses justes, une seule bonne réponse par question (relu à la main ; N4 ne vérifie rien hors maths).
+Version refusée à la tentative 1 : 4 propositions identiques (« Nous mangeons une pomme. ») → N3, puis
+réparée par la reprise.
+
+| Q | Défaut | Gravité | Détecté |
+|---|---|---|---|
+| 1 | explication : « suffixel » (faute de frappe), « forme de base » au lieu de « radical » | forme | non |
+| 3 | distracteur « jouonsent » : forme inventée, absurde | forme | non |
+| 4 | distracteur « parleznt » : forme inventée, absurde | forme | non |
+| 5 | avertissement N3 sur « souvent » : faux positif (le mot appartient à la phrase, pas à la consigne) | outil | — |
+| toutes | 5 verbes du 1er groupe, même question 5 fois : aucun verbe en -ir, aucun irrégulier (être, avoir, aller, faire) ; trop facile et répétitif | niveau | non |
