@@ -6,3 +6,5 @@ sortie
 banque
 .env
 *.md
+modeles
+cache

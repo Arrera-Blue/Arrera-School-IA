@@ -6,3 +6,5 @@ __pycache__/
 sortie/
 banque/instances/
 banque/rejets/
+modeles/
+cache/

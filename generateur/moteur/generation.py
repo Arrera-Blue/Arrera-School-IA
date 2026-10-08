@@ -70,10 +70,14 @@ def schema_de_sortie(schema: dict, demande: dict) -> dict:
     return s
 
 
-def construire_messages(type_exo: registre.TypeExercice, schema: dict, demande: dict) -> list[dict]:
+def construire_messages(type_exo: registre.TypeExercice, demande: dict) -> list[dict]:
+    """Ce qui ne change jamais d'abord (consignes, schéma générique, exemple), la demande à la fin : le début
+    du message est le même pour toutes les demandes, et son traitement est réutilisé d'une génération à
+    l'autre (cache d'Ollama tant que le modèle est chargé, cache sur disque de llama.cpp). Le schéma resserré
+    sur la demande (nombre de questions, classe) n'est pas écrit ici : il est imposé à la génération."""
     utilisateur = (
         "Schéma JSON à respecter :\n"
-        f"{json.dumps(schema, ensure_ascii=False, indent=2)}\n\n"
+        f"{json.dumps(schema_de_sortie(type_exo.schema, {}), ensure_ascii=False, indent=2)}\n\n"
         "Exemple d'une sortie valide :\n"
         f"{json.dumps(type_exo.exemple, ensure_ascii=False, indent=2)}\n\n"
         "Demande :\n"
@@ -184,7 +188,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     cfg = config.charger()
     nom_fournisseur = nom_fournisseur or cfg["fournisseurs"]["ordre"][0]
     reglages = dict(cfg["fournisseurs"].get(nom_fournisseur, {}))
-    if nom_fournisseur == "ollama":
+    if nom_fournisseur in ("ollama", "llamacpp"):
         reglages["temperature"] = cfg["generation"]["temperature"]
     fournisseur = creer(nom_fournisseur, reglages)
     if notion is not None:
@@ -193,7 +197,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
 
     type_exo = registre.charger(type_)
     schema = schema_de_sortie(type_exo.schema, demande)
-    messages = construire_messages(type_exo, schema, demande)
+    messages = construire_messages(type_exo, demande)
 
     print(f"→ génération par {fournisseur.nom} ({fournisseur.modele})… cela peut prendre plusieurs minutes", flush=True)
     instance: dict | None = None       # dernier exercice complet et bien formé (N1, N2)
