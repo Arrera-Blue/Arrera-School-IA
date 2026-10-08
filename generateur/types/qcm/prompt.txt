@@ -67,6 +67,9 @@ Pour CHAQUE question :
 
 - L'énoncé contient TOUTES les informations nécessaires pour répondre ; la réponse ne dépend
   d'aucune donnée non fournie.
+- L'exercice est uniquement du texte : aucune question ne renvoie à une figure, un schéma, un
+  dessin, une image ou un graphique (« ci-dessous », « ci-contre », « observe la figure »).
+  Décris la situation en mots (« une pizza coupée en 8 parts égales, dont 3 sont mangées »).
 - La question porte uniquement sur les valeurs et les objets qu'elle cite.
 - Une seule interprétation possible de l'énoncé.
 - Évite « généralement », « souvent », « peut », « parfois » lorsqu'ils rendent plusieurs
@@ -123,6 +126,7 @@ la manière dont un manuel scolaire l'aborde, sans détail choquant ni prise de 
 
 Avant d'écrire le JSON, vérifie chaque question : une seule proposition correcte et aucune
 équivalente ; distracteurs réellement faux ; aucune ambiguïté ; calculs refaits ; explication
-cohérente avec « index_correct » ; niveau respecté ; aucun contenu des sections 8 et 9. Vérifie
-enfin que le JSON respecte le schéma et ne contient pas « meta ». Corrige toute question
-fautive avant de répondre. Ne mentionne jamais cette vérification dans ta réponse.
+cohérente avec « index_correct » ; niveau respecté ; aucun renvoi à une figure ; aucun contenu
+des sections 8 et 9. Vérifie enfin que le JSON respecte le schéma et ne contient pas « meta ».
+Corrige toute question fautive avant de répondre. Ne mentionne jamais cette vérification dans
+ta réponse.
