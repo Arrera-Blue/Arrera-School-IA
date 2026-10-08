@@ -12,7 +12,9 @@ fournisseurs:
     n_threads: 4                  # les 4 vCPU du VPS
     cache: "cache/llamacpp"       # état du modèle après lecture du prompt, réutilisé d'une génération à l'autre
     cache_max_go: 2
-    options: {}                   # autres réglages de llama_cpp.Llama ; si le cache ne sert pas : { swa_full: true }
+    options:                      # autres réglages de llama_cpp.Llama
+      flash_attn: true            # Gemma 4 : sans elle, llama.cpp agrandit le cache des couches à 1024 (« padding V cache »)
+      # swa_full: true            # si le début du prompt n'est pas repris d'une génération à l'autre (migration-llamacpp.md, étape 5)
 generation:
   tentatives_max: 3               # appels au modèle : la génération, puis 2 reprises des seules questions refusées
   temperature: 0.5
