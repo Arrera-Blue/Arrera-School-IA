@@ -15,7 +15,7 @@
 | 2 | Pythagore 4e | procédural + réécriture (4 énoncés sur 5) | 108,0 s | 1 | 0 / 0 / 0 / 2 | 0 |
 | 3 | Conjugaison 6e | modèle | 418,2 s | 2 | 0 / 0 / 1 / 4 | 0 |
 | 4 | Grammaire 5e | modèle | 339,8 s | 1 | 0 / 1 / 1 / 2 | 0 |
-| 5 | Histoire 4e | | | | | |
+| 5 | Histoire 4e | modèle | 347,7 s | 1 | 0 / 1 / 0 / 3 | 0 |
 | 6 | Maths mixtes 5e | | | | | |
 | 7 | Rendu, 15 questions | | | | | |
 | 8 | Rendu, 3 questions | | | | | |
@@ -76,3 +76,14 @@ réparée par la reprise.
 | 4 | « quel est le rôle du mot » pour demander sa nature : en grammaire, le rôle est la fonction (sujet, COD…), confusion que la 5e travaille justement | ambiguïté | non |
 | toutes | trop facile pour la 5e (« chat » est un nom) ; seulement nom, verbe, adjectif, adverbe : aucun déterminant, pronom, préposition, conjonction | niveau | non |
 | toutes | bonne réponse toujours en position 3 (mélangée à l'affichage) | forme | avertissement N3 |
+
+### 5 — Histoire 4e (`qcm-la-revolution-francaise-4e-20261008-112203.json`) — 08/10
+
+5 réponses justes, dates et faits exacts (relu à la main), en une tentative.
+
+| Q | Défaut | Gravité | Détecté |
+|---|---|---|---|
+| 1 | « Quelle monarchie… » : seule la bonne réponse est une monarchie (république, oligarchie, régime parlementaire) : la question donne la réponse | forme | non |
+| 3 | « la bourgeoisie » se défend aussi (elle mène le Tiers État aux débuts de la Révolution) ; le Tiers État n'est pas « composé de paysans et de petits artisans » seulement ; « les début » | ambiguïté | **non** |
+| 4 | bonne réponse nettement plus longue que les autres | forme | avertissement N3 |
+| 2 | avertissement N3 sur « souvent » : ici justifié (« souvent considéré comme le début ») | — | avertissement N3 |
