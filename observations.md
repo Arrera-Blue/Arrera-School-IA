@@ -17,10 +17,45 @@
 | 4 | Grammaire 5e | modèle | 339,8 s | 1 | 0 / 1 / 1 / 2 | 0 |
 | 5 | Histoire 4e | modèle | 347,7 s | 1 | 0 / 1 / 0 / 3 | 0 |
 | 6 | Maths mixtes 5e | modèle, contrôlé par N4 | 137,9 s (modèle déjà chargé) | 1 | 0 / 0 / 0 / 1 | 0 |
-| 7 | Rendu, 15 questions | procédural | 0,0 s | 1 | **bug : 5 questions au lieu de 15** (corrigé, à refaire) | 0 |
+| 7 | Rendu, 15 questions | procédural | 0,0 s | 1 | bug « 5 au lieu de 15 » corrigé ; refait : 15 questions vérifiées | 0 |
 | 8 | Rendu, 3 questions | modèle | 80,3 s (modèle déjà chargé) | 1 | 1 / 1 / 0 / 2 | 0 (à relire) |
 
-**Jalon A** (aucun défaut de fond non détecté) : ☐
+**Jalon A** (aucun défaut de fond non détecté) : ✅ **atteint le 08/10/2026**
+
+**Rendu** : les 4 pages ouvertes hors ligne (n° 2, 5, 7 et 8) s'affichent avec le bon nombre de questions,
+de **3 à 15** ; la mise en page tient aux deux extrêmes.
+
+### Bilan
+
+| | Maths (n° 1, 2, 6, 7) | Hors maths (n° 3, 4, 5, 8) |
+|---|---|---|
+| Questions | 30 | 18 |
+| Réponses fausses | **0** | **0** |
+| Erreur de fond dans une explication | 0 | 1 (une règle de grammaire fausse, n° 8) |
+| Deux réponses défendables | 0 | 3 (n° 4, 5, 8) |
+| Niveau inadapté | 0 | 2 exercices (trop faciles, répétitifs) |
+| Vérification automatique | 25 questions vérifiées par N4 sur 30 ; les 5 autres (un énoncé réécrit au n° 2, quatre de la demande mixte n° 6) justes à la relecture | aucune : tout est « à relire » |
+| Durée | 0 s (procédural) à 138 s (modèle, déjà chargé) | 80 à 418 s |
+
+**Lecture.** En maths, le fond est fiable : rien de faux n'a atteint le HTML, et 83 % des questions sont
+vérifiées automatiquement. Hors maths, aucune réponse n'était fausse, mais **4 questions sur 18** demandent une
+correction de l'enseignant (une explication fausse, trois ambiguïtés) : c'est le travail de relecture qui
+l'attend (architecture §9.5), à rendre facile dans l'interface (phase 3).
+
+### Corrections à faire
+
+| # | Où | Correction | Exercices |
+|---|---|---|---|
+| ✅ | `generation.py` | nombre de questions et classe lus dans la phrase de l'enseignant (corrigé pendant la recette) | 7 |
+| 1 | prompt principal | niveau réellement adapté à la classe ; variété (verbes des trois groupes et irréguliers, toutes les classes de mots) ; jamais de forme inventée comme distracteur ; distinguer nature et fonction ; aucune proposition qui seule correspond au type demandé ; pas de règle générale fausse dans les explications | 3, 4, 5, 8 |
+| 2 | habillage | admettre « les deux côtés » (refus pour « deux ») ; objet réaliste pour l'unité tirée (pas de toit de 40 cm) | 2 |
+| 3 | générateur procédural | distracteurs faibles : « 4/4 », « 9/1 » | 1 |
+| 4 | N3 | « souvent » : faux positif quand le mot appartient à la phrase étudiée | 3 |
+| 5 | N4 | demandes mixtes : « ce qui reste », « quelle fraction représente 40 % », « le montant de la réduction » | 6 |
+
+La correction n° 1 rejoint la tâche « raccourcir le prompt principal » : à faire ensemble, puis à remesurer
+sur les mêmes demandes (n° 3, 4, 5, 8).
+
 
 ## Détail
 
@@ -106,7 +141,10 @@ demande mixte, l'enseignant doit encore refaire 4 calculs sur 5.
 `--questions` ; le nombre écrit dans la phrase de l'enseignant (« un QCM de 15 questions ») était ignoré,
 et la classe aussi (« pour des 3e »). Le modèle, lui, lit la phrase : le défaut ne se voyait pas. **Corrigé
 le 08/10** (`completer_demande`, 378 tests) : nombre de questions (3 à 15) et classe lus dans la phrase quand
-ils ne sont pas donnés. Les 5 questions produites sont justes. **À refaire** pour tester le rendu à 15.
+ils ne sont pas donnés. Les 5 questions produites sont justes.
+
+**Refait après correctif** (`qcm-calcul-mental-6e-20261008-114344.json`, graine 56608) : **15 questions**,
+toutes vérifiées par N4, en 0,0 s. Rendu dans le navigateur : à vérifier.
 
 ### 8 — Rendu à 3 questions, passé composé 5e (`qcm-formation-et-utilisation-du-passe-compos-5e-20261008-113341.json`) — 08/10
 
