@@ -16,7 +16,7 @@
 | 3 | Conjugaison 6e | modèle | 418,2 s | 2 | 0 / 0 / 1 / 4 | 0 |
 | 4 | Grammaire 5e | modèle | 339,8 s | 1 | 0 / 1 / 1 / 2 | 0 |
 | 5 | Histoire 4e | modèle | 347,7 s | 1 | 0 / 1 / 0 / 3 | 0 |
-| 6 | Maths mixtes 5e | | | | | |
+| 6 | Maths mixtes 5e | modèle, contrôlé par N4 | 137,9 s (modèle déjà chargé) | 1 | 0 / 0 / 0 / 1 | 0 |
 | 7 | Rendu, 15 questions | | | | | |
 | 8 | Rendu, 3 questions | | | | | |
 
@@ -87,3 +87,15 @@ réparée par la reprise.
 | 3 | « la bourgeoisie » se défend aussi (elle mène le Tiers État aux débuts de la Révolution) ; le Tiers État n'est pas « composé de paysans et de petits artisans » seulement ; « les début » | ambiguïté | **non** |
 | 4 | bonne réponse nettement plus longue que les autres | forme | avertissement N3 |
 | 2 | avertissement N3 sur « souvent » : ici justifié (« souvent considéré comme le début ») | — | avertissement N3 |
+
+### 6 — Maths mixtes 5e (`qcm-fractions-et-pourcentages-5e-20261008-112814.json`) — 08/10
+
+5 réponses justes (calculs refaits à la main), en une tentative. N4 : 1 vérifiée, **4 à relire** : sur une
+demande mixte, l'enseignant doit encore refaire 4 calculs sur 5.
+
+| Q | Défaut | Gravité | Détecté |
+|---|---|---|---|
+| 2 | 1 − 3/5 = 2/5 (juste) : « ce qui reste » n'est pas lu par N4 | outil | à relire |
+| 3 | 40 % = 2/5 (juste) : « quelle fraction représente 40 % » n'est pas lu par N4 | outil | à relire |
+| 4 | 20 % de 50 € = 10 € (juste) : « le montant de la réduction » n'est pas lu par N4 | outil | à relire |
+| 5 | dénominateur commun de 1/3 et 1/6 → 6 (juste) ; distracteurs « 1/9 » et « 1/18 » : des fractions quand un nombre est demandé | forme | à relire |
