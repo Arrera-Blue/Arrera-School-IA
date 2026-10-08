@@ -14,7 +14,7 @@
 | 1 | Fractions 6e | procédural (gabarits, sous le seuil d'habillage) | 0,0 s | 1 | 0 / 0 / 0 / 2 | 0 |
 | 2 | Pythagore 4e | procédural + réécriture (4 énoncés sur 5) | 108,0 s | 1 | 0 / 0 / 0 / 2 | 0 |
 | 3 | Conjugaison 6e | modèle | 418,2 s | 2 | 0 / 0 / 1 / 4 | 0 |
-| 4 | Grammaire 5e | | | | | |
+| 4 | Grammaire 5e | modèle | 339,8 s | 1 | 0 / 1 / 1 / 2 | 0 |
 | 5 | Histoire 4e | | | | | |
 | 6 | Maths mixtes 5e | | | | | |
 | 7 | Rendu, 15 questions | | | | | |
@@ -65,3 +65,14 @@ réparée par la reprise.
 | 4 | distracteur « parleznt » : forme inventée, absurde | forme | non |
 | 5 | avertissement N3 sur « souvent » : faux positif (le mot appartient à la phrase, pas à la consigne) | outil | — |
 | toutes | 5 verbes du 1er groupe, même question 5 fois : aucun verbe en -ir, aucun irrégulier (être, avoir, aller, faire) ; trop facile et répétitif | niveau | non |
+
+### 4 — Grammaire 5e (`qcm-nature-des-mots-classes-de-mots-5e-20261008-110412.json`) — 08/10
+
+5 réponses justes (relu à la main), en une tentative.
+
+| Q | Défaut | Gravité | Détecté |
+|---|---|---|---|
+| 1 | « quel est la nature » : faute d'accord dans l'énoncé | forme | non |
+| 4 | « quel est le rôle du mot » pour demander sa nature : en grammaire, le rôle est la fonction (sujet, COD…), confusion que la 5e travaille justement | ambiguïté | non |
+| toutes | trop facile pour la 5e (« chat » est un nom) ; seulement nom, verbe, adjectif, adverbe : aucun déterminant, pronom, préposition, conjonction | niveau | non |
+| toutes | bonne réponse toujours en position 3 (mélangée à l'affichage) | forme | avertissement N3 |
