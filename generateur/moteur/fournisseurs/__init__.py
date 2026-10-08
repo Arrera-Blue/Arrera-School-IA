@@ -6,7 +6,10 @@ def creer(nom: str, reglages: dict) -> Fournisseur:
     if nom == "ollama":
         from generateur.moteur.fournisseurs.ollama import Ollama
         return Ollama(**reglages)
+    if nom == "llamacpp":
+        from generateur.moteur.fournisseurs.llamacpp import LlamaCpp
+        return LlamaCpp(**reglages)
     if nom == "maquette":
         from generateur.moteur.fournisseurs.maquette import Maquette
         return Maquette()
-    raise ErreurFournisseur(f"fournisseur « {nom} » inconnu (disponibles : ollama, maquette)")
+    raise ErreurFournisseur(f"fournisseur « {nom} » inconnu (disponibles : ollama, llamacpp, maquette)")

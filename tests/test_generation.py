@@ -341,3 +341,14 @@ def test_le_procedural_respecte_le_nombre_demande(dossiers):
     instance = generation.generer({"type": "qcm", "demande_enseignant": "un QCM de 15 questions sur le calcul "
                                    "mental pour des 6e"}, "qcm", "maquette", graine=1)
     assert len(instance["questions"]) == 15 and instance["niveau"] == "6e"
+
+
+def test_debut_du_message_identique_pour_toutes_les_demandes():
+    # le cache du modèle (Ollama, llama.cpp) réutilise le début commun : il doit aller jusqu'à la demande
+    type_exo = generation.registre.charger("qcm")
+    a = generation.construire_messages(type_exo, {"notion": "fractions", "nb_questions": 5, "niveau": "6e"})
+    b = generation.construire_messages(type_exo, {"notion": "la Révolution", "nb_questions": 12, "niveau": "4e"})
+    assert a[0] == b[0]
+    commun = a[1]["content"].split("Demande :")[0]
+    assert b[1]["content"].startswith(commun)
+    assert "Exemple d'une sortie valide" in commun

@@ -1,11 +1,18 @@
 fournisseurs:
-  ordre: [ollama]                 # défaut : le VPS uniquement, aucun tiers
+  ordre: [ollama]                 # défaut : le VPS uniquement, aucun tiers ; llamacpp une fois la migration validée
   ollama:
     modele: "gemma4:e4b-it-qat"
     url: "http://127.0.0.1:11434" # le conteneur est en --network=host : 127.0.0.1 est l'hôte
     delai_max: 600                # secondes — 4 vCPU sans GPU ; mesuré : 231 s (ancien prompt), 381 s (prompt du 29/09)
     num_ctx: 8192                 # INDISPENSABLE : schéma + exemple dépassent les 4096 par défaut
     think: false                  # Qwen 3 : le mode « raisonnement » coûte des minutes pour rien ici
+  llamacpp:                       # le modèle dans le processus Python (docs/etapes/migration-llamacpp.md)
+    modele: "modeles/gemma-4-E4B_q4_0-it.gguf"   # relatif à la racine du dépôt (/app) ; le même Gemma 4 E4B QAT qu'Ollama
+    n_ctx: 8192
+    n_threads: 4                  # les 4 vCPU du VPS
+    cache: "cache/llamacpp"       # état du modèle après lecture du prompt, réutilisé d'une génération à l'autre
+    cache_max_go: 2
+    options: {}                   # autres réglages de llama_cpp.Llama ; si le cache ne sert pas : { swa_full: true }
 generation:
   tentatives_max: 3               # appels au modèle : la génération, puis 2 reprises des seules questions refusées
   temperature: 0.5
