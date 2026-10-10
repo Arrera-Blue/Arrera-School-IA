@@ -22,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 
 from generateur import procedural
-from generateur.moteur import config, registre, rendu
+from generateur.moteur import config, machine, registre, rendu
 from generateur.moteur.fournisseurs import ErreurFournisseur, creer
 from generateur.moteur.validation import ErreurValidation, n3_pedagogie, n4_calcul
 from generateur.moteur.validation.n1_syntaxe import extraire_json
@@ -294,6 +294,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         "id": identifiant(type_, instance),
         "fournisseur": fournisseur.nom,
         "modele": fournisseur.modele,
+        "machine": machine.decrire(),
         "date": datetime.now().isoformat(timespec="seconds"),
         "duree_s": round(duree_totale, 1),
         "tentatives": tentative,
@@ -371,6 +372,7 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
         "id": identifiant("qcm", instance),
         "fournisseur": fournisseur.nom if appels else "procedural",
         "modele": fournisseur.modele if appels else None,
+        "machine": machine.decrire(),
         "date": datetime.now().isoformat(timespec="seconds"),
         "duree_s": round(time.monotonic() - debut, 1),
         "tentatives": 1,
@@ -401,6 +403,7 @@ def enregistrer_rejet(erreur: ErreurValidation, brut: str, instance: dict | None
         "date": datetime.now().isoformat(timespec="seconds"),
         "fournisseur": fournisseur.nom,
         "modele": fournisseur.modele,
+        "machine": machine.decrire(),
         "duree_s": duree,
         "tentatives": tentatives,
         "reprises": reprises or [],
