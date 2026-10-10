@@ -1,5 +1,5 @@
 fournisseurs:
-  ordre: [llamacpp]                 # défaut : le VPS uniquement, aucun tiers ; llamacpp une fois la migration validée
+  ordre: [llamacpp]               # défaut : le modèle en local, aucun tiers ; llama.cpp + Metal sur le Mac depuis le 10/10
   ollama:
     modele: "gemma4:e4b-it-qat"
     url: "http://127.0.0.1:11434" # le conteneur est en --network=host : 127.0.0.1 est l'hôte
