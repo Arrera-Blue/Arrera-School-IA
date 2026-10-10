@@ -1,5 +1,5 @@
 fournisseurs:
-  ordre: [ollama]                 # défaut : le VPS uniquement, aucun tiers ; llamacpp une fois la migration validée
+  ordre: [llamacpp]                 # défaut : le VPS uniquement, aucun tiers ; llamacpp une fois la migration validée
   ollama:
     modele: "gemma4:e4b-it-qat"
     url: "http://127.0.0.1:11434" # le conteneur est en --network=host : 127.0.0.1 est l'hôte
@@ -9,7 +9,7 @@ fournisseurs:
   llamacpp:                       # le modèle dans le processus Python (docs/etapes/migration-llamacpp.md)
     modele: "modeles/gemma-4-E4B_q4_0-it.gguf"   # relatif à la racine du dépôt (/app) ; le même Gemma 4 E4B QAT qu'Ollama
     n_ctx: 6144                   # prompt ~3 300 tokens + réponse 800 à 2 000 ; chaque token de contexte coûte de la mémoire
-    n_threads: 4                  # les 4 vCPU du VPS
+    n_threads: 8                  # les 8 cœurs performance du M4 Pro (le calcul lui-même passe par Metal)
     # état du modèle après lecture du prompt, réutilisé d'une génération à l'autre ; DÉSACTIVÉ le 08/10 :
     # chaque sauvegarde recopie trois fois l'état du modèle en mémoire, et le VPS a débordé sur le swap.
     # À réactiver ("cache/llamacpp") une fois la vitesse brute mesurée, en surveillant la mémoire.
@@ -17,7 +17,8 @@ fournisseurs:
     cache_max_go: 2
     verbose: false                # true : les journaux de llama.cpp, dont ses mesures de vitesse, sur la sortie d'erreur
     options:                      # autres réglages de llama_cpp.Llama
-      flash_attn: true            # Gemma 4 : sans elle, llama.cpp agrandit le cache des couches à 1024 (« padding V cache »)
+      n_gpu_layers: -1            # toutes les couches sur le GPU (Metal) ; sans cette ligne, llama.cpp reste sur le processeur
+      flash_attn: true           # Gemma 4 : sans elle, llama.cpp agrandit le cache des couches à 1024 (« padding V cache »)
       n_batch: 512                # lots de lecture du prompt ; 256 économisait 0,25 Go mais lisait ~20 % moins vite
       # type_k: 8                 # cache d'attention compressé en q8_0 (8 = GGML_TYPE_Q8_0) : moitié moins de mémoire,
       # type_v: 8                 #   mais plus lent sur processeur ; désactivé le 08/10 (essai 2), la mémoire suffit
