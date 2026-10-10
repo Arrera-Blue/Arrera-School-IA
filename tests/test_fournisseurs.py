@@ -80,6 +80,17 @@ def test_llamacpp_genere_avec_le_schema_et_garde_les_compteurs(faux_llama_cpp, t
     assert llm.cache == ("disque", str(tmp_path / "cache"), 1024 ** 3)            # cache du prompt sur disque
     assert f.compteurs["tokens_lus"] == 3300 and f.compteurs["tokens_ecrits"] == 3
     assert {"chargement_s", "lecture_s", "ecriture_s", "total_s"} <= set(f.compteurs)
+    assert f.compteurs["gpu"] is False                                           # n_gpu_layers absent
+
+
+def test_llamacpp_gpu_seulement_si_compile_pour(faux_llama_cpp, monkeypatch):
+    # n_gpu_layers sans llama.cpp compilé pour un GPU : llama.cpp reste sur le processeur, le meta doit le dire
+    f = creer("llamacpp", {"modele": str(faux_llama_cpp), "cache": None, "options": {"n_gpu_layers": -1}})
+    assert f.sur_gpu() is False
+    monkeypatch.setattr(sys.modules["llama_cpp"], "llama_supports_gpu_offload", lambda: True, raising=False)
+    assert f.sur_gpu() is True
+    f.options["n_gpu_layers"] = 0
+    assert f.sur_gpu() is False
 
 
 def test_llamacpp_charge_le_modele_une_seule_fois(faux_llama_cpp):

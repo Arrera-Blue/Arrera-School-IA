@@ -107,5 +107,12 @@ class LlamaCpp(Fournisseur):
         self.compteurs = {"tokens_lus": max(llm.n_tokens - ecrits, 0), "tokens_ecrits": ecrits,
                           "chargement_s": self.chargement_s, "lecture_s": round(premier - debut, 1),
                           "ecriture_s": round(fin - premier, 1),
-                          "total_s": round(fin - debut + self.chargement_s, 1)}
+                          "total_s": round(fin - debut + self.chargement_s, 1), "gpu": self.sur_gpu()}
         return "".join(morceaux)
+
+    def sur_gpu(self) -> bool:
+        """Le modèle tourne-t-il sur le GPU (Metal, CUDA…) ? Il faut `n_gpu_layers` non nul **et** un llama.cpp
+        compilé pour un GPU : sinon, llama.cpp ignore le réglage et reste sur le processeur, sans prévenir."""
+        import llama_cpp
+        supporte = getattr(llama_cpp, "llama_supports_gpu_offload", lambda: False)
+        return bool(self.options.get("n_gpu_layers")) and bool(supporte())

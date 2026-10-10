@@ -48,6 +48,8 @@ def test_exercice_accepte_meta_complet(dossiers):
     assert validation["n4"] == A_RELIRE and validation["n4_questions"] == [A_RELIRE, VERIFIE, VERIFIE]
     assert instance["meta"]["avertissements"] == []
     assert not (dossiers / "rejets").exists()  # rien n'est rejeté
+    # phase 2 : sans la machine, les durées ne se comparent pas (395 s sur le VPS, 32 s sur le Mac)
+    assert set(instance["meta"]["machine"]) == {"systeme", "processeur", "coeurs", "ram_go"}
 
 
 def test_un_rejet_est_conserve_avec_son_instance(dossiers, monkeypatch):
@@ -66,6 +68,7 @@ def test_un_rejet_est_conserve_avec_son_instance(dossiers, monkeypatch):
     assert rejet["niveau"] == "N3, N4" and rejet["questions"] == [1, 3, 4, 5]
     assert rejet["instance"]["matiere"] == "maths"  # N4 pourra être recalculée dessus
     assert rejet["brut"] == brut and rejet["modele"] == "réponse enregistrée"
+    assert rejet["machine"]["coeurs"]  # les rejets comptent aussi dans les mesures
     assert (dossiers / "sortie" / "derniere_reponse_brute.txt").read_text(encoding="utf-8") == brut
 
 
