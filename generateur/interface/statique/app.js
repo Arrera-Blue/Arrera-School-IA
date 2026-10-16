@@ -1,0 +1,578 @@
+// Interface enseignant (phase 3). Aucune dépendance : le PC enseignant peut être hors ligne.
+// Règle de sécurité : tout texte venant du modèle est inséré avec textContent, jamais comme du HTML.
+"use strict";
+
+(() => {
+  const MATIERES = {
+    "maths": "Mathématiques", "francais": "Français", "histoire-geo": "Histoire-géographie", "svt": "SVT",
+    "physique-chimie": "Physique-chimie", "anglais": "Anglais", "technologie": "Technologie",
+  };
+  const STATUTS = { genere: "À relire", accepte: "Accepté", rejete: "Rejeté" };
+  const SOURCES = { modele: "proposé par le modèle : à vérifier", devine: "deviné dans la phrase : à vérifier" };
+  const N4 = { verifie: "✔ calcul vérifié", a_relire: "? à relire", faux: "✘ calcul faux" };
+  const INTERVALLE_MS = 1000;
+
+  // origine : la vue d'où l'on a ouvert l'exercice, pour le lien « Retour »
+  const etat = { types: [], suivi: null, exercice: null, regeneration: null, origine: "banque" };
+  const $ = (selecteur) => document.querySelector(selecteur);
+
+  // --- outils -----------------------------------------------------------------------------------
+
+  function el(balise, attributs = {}, ...enfants) {
+    const e = document.createElement(balise);
+    for (const [cle, valeur] of Object.entries(attributs)) {
+      if (valeur === undefined || valeur === null || valeur === false) continue;
+      if (cle === "class") e.className = valeur;
+      else if (cle === "texte") e.textContent = valeur;
+      else e.setAttribute(cle, valeur === true ? "" : valeur);
+    }
+    for (const enfant of enfants) if (enfant !== null && enfant !== undefined) e.append(enfant);
+    return e;
+  }
+
+  async function api(chemin, corps) {
+    const init = { headers: { Accept: "application/json" } };
+    if (corps !== undefined) {
+      init.method = "POST";
+      init.headers["Content-Type"] = "application/json";
+      init.body = JSON.stringify(corps);
+    }
+    let reponse;
+    try {
+      reponse = await fetch(chemin, init);
+    } catch (_) {
+      throw new Error("le serveur ne répond pas : est-il toujours lancé ?");
+    }
+    let donnees = null;
+    try { donnees = await reponse.json(); } catch (_) { /* corps vide ou non JSON */ }
+    if (!reponse.ok) throw new Error(messageErreur(donnees, reponse.status));
+    return donnees;
+  }
+
+  function messageErreur(donnees, statut) {
+    const detail = donnees && donnees.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      return detail.map((e) => `${(e.loc || []).slice(1).join(".") || "requête"} : ${e.msg}`).join(" ; ");
+    }
+    return `erreur ${statut}`;
+  }
+
+  function date(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString("fr-FR") + " " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function duree(secondes) {
+    if (secondes === undefined || secondes === null) return "";
+    if (secondes < 60) return `${Math.round(secondes)} s`;
+    return `${Math.floor(secondes / 60)} min ${String(Math.round(secondes % 60)).padStart(2, "0")} s`;
+  }
+
+  function remplirSelect(select, valeurs, libelles = {}, vide = null) {
+    select.replaceChildren();
+    if (vide !== null) select.append(el("option", { value: "", texte: vide }));
+    for (const v of valeurs) select.append(el("option", { value: v, texte: libelles[v] || v }));
+  }
+
+  // --- navigation ---------------------------------------------------------------------------------
+
+  function afficherVue(nom) {
+    for (const vue of document.querySelectorAll(".vue")) vue.hidden = vue.id !== `vue-${nom}`;
+    for (const lien of document.querySelectorAll("nav a")) {
+      if (lien.dataset.vue === nom) lien.setAttribute("aria-current", "page");
+      else lien.removeAttribute("aria-current");
+    }
+  }
+
+  function router() {
+    const m = location.hash.match(/^#\/exercice\/([a-z0-9_-]+)$/);
+    if (m) {
+      afficherVue("exercice");
+      ouvrirExercice(m[1]);
+    } else if (location.hash === "#/banque") {
+      etat.origine = "banque";
+      afficherVue("banque");
+      chargerBanque();
+    } else {
+      etat.origine = "generer";
+      afficherVue("generer");
+    }
+  }
+
+  // --- 1. analyser la demande -------------------------------------------------------------------
+
+  async function analyser(evenement) {
+    evenement.preventDefault();
+    const phrase = $("#phrase").value.trim();
+    const message = $("#analyse-etat");
+    if (!phrase) {
+      message.textContent = "Écrivez d'abord votre demande.";
+      $("#phrase").focus();
+      return;
+    }
+    $("#btn-analyser").disabled = true;
+    message.textContent = "Analyse en cours…";
+    try {
+      const resultat = await api("/api/analyser", { phrase });
+      remplirFormulaire(resultat);
+      message.textContent = resultat.duree_modele_s
+        ? `Analyse terminée (le modèle a complété en ${duree(resultat.duree_modele_s)}).`
+        : "Analyse terminée.";
+    } catch (e) {
+      message.textContent = `Analyse impossible : ${e.message}`;
+    } finally {
+      $("#btn-analyser").disabled = false;
+    }
+  }
+
+  function remplirFormulaire(resultat) {
+    const r = resultat.requete;
+    $("#type").value = r.type || "qcm";
+    choisirType();
+    $("#matiere").value = r.matiere || "";
+    $("#niveau").value = r.niveau || "";
+    $("#notion").value = r.notion || "";
+    $("#nb_questions").value = r.nb_questions || 5;
+    $("#difficulte").value = r.difficulte || "";
+    $("#precisions").value = r.demande_enseignant || "";
+    for (const champ of document.querySelectorAll("#form-requete .champ")) {
+      const nom = champ.dataset.champ;
+      const source = champ.querySelector(".source");
+      const aVerifier = (resultat.a_verifier || []).includes(nom);
+      champ.classList.toggle("a-verifier", aVerifier);
+      if (source) source.textContent = aVerifier ? (SOURCES[resultat.sources[nom]] || "à choisir") : "";
+    }
+    const remarques = $("#remarques");
+    remarques.replaceChildren(...(resultat.remarques || []).map((t) => el("li", { texte: t })));
+    const chemin = $("#chemin");
+    if (resultat.procedural) {
+      chemin.textContent = `Calculs faits par le programme (${resultat.procedural.notion}) : réponses justes par ` +
+        "construction. Le modèle ne fait que réécrire certains énoncés.";
+    } else {
+      chemin.textContent = "Exercice rédigé par le modèle, puis contrôlé automatiquement (N1 → N4). " +
+        "Hors mathématiques, le fond reste à relire par vous.";
+    }
+    chemin.hidden = false;
+    montrerFormulaire();
+  }
+
+  function remplirALaMain() {
+    remplirFormulaire({
+      requete: { type: "qcm", nb_questions: 5, demande_enseignant: $("#phrase").value.trim() || null },
+      sources: {}, a_verifier: [], remarques: [], procedural: null,
+    });
+    $("#chemin").hidden = true;
+    $("#matiere").focus();
+  }
+
+  function montrerFormulaire() {
+    const formulaire = $("#form-requete");
+    formulaire.hidden = false;
+    $("#requete-erreur").hidden = true;
+    formulaire.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function choisirType() {
+    const type = etat.types.find((t) => t.nom === $("#type").value) || etat.types[0];
+    if (!type) return;
+    const matiere = $("#matiere").value;
+    const niveau = $("#niveau").value;
+    remplirSelect($("#matiere"), type.matieres, MATIERES, "— choisir —");
+    remplirSelect($("#niveau"), type.niveaux, {}, "— choisir —");
+    $("#matiere").value = matiere;
+    $("#niveau").value = niveau;
+    $("#nb_questions").min = type.questions_min;
+    $("#nb_questions").max = type.questions_max;
+  }
+
+  // --- 2. générer -------------------------------------------------------------------------------
+
+  async function generer(evenement) {
+    evenement.preventDefault();
+    const erreur = $("#requete-erreur");
+    const formulaire = $("#form-requete");
+    if (!formulaire.checkValidity()) {
+      const invalide = formulaire.querySelector(":invalid");
+      const libelle = invalide && formulaire.querySelector(`label[for="${invalide.id}"]`);
+      erreur.textContent = `À compléter : ${libelle ? libelle.textContent : "un champ"}.`;
+      erreur.hidden = false;
+      if (invalide) invalide.focus();
+      return;
+    }
+    erreur.hidden = true;
+    const nombre = parseInt($("#nb_questions").value, 10);
+    const corps = {
+      type: $("#type").value,
+      matiere: $("#matiere").value || null,
+      niveau: $("#niveau").value || null,
+      notion: $("#notion").value.trim() || null,
+      nb_questions: Number.isNaN(nombre) ? null : nombre,
+      difficulte: $("#difficulte").value || null,
+      demande_enseignant: $("#precisions").value.trim() || null,
+    };
+    $("#btn-generer").disabled = true;
+    try {
+      const tache = await api("/api/generations", corps);
+      suivreGeneration(tache);
+    } catch (e) {
+      erreur.textContent = `Génération impossible : ${e.message}`;
+      erreur.hidden = false;
+      $("#btn-generer").disabled = false;
+    }
+  }
+
+  function suivreGeneration(tache) {
+    clearTimeout(etat.suivi);
+    $("#progression").hidden = false;
+    $("#prog-erreur").hidden = true;
+    $("#btn-generer").disabled = true;
+    afficherProgression(tache);
+    if (tache.etat === "en_attente" || tache.etat === "en_cours") {
+      const relire = async () => {
+        try {
+          const vue = await api(`/api/generations/${tache.id}`);
+          afficherProgression(vue);
+          if (vue.etat === "en_attente" || vue.etat === "en_cours") etat.suivi = setTimeout(relire, INTERVALLE_MS);
+          else finGeneration(vue);
+        } catch (e) {
+          $("#prog-message").textContent = `Suivi interrompu : ${e.message}`;
+          $("#btn-generer").disabled = false;
+        }
+      };
+      etat.suivi = setTimeout(relire, INTERVALLE_MS);
+    } else {
+      finGeneration(tache);
+    }
+  }
+
+  function afficherProgression(vue) {
+    const p = vue.progression || {};
+    const barre = $("#prog-barre");
+    let message = p.message || "Démarrage…";
+    if (vue.etat === "en_attente") {
+      message = vue.devant ? `En attente : ${vue.devant} génération(s) avant celle-ci.` : "En attente…";
+    }
+    $("#prog-message").textContent = message;
+    if (p.sur && p.question) {
+      barre.max = p.sur;
+      barre.value = Math.min(p.question, p.sur);
+      barre.textContent = `question ${p.question} sur ${p.sur}`;
+    } else if (vue.etat === "termine") {
+      barre.max = 1;
+      barre.value = 1;
+    } else {
+      barre.removeAttribute("value"); // barre indéterminée : lecture de la demande, vérification…
+    }
+    $("#prog-temps").textContent = vue.ecoule_s !== undefined ? `Temps écoulé : ${duree(vue.ecoule_s)}` : "";
+    $("#prog-journal").replaceChildren(
+      ...(vue.journal || []).map((j) => el("li", {}, el("span", { class: "temps", texte: duree(j.t) }), " ", j.message)));
+  }
+
+  function finGeneration(vue) {
+    $("#btn-generer").disabled = false;
+    if (vue.etat === "termine" && vue.exercice) {
+      $("#prog-message").textContent = "Exercice prêt : ouverture de la relecture…";
+      location.hash = `#/exercice/${vue.exercice}`;
+      return;
+    }
+    const bloc = $("#prog-erreur");
+    const erreur = vue.erreur || { message: "échec inconnu" };
+    bloc.replaceChildren(el("p", { texte: erreur.message }));
+    if (erreur.erreurs && erreur.erreurs.length) {
+      bloc.append(el("ul", {}, ...erreur.erreurs.map((m) => el("li", { texte: m }))));
+    }
+    bloc.append(el("p", { texte: "Vous pouvez modifier la demande ci-dessus et relancer la génération." }));
+    bloc.hidden = false;
+  }
+
+  async function reprendreSuivi() {
+    // la page a été rechargée pendant une génération : on la retrouve
+    try {
+      const { taches } = await api("/api/generations");
+      const encours = taches.find((t) => t.nature === "generation" && (t.etat === "en_cours" || t.etat === "en_attente"));
+      if (encours) suivreGeneration(encours);
+    } catch (_) { /* rien à reprendre */ }
+  }
+
+  // --- banque -----------------------------------------------------------------------------------
+
+  async function chargerBanque() {
+    const parametres = new URLSearchParams();
+    for (const [cle, id] of [["matiere", "#filtre-matiere"], ["niveau", "#filtre-niveau"], ["statut", "#filtre-statut"]]) {
+      if ($(id).value) parametres.set(cle, $(id).value);
+    }
+    const message = $("#banque-etat");
+    message.textContent = "Chargement…";
+    try {
+      const { exercices } = await api(`/api/exercices?${parametres}`);
+      const lignes = exercices.map((x) => el("tr", {},
+        el("td", { texte: date(x.date) }),
+        el("td", {}, el("a", { href: `#/exercice/${x.id}`, texte: x.titre || x.id }),
+          x.notion ? el("span", { class: "sous-titre", texte: x.notion }) : null),
+        el("td", { texte: MATIERES[x.matiere] || x.matiere || "—" }),
+        el("td", { texte: x.niveau || "—" }),
+        el("td", { class: "nombre", texte: String(x.questions) }),
+        el("td", { texte: x.origine === "procedural" ? "programme" : "modèle" }),
+        el("td", { class: "nombre", texte: x.a_relire ? String(x.a_relire) : "—" }),
+        el("td", {}, badgeStatut(x.statut))));
+      $("#table-banque tbody").replaceChildren(...lignes);
+      message.textContent = exercices.length ? `${exercices.length} exercice(s).` : "Aucun exercice ne correspond.";
+    } catch (e) {
+      message.textContent = `Banque illisible : ${e.message}`;
+    }
+  }
+
+  function badgeStatut(statut) {
+    return el("span", { class: `badge statut-${statut}`, texte: STATUTS[statut] || statut });
+  }
+
+  // --- exercice : relecture, aperçu, décision ---------------------------------------------------
+
+  async function ouvrirExercice(ident, garderMessage = false) {
+    if (!garderMessage) $("#ex-message").textContent = "";
+    let donnees;
+    try {
+      donnees = await api(`/api/exercices/${ident}`);
+    } catch (e) {
+      $("#ex-titre").textContent = "Exercice introuvable";
+      $("#ex-message").textContent = e.message;
+      return;
+    }
+    etat.exercice = ident;
+    const { exercice: x, resume, relecture } = donnees;
+    const meta = x.meta || {};
+    $("#ex-titre").textContent = x.titre || ident;
+    $("#ex-statut").replaceWith(Object.assign(badgeStatut(resume.statut), { id: "ex-statut" }));
+    const origine = meta.origine === "procedural"
+      ? `générateur procédural (${meta.generateur})` + (meta.modele ? `, énoncés réécrits par ${meta.modele}` : "")
+      : `modèle ${meta.modele || "?"}`;
+    $("#ex-infos").textContent = [MATIERES[x.matiere] || x.matiere, x.niveau, x.notion,
+      `${x.questions.length} questions`, origine, meta.duree_s !== undefined ? `généré en ${duree(meta.duree_s)}` : null,
+      meta.tentatives > 1 ? `${meta.tentatives} tentatives` : null, date(meta.date)].filter(Boolean).join(" · ");
+    afficherValidation(x, relecture);
+    afficherQuestions(x, relecture);
+    $("#ex-apercu").src = `/api/exercices/${ident}/apercu?v=${Date.now()}`;
+    $("#btn-telecharger").href = `/api/exercices/${ident}/telecharger`;
+    $("#btn-telecharger").setAttribute("download", `${ident}.html`);
+    $("#ex-retour").href = `#/${etat.origine}`;
+    $("#ex-retour").textContent = etat.origine === "generer" ? "← Retour à la demande" : "← Retour à la banque";
+    occuper(donnees.occupe);
+    if (!garderMessage) $("#ex-titre").focus();
+    if (donnees.occupe && !etat.regeneration) reprendreRegeneration(ident);
+  }
+
+  function afficherValidation(x, relecture) {
+    const v = (x.meta && x.meta.validation) || {};
+    const verifiees = relecture.questions.filter((q) => q.n4 === "verifie").length;
+    let n4;
+    if (relecture.procedural) n4 = "N4 : calculs faits par le programme, justes par construction";
+    else if (x.matiere !== "maths") n4 = "N4 : hors mathématiques, aucun calcul à recalculer — le fond est à relire par vous";
+    else if (relecture.a_relire) n4 = `N4 : ${verifiees} calcul(s) vérifié(s), ${relecture.a_relire} question(s) à relire`;
+    else n4 = `N4 : ${verifiees} calcul(s) recalculé(s) et juste(s)`;
+    const lignes = [
+      [v.n1, "N1 : réponse lisible (JSON)"],
+      [v.n2, "N2 : conforme au format de l'exercice"],
+      [v.n3, "N3 : cohérence pédagogique (pas de doublon, une seule bonne réponse…)"],
+      [relecture.procedural || (x.matiere === "maths" && !relecture.a_relire), n4],
+    ];
+    $("#ex-validation").replaceChildren(...lignes.map(([ok, texte]) =>
+      el("li", { class: ok ? "ok" : "a-relire" }, el("span", { "aria-hidden": "true", texte: ok ? "✔ " : "? " }), texte)));
+    const avertissements = relecture.avertissements || [];
+    $("#ex-avertissements").replaceChildren(...avertissements.map((a) => el("p", { class: "avertissement", texte: `⚠ ${a}` })));
+  }
+
+  function afficherQuestions(x, relecture) {
+    const items = x.questions.map((q, i) => {
+      const info = relecture.questions[i] || {};
+      const badges = el("span", { class: "badges" });
+      if (info.calcul === "programme" && info.n4 !== "faux") {
+        badges.append(el("span", { class: "badge n4-verifie", texte: "✔ calcul fait par le programme" }));
+      } else if (info.n4) {
+        badges.append(el("span", { class: `badge n4-${info.n4}`, texte: N4[info.n4] || info.n4 }));
+      }
+      if (info.calcul === "programme" && info.enonce === "modele") {
+        badges.append(el("span", { class: "badge", texte: "énoncé réécrit par le modèle" }));
+      }
+      if (info.regeneree) badges.append(el("span", { class: "badge", texte: "régénérée" }));
+      const propositions = el("ul", { class: "propositions" }, ...q.propositions.map((p, j) => {
+        const juste = j === q.index_correct;
+        return el("li", { class: juste ? "juste" : null },
+          el("span", { class: "marque", "aria-hidden": "true", texte: juste ? "✔" : "" }),
+          el("span", { texte: p }),
+          juste ? el("span", { class: "visuellement-cache", texte: " (bonne réponse)" }) : null);
+      }));
+      const bouton = el("button", { type: "button", class: "secondaire petit regenerer", "data-numero": String(i + 1),
+        texte: "Régénérer cette question" });
+      return el("li", { class: "question", id: `question-${i + 1}` },
+        el("div", { class: "question-entete" }, el("h3", { texte: `Question ${i + 1}` }), badges),
+        el("p", { class: "enonce", texte: q.enonce }),
+        propositions,
+        el("p", { class: "explication" }, el("strong", { texte: "Explication : " }), q.explication),
+        ...(info.avertissements || []).map((a) => el("p", { class: "avertissement", texte: `⚠ ${a}` })),
+        bouton);
+    });
+    $("#ex-questions").replaceChildren(...items);
+  }
+
+  function occuper(occupe) {
+    for (const b of document.querySelectorAll("#btn-accepter, #btn-rejeter, .regenerer")) b.disabled = Boolean(occupe);
+  }
+
+  async function decider(decision, motif = null) {
+    const message = $("#ex-message");
+    try {
+      const { resume } = await api(`/api/exercices/${etat.exercice}/decision`, { decision, motif });
+      $("#ex-statut").replaceWith(Object.assign(badgeStatut(resume.statut), { id: "ex-statut" }));
+      message.textContent = decision === "accepter"
+        ? "Exercice accepté : il pourra être publié vers les postes élèves."
+        : "Exercice rejeté. Il reste dans la banque, avec votre motif.";
+    } catch (e) {
+      message.textContent = `Décision non enregistrée : ${e.message}`;
+    }
+  }
+
+  async function regenerer(numero, motif) {
+    const message = $("#ex-message");
+    try {
+      const tache = await api(`/api/exercices/${etat.exercice}/questions/${numero}/regenerer`, { motif });
+      suivreRegeneration(tache, numero);
+    } catch (e) {
+      message.textContent = `Régénération impossible : ${e.message}`;
+    }
+  }
+
+  function suivreRegeneration(tache, numero) {
+    const ident = etat.exercice;
+    etat.regeneration = tache.id;
+    occuper(true);
+    const bloc = $("#ex-regeneration");
+    bloc.hidden = false;
+    const afficher = (vue) => {
+      const p = vue.progression || {};
+      const texte = vue.etat === "en_attente" && vue.devant
+        ? `Question ${numero} : en attente (${vue.devant} tâche(s) avant).`
+        : `Question ${numero} : ${p.message || "démarrage…"}`;
+      const lignes = [el("p", { texte })];
+      if (vue.ecoule_s !== undefined) lignes.push(el("p", { class: "note", texte: `Temps écoulé : ${duree(vue.ecoule_s)}` }));
+      bloc.replaceChildren(...lignes);
+    };
+    afficher(tache);
+    const relire = async () => {
+      let vue;
+      try {
+        vue = await api(`/api/generations/${tache.id}`);
+      } catch (e) {
+        bloc.replaceChildren(el("p", { class: "erreur", texte: `Suivi interrompu : ${e.message}` }));
+        etat.regeneration = null;
+        occuper(false);
+        return;
+      }
+      if (etat.exercice !== ident) { etat.regeneration = null; return; } // l'enseignant est allé ailleurs
+      afficher(vue);
+      if (vue.etat === "en_attente" || vue.etat === "en_cours") {
+        setTimeout(relire, INTERVALLE_MS);
+        return;
+      }
+      etat.regeneration = null;
+      if (vue.etat === "termine") {
+        bloc.hidden = true;
+        $("#ex-message").textContent = `Question ${numero} remplacée. L'exercice est à accepter de nouveau.`;
+        await ouvrirExercice(ident, true);
+        const question = document.getElementById(`question-${numero}`);
+        if (question) {
+          question.classList.add("nouvelle");
+          question.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      } else {
+        const erreur = vue.erreur || { message: "échec" };
+        bloc.replaceChildren(el("p", { class: "erreur", texte: erreur.message }),
+          ...(erreur.erreurs || []).map((m) => el("p", { class: "note", texte: m })),
+          el("p", { texte: "La question d'origine est conservée." }));
+        occuper(false);
+      }
+    };
+    setTimeout(relire, INTERVALLE_MS);
+  }
+
+  async function reprendreRegeneration(ident) {
+    try {
+      const { taches } = await api("/api/generations");
+      const t = taches.find((x) => x.nature === "regeneration" && x.exercice === ident &&
+        (x.etat === "en_cours" || x.etat === "en_attente"));
+      if (t) suivreRegeneration(t, (t.description.match(/Question (\d+)/) || [])[1] || "?");
+    } catch (_) { /* rien à reprendre */ }
+  }
+
+  // --- boîte de dialogue (motif d'un rejet, d'une régénération) -----------------------------------
+
+  function demander({ titre, texte, label, ok }) {
+    const dialogue = $("#dialogue");
+    $("#dialogue-titre").textContent = titre;
+    $("#dialogue-texte").textContent = texte;
+    $("#dialogue-label").textContent = label;
+    $("#dialogue-ok").textContent = ok;
+    $("#dialogue-motif").value = "";
+    return new Promise((resoudre) => {
+      const fermer = (valeur) => {
+        $("#dialogue-form").onsubmit = null;
+        $("#dialogue-annuler").onclick = null;
+        dialogue.onclose = null;
+        if (dialogue.open) dialogue.close();
+        resoudre(valeur);
+      };
+      $("#dialogue-form").onsubmit = (e) => { e.preventDefault(); fermer($("#dialogue-motif").value.trim()); };
+      $("#dialogue-annuler").onclick = () => fermer(null);
+      dialogue.onclose = () => fermer(null);
+      dialogue.showModal();
+      $("#dialogue-motif").focus();
+    });
+  }
+
+  // --- démarrage --------------------------------------------------------------------------------
+
+  async function demarrer() {
+    $("#form-phrase").addEventListener("submit", analyser);
+    $("#btn-a-la-main").addEventListener("click", remplirALaMain);
+    $("#form-requete").addEventListener("submit", generer);
+    $("#type").addEventListener("change", choisirType);
+    for (const id of ["#notion", "#matiere", "#precisions"]) {
+      // le chemin annoncé (programme ou modèle) dépend de la demande : il n'est plus sûr si elle change
+      $(id).addEventListener("input", () => { $("#chemin").hidden = true; });
+    }
+    $("#filtres").addEventListener("change", chargerBanque);
+    $("#btn-accepter").addEventListener("click", () => decider("accepter"));
+    $("#btn-rejeter").addEventListener("click", async () => {
+      const motif = await demander({ titre: "Rejeter l'exercice", label: "Motif (facultatif)", ok: "Rejeter",
+        texte: "L'exercice restera dans la banque, marqué « rejeté ». Votre motif aide à améliorer le générateur." });
+      if (motif !== null) decider("rejeter", motif || null);
+    });
+    $("#ex-questions").addEventListener("click", async (e) => {
+      const bouton = e.target.closest(".regenerer");
+      if (!bouton || bouton.disabled) return;
+      const numero = bouton.dataset.numero;
+      const motif = await demander({ titre: `Régénérer la question ${numero}`, label: "Ce qui ne va pas (facultatif)",
+        ok: "Régénérer", texte: "Seule cette question sera remplacée ; les autres ne changent pas." });
+      if (motif !== null) regenerer(numero, motif || null);
+    });
+    window.addEventListener("hashchange", router);
+
+    try {
+      const { types } = await api("/api/types");
+      etat.types = types;
+      remplirSelect($("#type"), types.map((t) => t.nom), Object.fromEntries(types.map((t) => [t.nom, t.titre])));
+      choisirType();
+      const premier = types[0] || { matieres: [], niveaux: [] };
+      remplirSelect($("#filtre-matiere"), premier.matieres, MATIERES, "Toutes");
+      remplirSelect($("#filtre-niveau"), premier.niveaux, {}, "Toutes");
+    } catch (e) {
+      $("#analyse-etat").textContent = `Le serveur ne répond pas : ${e.message}`;
+    }
+    router();
+    reprendreSuivi();
+  }
+
+  document.addEventListener("DOMContentLoaded", demarrer);
+})();

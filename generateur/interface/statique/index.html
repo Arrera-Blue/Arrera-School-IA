@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Générateur d'exercices</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/statique/style.css">
+  <script src="/statique/app.js" defer></script>
+</head>
+<body>
+  <header class="entete">
+    <div class="entete-contenu">
+      <p class="marque">Générateur d'exercices</p>
+      <nav aria-label="Sections">
+        <a href="#/generer" data-vue="generer">Générer</a>
+        <a href="#/banque" data-vue="banque">Banque</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Générer : la demande, sa vérification, la progression -->
+    <section id="vue-generer" class="vue" aria-labelledby="titre-generer" hidden>
+      <h1 id="titre-generer">Créer un exercice</h1>
+
+      <form id="form-phrase" class="carte" novalidate>
+        <h2>1. Votre demande</h2>
+        <label for="phrase">Décrivez l'exercice comme vous le diriez à un collègue</label>
+        <textarea id="phrase" rows="3" maxlength="1000" required
+                  placeholder="Un QCM de 8 questions sur le théorème de Pythagore pour des 4e, plutôt facile"></textarea>
+        <div class="actions">
+          <button type="submit" id="btn-analyser">Analyser la demande</button>
+          <button type="button" id="btn-a-la-main" class="lien">ou remplir le formulaire à la main</button>
+        </div>
+        <p id="analyse-etat" class="etat" role="status"></p>
+      </form>
+
+      <form id="form-requete" class="carte" novalidate hidden>
+        <h2>2. Vérifiez avant de générer</h2>
+        <ul id="remarques" class="remarques"></ul>
+        <p id="chemin" class="note" hidden></p>
+        <div class="grille">
+          <div class="champ" data-champ="type">
+            <label for="type">Type d'exercice</label>
+            <select id="type" required></select>
+          </div>
+          <div class="champ" data-champ="matiere">
+            <label for="matiere">Matière</label>
+            <select id="matiere" required></select>
+            <p class="source"></p>
+          </div>
+          <div class="champ" data-champ="niveau">
+            <label for="niveau">Classe</label>
+            <select id="niveau" required></select>
+            <p class="source"></p>
+          </div>
+          <div class="champ champ-large" data-champ="notion">
+            <label for="notion">Notion travaillée</label>
+            <input id="notion" type="text" maxlength="120" required>
+            <p class="source"></p>
+          </div>
+          <div class="champ" data-champ="nb_questions">
+            <label for="nb_questions">Nombre de questions</label>
+            <input id="nb_questions" type="number" min="3" max="15" value="5" required>
+          </div>
+          <div class="champ" data-champ="difficulte">
+            <label for="difficulte">Difficulté</label>
+            <select id="difficulte">
+              <option value="">Mélange</option>
+              <option value="facile">Facile</option>
+              <option value="moyen">Moyen</option>
+              <option value="difficile">Difficile</option>
+            </select>
+          </div>
+        </div>
+        <label for="precisions">Précisions transmises au modèle <span class="facultatif">(facultatif)</span></label>
+        <textarea id="precisions" rows="2" maxlength="1000"></textarea>
+        <p class="aide">Votre phrase est transmise telle quelle. Si vous changez la notion ci-dessus, adaptez-la ou
+          videz-la, pour que le modèle ne reçoive pas deux consignes contraires.</p>
+        <div class="actions">
+          <button type="submit" id="btn-generer">Générer l'exercice</button>
+        </div>
+        <p id="requete-erreur" class="erreur" role="alert" hidden></p>
+      </form>
+
+      <section id="progression" class="carte" aria-labelledby="titre-progression" hidden>
+        <h2 id="titre-progression">3. Génération</h2>
+        <p id="prog-message" class="prog-message" aria-live="polite"></p>
+        <progress id="prog-barre" max="1"></progress>
+        <p id="prog-temps" class="note"></p>
+        <ol id="prog-journal" class="journal"></ol>
+        <div id="prog-erreur" class="erreur" role="alert" hidden></div>
+      </section>
+    </section>
+
+    <!-- Banque : la liste des exercices -->
+    <section id="vue-banque" class="vue" aria-labelledby="titre-banque" hidden>
+      <h1 id="titre-banque">Banque d'exercices</h1>
+      <form id="filtres" class="filtres" novalidate>
+        <div class="champ">
+          <label for="filtre-matiere">Matière</label>
+          <select id="filtre-matiere"><option value="">Toutes</option></select>
+        </div>
+        <div class="champ">
+          <label for="filtre-niveau">Classe</label>
+          <select id="filtre-niveau"><option value="">Toutes</option></select>
+        </div>
+        <div class="champ">
+          <label for="filtre-statut">Statut</label>
+          <select id="filtre-statut">
+            <option value="">Tous</option>
+            <option value="genere">À relire</option>
+            <option value="accepte">Accepté</option>
+            <option value="rejete">Rejeté</option>
+          </select>
+        </div>
+      </form>
+      <p id="banque-etat" class="etat" role="status"></p>
+      <div class="tableau-defilant">
+        <table id="table-banque" class="tableau">
+          <caption class="visuellement-cache">Exercices de la banque, du plus récent au plus ancien</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Exercice</th>
+              <th scope="col">Matière</th>
+              <th scope="col">Classe</th>
+              <th scope="col">Questions</th>
+              <th scope="col">Rédigé par</th>
+              <th scope="col">À relire</th>
+              <th scope="col">Statut</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Exercice : relecture, aperçu, décision -->
+    <section id="vue-exercice" class="vue" aria-labelledby="ex-titre" hidden>
+      <p><a href="#/banque" id="ex-retour" class="retour">← Retour à la banque</a></p>
+      <div class="ex-entete">
+        <h1 id="ex-titre" tabindex="-1"></h1>
+        <span id="ex-statut" class="badge"></span>
+      </div>
+      <p id="ex-infos" class="infos"></p>
+      <ul id="ex-validation" class="validation" aria-label="Contrôles automatiques"></ul>
+      <div id="ex-avertissements"></div>
+
+      <div class="actions barre-actions">
+        <button type="button" id="btn-accepter">Accepter l'exercice</button>
+        <button type="button" id="btn-rejeter" class="secondaire">Rejeter…</button>
+        <a id="btn-telecharger" class="bouton secondaire" href="#" download>Télécharger le fichier HTML</a>
+      </div>
+      <p id="ex-message" class="etat" role="status"></p>
+      <div id="ex-regeneration" class="carte regeneration" aria-live="polite" hidden></div>
+
+      <div class="deux-colonnes">
+        <section aria-labelledby="titre-relecture">
+          <h2 id="titre-relecture">Relecture <span class="facultatif">(vue enseignant, bonnes réponses marquées)</span></h2>
+          <ol id="ex-questions" class="questions"></ol>
+        </section>
+        <section aria-labelledby="titre-apercu">
+          <h2 id="titre-apercu">Aperçu <span class="facultatif">(vue élève)</span></h2>
+          <iframe id="ex-apercu" class="apercu" title="Aperçu de l'exercice, tel que l'élève le verra"
+                  sandbox="allow-scripts"></iframe>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dialogue" aria-labelledby="dialogue-titre">
+    <form id="dialogue-form" novalidate>
+      <h2 id="dialogue-titre"></h2>
+      <p id="dialogue-texte"></p>
+      <label for="dialogue-motif" id="dialogue-label"></label>
+      <textarea id="dialogue-motif" rows="3" maxlength="500"></textarea>
+      <div class="actions">
+        <button type="submit" id="dialogue-ok"></button>
+        <button type="button" id="dialogue-annuler" class="secondaire">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

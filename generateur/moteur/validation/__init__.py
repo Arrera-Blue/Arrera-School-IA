@@ -1,3 +1,6 @@
+import re
+
+
 class ErreurValidation(Exception):
     """Réponse du modèle rejetée ; le message est lisible par un humain (et réinjectable dans le prompt).
 
@@ -12,3 +15,9 @@ class ErreurValidation(Exception):
         self.questions = questions
         self.rejet = None
         super().__init__(f"{niveau} : " + " ; ".join(erreurs))
+
+
+def numero_de_question(message: str) -> int:
+    """« question 3 : … » → 3 ; 0 si le message ne concerne pas une question précise (titre, JSON…)."""
+    m = re.match(r"question (\d+)", message)
+    return int(m[1]) if m else 0

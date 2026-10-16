@@ -99,6 +99,20 @@ def premier_essai(instance: dict, reprises: list[dict] | None) -> dict:
     return instance | {"questions": questions}
 
 
+def avant_regenerations(instance: dict) -> dict:
+    """L'exercice tel que la chaîne l'a accepté, avant que l'enseignant n'en fasse régénérer des questions
+    (interface, phase 3) : les mesures portent sur le modèle et ses reprises, pas sur les choix de l'enseignant."""
+    regenerations = (instance.get("meta") or {}).get("regenerations")
+    if not regenerations:
+        return instance
+    questions = list(instance["questions"])
+    for regeneration in reversed(regenerations):
+        n = regeneration.get("question")
+        if regeneration.get("ancienne") and isinstance(n, int) and 1 <= n <= len(questions):
+            questions[n - 1] = regeneration["ancienne"]
+    return instance | {"questions": questions}
+
+
 def _lire(chemin: Path) -> dict | None:
     try:
         return json.loads(chemin.read_text(encoding="utf-8"))
@@ -123,7 +137,7 @@ def mesurer(dossier_instances: Path, dossier_rejets: Path, depuis: str | None = 
                 bilan.procedurales += 1
                 continue
             bilan.acceptees += 1
-            bilan.compter(instance, meta.get("reprises"))
+            bilan.compter(avant_regenerations(instance), meta.get("reprises"))
     for chemin in sorted(dossier_rejets.glob("*.json")) if dossier_rejets.is_dir() else []:
         rejet = _lire(chemin) or {}
         if not retenue(rejet.get("date"), rejet.get("modele")):
