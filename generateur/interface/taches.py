@@ -101,7 +101,10 @@ class File:
                 with self.modele:
                     resultat = tache.executer(lambda evenement: self._noter(tache, evenement))
             except Exception as e:  # une tâche qui échoue ne doit jamais arrêter le fil : elle est notée en échec
-                erreur = self._decrire_erreur(e)
+                try:
+                    erreur = self._decrire_erreur(e)
+                except Exception:  # même la description de l'erreur ne doit pas l'arrêter
+                    erreur = {"message": f"Erreur inattendue ({type(e).__name__})"}
                 with self._verrou:
                     tache.etat, tache.erreur = ECHEC, erreur
                     tache.journal.append({"t": self._ecoule(tache), "message": erreur["message"]})

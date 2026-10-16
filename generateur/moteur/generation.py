@@ -28,6 +28,7 @@ from generateur.moteur import banque, config, machine, registre
 from generateur.moteur.analyse import QUESTIONS_MAX, QUESTIONS_MIN, lire_classe, lire_nombre_de_questions
 from generateur.moteur.fournisseurs import ErreurFournisseur, Fournisseur, creer
 from generateur.moteur.validation import ErreurValidation, n3_pedagogie, n4_calcul, numero_de_question
+from generateur.moteur.validation.fond import tolerant, valider_le_fond
 from generateur.moteur.validation.n1_syntaxe import extraire_json
 from generateur.moteur.validation.n2_schema import valider
 from generateur.procedural import habillage
@@ -143,35 +144,6 @@ def identifiant(type_: str, instance: dict, horodatage: str = "%Y%m%d-%H%M%S") -
 _numero = numero_de_question
 
 
-def valider_le_fond(instance: dict) -> tuple[list[str], dict]:
-    """N3 puis N4, en signalant TOUS les défauts d'un coup.
-
-    S'arrêter au premier niveau en faute cacherait les erreurs de calcul quand N3 a déjà rejeté : la
-    reprise sur erreur (1.4) corrigerait une partie des questions, puis échouerait sur le reste à l'essai
-    suivant. Cas réel du 03/10 : N3 rejetait les questions 1, 2 et 4, et l'erreur de calcul de la
-    question 3 n'apparaissait pas.
-    """
-    rejets: list[ErreurValidation] = []
-    avertissements, bilan_n4 = [], {}
-    try:
-        avertissements = n3_pedagogie.valider(instance)
-    except ErreurValidation as e:
-        rejets.append(e)
-    try:
-        bilan_n4 = n4_calcul.valider(instance)
-    except ErreurValidation as e:
-        # « plusieurs propositions conviennent » sur une question déjà rejetée par N3 : même défaut, pas deux fois
-        deja = set(rejets[0].questions) if rejets else set()
-        messages = [m for m in e.erreurs if not (_numero(m) in deja and "plusieurs propositions conviennent" in m)]
-        rejets.append(ErreurValidation("N4", messages, tuple(_numero(m) for m in messages)))
-    rejets = [r for r in rejets if r.erreurs]
-    if rejets:
-        raise ErreurValidation(", ".join(r.niveau for r in rejets),
-                               sorted((m for r in rejets for m in r.erreurs), key=_numero),
-                               tuple(sorted({q for r in rejets for q in r.questions})))
-    return avertissements, bilan_n4
-
-
 def creer_fournisseur(nom: str | None = None) -> Fournisseur:
     """Le fournisseur `nom` (défaut : le premier de `fournisseurs.ordre`), réglé d'après config.yaml."""
     cfg = config.charger()
@@ -224,17 +196,23 @@ class _Etat:
     tentative: int = 0
     avertissements: list[str] = field(default_factory=list)
     bilan_n4: dict = field(default_factory=dict)
+    # régénération : la seule question que le modèle a le droit de réécrire. Sinon, un doublon entre la nouvelle
+    # question 2 et la question 4 ferait réécrire la 4 (N3 signale la seconde d'un doublon), que l'enseignant
+    # n'a pas demandé de changer
+    seules: list[int] | None = None
 
 
 def _generer_et_reprendre(fournisseur: Fournisseur, messages: list[dict], schema: dict, tentatives_max: int,
                           etat: _Etat, suivi: Suivi | None = None,
-                          controle: Callable[[dict], None] | None = None) -> _Etat:
+                          controle: Callable[[dict], None] | None = None,
+                          valider_fond: Callable[[dict], tuple[list[str], dict]] | None = None) -> _Etat:
     """La boucle commune à la génération et à la régénération d'une question : un appel au modèle, N1/N2, puis
     N3/N4 ; les questions refusées sont renvoyées au modèle, au plus `tentatives_max` appels.
 
     `etat.instance` vide : le premier appel écrit l'exercice entier. Rempli, avec `etat.defauts` : chaque appel
-    est une reprise (l'enseignant a demandé de remplacer une question). `controle` ajoute une vérification
-    après N3/N4 (lève ErreurValidation). En sortie, `etat.defauts` vaut None si l'exercice est accepté ;
+    est une reprise (l'enseignant a demandé de remplacer une question). `valider_fond` remplace N3/N4 (la
+    régénération tolère les défauts déjà présents ailleurs) ; `controle` ajoute une vérification après (lève
+    ErreurValidation). En sortie, `etat.defauts` vaut None si l'exercice est accepté ;
     sinon, il porte les derniers défauts."""
     depart = etat.instance is not None
     for tentative in range(1, tentatives_max + 1):
@@ -247,7 +225,7 @@ def _generer_et_reprendre(fournisseur: Fournisseur, messages: list[dict], schema
             _signaler(suivi, etape="modele", tentative=tentative, tentatives_max=tentatives_max,
                       message=f"Le modèle lit la demande ({fournisseur.nom}, {fournisseur.modele})…")
         else:
-            a_remplacer = questions_a_remplacer(etat.defauts) if etat.instance is not None else None
+            a_remplacer = etat.seules or (questions_a_remplacer(etat.defauts) if etat.instance is not None else None)
             quoi = _enumerer(a_remplacer) if a_remplacer else "l'exercice entier"
             numero = tentative if depart else tentative - 1
             sur_reprises = tentatives_max if depart else tentatives_max - 1
@@ -318,7 +296,7 @@ def _generer_et_reprendre(fournisseur: Fournisseur, messages: list[dict], schema
 
         # 2. le fond est-il juste (N3, N4) ?
         try:
-            etat.avertissements, etat.bilan_n4 = valider_le_fond(etat.instance)
+            etat.avertissements, etat.bilan_n4 = (valider_fond or valider_le_fond)(etat.instance)
             if controle is not None:
                 controle(etat.instance)
         except ErreurValidation as e:
@@ -521,14 +499,15 @@ def regenerer_question(instance: dict, numero: int, motif: str | None = None, no
     meta = copy.deepcopy(instance.get("meta") or {})
     ancienne = questions[numero - 1]
     debut = time.monotonic()
+    valider_fond = tolerant(instance, numero)
     if meta.get("origine") == "procedural":
-        nouvelle, trace = _retirer_question(instance, numero, meta, suivi)
+        nouvelle, trace = _retirer_question(instance, numero, meta, valider_fond, suivi)
     else:
-        nouvelle, trace = _reecrire_question(instance, numero, motif, nom_fournisseur, suivi)
+        nouvelle, trace = _reecrire_question(instance, numero, motif, nom_fournisseur, valider_fond, suivi)
     meta.setdefault("regenerations", []).append({
         "question": numero, "date": datetime.now().isoformat(timespec="seconds"), "motif": motif,
         "duree_s": round(time.monotonic() - debut, 1), "ancienne": ancienne, **trace})
-    avertissements, bilan_n4 = valider_le_fond(nouvelle)
+    avertissements, bilan_n4 = valider_fond(nouvelle)
     meta["validation"] = {"n1": True, "n2": True, "n3": True, **bilan_n4}
     meta["avertissements"] = avertissements
     meta["statut"] = banque.GENERE  # l'exercice a changé : l'enseignant doit l'accepter de nouveau
@@ -538,7 +517,7 @@ def regenerer_question(instance: dict, numero: int, motif: str | None = None, no
 
 
 def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fournisseur: str | None,
-                       suivi: Suivi | None) -> tuple[dict, dict]:
+                       valider_fond: Callable, suivi: Suivi | None) -> tuple[dict, dict]:
     demande = _demande_d_origine(instance)
     type_exo = registre.charger(instance.get("type", "qcm"))
     schema = schema_de_sortie(type_exo.schema, demande)
@@ -547,7 +526,7 @@ def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fourn
     defaut = f"question {numero} : l'enseignant demande de la remplacer par une autre question"
     etat = _Etat(instance=exercice, precedent=json.dumps(exercice, ensure_ascii=False, indent=2),
                  defauts=ErreurValidation(ENSEIGNANT, [defaut + (f" ({motif})" if motif else "")], (numero,)),
-                 par_question=[1] * len(exercice["questions"]))
+                 par_question=[1] * len(exercice["questions"]), seules=[numero])
     fournisseur = creer_fournisseur(nom_fournisseur)
     tentatives_max = max(1, int(config.charger()["generation"].get("tentatives_max", 1)))
     ancienne = n3_pedagogie.normaliser(instance["questions"][numero - 1]["enonce"])
@@ -559,7 +538,7 @@ def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fourn
                                           "remplacer ; écris une question différente"], (numero,))
 
     print(f"→ régénération de la question {numero} par {fournisseur.nom} ({fournisseur.modele})…", flush=True)
-    etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, etat, suivi, differente)
+    etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, etat, suivi, differente, valider_fond)
     if etat.defauts is not None:
         # jamais remplacée : le dernier défaut est celui de la réponse illisible, ou celui de N3/N4
         erreurs = etat.format_refuse or etat.defauts.erreurs
@@ -572,7 +551,8 @@ def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fourn
     return etat.instance, trace
 
 
-def _retirer_question(instance: dict, numero: int, meta: dict, suivi: Suivi | None) -> tuple[dict, dict]:
+def _retirer_question(instance: dict, numero: int, meta: dict, valider_fond: Callable,
+                      suivi: Suivi | None) -> tuple[dict, dict]:
     module = procedural.notions()[meta["generateur"]]
     origines = meta.get("questions") or []
     nom_du_genre = origines[numero - 1]["genre"] if numero <= len(origines) else ""
@@ -594,7 +574,7 @@ def _retirer_question(instance: dict, numero: int, meta: dict, suivi: Suivi | No
         nouvelle["questions"][numero - 1] = question
         try:
             valider(nouvelle, schema)
-            valider_le_fond(nouvelle)
+            valider_fond(nouvelle)
         except ErreurValidation as e:  # une question en double avec une autre, par exemple : on tire à nouveau
             derniere = e
             continue

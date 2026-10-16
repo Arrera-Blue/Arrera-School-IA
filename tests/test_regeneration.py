@@ -112,6 +112,29 @@ def test_la_meme_question_recrite_est_refusee(dossiers, modele):
     assert "écris une question différente" in modele.recus[-1][-1]["content"]
 
 
+def test_deux_questions_fausses_se_corrigent_l_une_apres_l_autre(dossiers, modele):
+    # cas des exercices acceptés avant l'extension de N4 : chaque régénération revalide tout l'exercice ; sans
+    # tolérance, la question 3 fausse empêchait de corriger la 2, et inversement
+    instance = generation.generer(DEMANDE, "qcm", mode="ia")
+    instance["questions"][1]["index_correct"] = 0  # « 7 cm » pour l'hypoténuse d'un triangle 3-4
+    instance["questions"][2]["index_correct"] = 0  # « non rectangle » pour un triangle 6-8-10
+    nouvelle = generation.regenerer_question(instance, 2)
+    assert nouvelle["questions"][1] == NOUVELLE
+    assert nouvelle["meta"]["validation"]["n4_questions"][2] == "faux"  # toujours là, et toujours signalée
+    from generateur.moteur.validation.fond import controler
+    assert controler(nouvelle)["questions"] == [3]
+
+
+def test_un_doublon_ne_fait_pas_reecrire_une_autre_question(dossiers, modele):
+    # la nouvelle question 1 reprend la 3 : N3 signale la 3 (la seconde du doublon) ; seule la 1 doit changer
+    instance = generation.generer(DEMANDE, "qcm", mode="ia")
+    modele.remplacements = [copy.deepcopy(instance["questions"][2]), NOUVELLE]
+    nouvelle = generation.regenerer_question(instance, 1)
+    assert nouvelle["questions"][0] == NOUVELLE and nouvelle["questions"][2] == instance["questions"][2]
+    reprise = modele.recus[-1][-1]["content"]
+    assert "question 3 : même énoncé que la question 1" in reprise and "remplacer la question 1" in reprise
+
+
 def test_regenerer_une_question_procedurale(dossiers):
     instance = generation.generer({"type": "qcm", "notion": "fractions", "niveau": "6e"}, "qcm", "maquette", graine=3)
     nouvelle = generation.regenerer_question(instance, 4)
