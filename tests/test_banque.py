@@ -77,15 +77,39 @@ def test_un_exercice_sans_statut_est_a_relire(dossiers):
 
 
 def test_relecture_question_par_question():
-    instance = exercice(avertissements=["question 2 : deux mauvaises réponses de même valeur",
-                                        "le titre reprend la notion"],
-                        regenerations=[{"question": 3, "ancienne": {}}])
-    relecture = banque.relecture(instance)
-    assert [q["n4"] for q in relecture["questions"]] == ["a_relire", "verifie", "verifie"]
+    instance = exercice(regenerations=[{"question": 3, "ancienne": {}}])
+    fond = {"erreurs": ["question 3 : 7 + 8 = 15, mais la réponse annoncée est « 16 »"], "questions": [3],
+            "niveau": "N4", "avertissements": ["question 2 : deux mauvaises réponses de même valeur",
+                                                "le titre reprend la notion"],
+            "n4_questions": ["a_relire", "verifie", "faux"]}
+    relecture = banque.relecture(instance, fond)
+    assert [q["n4"] for q in relecture["questions"]] == ["a_relire", "verifie", "faux"]
     assert relecture["questions"][1]["avertissements"] == ["question 2 : deux mauvaises réponses de même valeur"]
+    assert relecture["questions"][2]["erreurs"] == ["question 3 : 7 + 8 = 15, mais la réponse annoncée est « 16 »"]
     assert relecture["avertissements"] == ["le titre reprend la notion"]
     assert [q["regeneree"] for q in relecture["questions"]] == [False, False, True]
-    assert relecture["a_relire"] == 1 and relecture["procedural"] is False
+    assert (relecture["valide"], relecture["a_corriger"], relecture["a_relire"]) == (False, [3], 1)
+
+
+def faux_pythagore() -> dict:
+    """Une réponse fausse que le meta ne signale pas : le cas des 5 exercices acceptés avant le 07/10."""
+    instance = exercice()
+    instance["questions"][1]["index_correct"] = 0  # « 7 cm » pour l'hypoténuse d'un triangle 3-4
+    return instance
+
+
+def test_la_relecture_controle_avec_les_regles_du_jour(dossiers):
+    relecture = banque.relecture(faux_pythagore())
+    assert not relecture["valide"] and relecture["a_corriger"] == [2]
+    assert relecture["questions"][1]["n4"] == "faux" and "5" in relecture["questions"][1]["erreurs"][0]
+    assert banque.resume(faux_pythagore())["a_corriger"] == 1
+
+
+def test_un_exercice_faux_ne_peut_pas_etre_accepte(dossiers):
+    banque.ecrire(faux_pythagore())
+    with pytest.raises(banque.ExerciceFaux, match="à corriger"):
+        banque.decider("qcm-pythagore-4e-20261013-100000", "accepter")
+    assert banque.decider("qcm-pythagore-4e-20261013-100000", "rejeter")["meta"]["statut"] == "rejete"
 
 
 def test_un_calcul_du_programme_n_est_jamais_a_relire(dossiers, monkeypatch):

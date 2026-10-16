@@ -13,7 +13,9 @@
   const INTERVALLE_MS = 1000;
 
   // origine : la vue d'où l'on a ouvert l'exercice, pour le lien « Retour »
-  const etat = { types: [], suivi: null, exercice: null, regeneration: null, origine: "banque" };
+  // statut, valide, occupe : ceux de l'exercice ouvert, pour l'état des boutons
+  const etat = { types: [], suivi: null, exercice: null, regeneration: null, origine: "banque",
+    statut: null, valide: true, occupe: false };
   const $ = (selecteur) => document.querySelector(selecteur);
 
   // --- outils -----------------------------------------------------------------------------------
@@ -143,7 +145,8 @@
       const source = champ.querySelector(".source");
       const aVerifier = (resultat.a_verifier || []).includes(nom);
       champ.classList.toggle("a-verifier", aVerifier);
-      if (source) source.textContent = aVerifier ? (SOURCES[resultat.sources[nom]] || "à choisir") : "";
+      const manque = nom === "notion" ? "à écrire" : "à choisir";
+      if (source) source.textContent = aVerifier ? (SOURCES[resultat.sources[nom]] || manque) : "";
     }
     const remarques = $("#remarques");
     remarques.replaceChildren(...(resultat.remarques || []).map((t) => el("li", { texte: t })));
@@ -274,8 +277,9 @@
   function finGeneration(vue) {
     $("#btn-generer").disabled = false;
     if (vue.etat === "termine" && vue.exercice) {
-      $("#prog-message").textContent = "Exercice prêt : ouverture de la relecture…";
-      location.hash = `#/exercice/${vue.exercice}`;
+      const lien = el("a", { href: `#/exercice/${vue.exercice}`, texte: "ouvrir la relecture" });
+      $("#prog-message").replaceChildren("Exercice prêt : ", lien, ".");
+      if (!$("#vue-generer").hidden) location.hash = `#/exercice/${vue.exercice}`;
       return;
     }
     const bloc = $("#prog-erreur");
@@ -316,13 +320,19 @@
         el("td", { texte: x.niveau || "—" }),
         el("td", { class: "nombre", texte: String(x.questions) }),
         el("td", { texte: x.origine === "procedural" ? "programme" : "modèle" }),
-        el("td", { class: "nombre", texte: x.a_relire ? String(x.a_relire) : "—" }),
+        el("td", {}, controles(x)),
         el("td", {}, badgeStatut(x.statut))));
       $("#table-banque tbody").replaceChildren(...lignes);
       message.textContent = exercices.length ? `${exercices.length} exercice(s).` : "Aucun exercice ne correspond.";
     } catch (e) {
       message.textContent = `Banque illisible : ${e.message}`;
     }
+  }
+
+  function controles(x) {
+    if (x.a_corriger) return el("span", { class: "badge n4-faux", texte: `✘ ${x.a_corriger} à corriger` });
+    if (x.a_relire) return el("span", { class: "badge n4-a_relire", texte: `? ${x.a_relire} à relire` });
+    return el("span", { class: "badge n4-verifie", texte: "✔" });
   }
 
   function badgeStatut(statut) {
@@ -337,11 +347,16 @@
     try {
       donnees = await api(`/api/exercices/${ident}`);
     } catch (e) {
+      if (location.hash !== `#/exercice/${ident}`) return;
+      viderExercice();
       $("#ex-titre").textContent = "Exercice introuvable";
       $("#ex-message").textContent = e.message;
       return;
     }
+    // l'enseignant a ouvert un autre exercice pendant le chargement : la réponse arrivée en retard est ignorée
+    if (location.hash !== `#/exercice/${ident}`) return;
     etat.exercice = ident;
+    $("#ex-actions").hidden = false;
     const { exercice: x, resume, relecture } = donnees;
     const meta = x.meta || {};
     $("#ex-titre").textContent = x.titre || ident;
@@ -359,27 +374,56 @@
     $("#btn-telecharger").setAttribute("download", `${ident}.html`);
     $("#ex-retour").href = `#/${etat.origine}`;
     $("#ex-retour").textContent = etat.origine === "generer" ? "← Retour à la demande" : "← Retour à la banque";
+    etat.statut = resume.statut;
+    etat.valide = relecture.valide;
     occuper(donnees.occupe);
     if (!garderMessage) $("#ex-titre").focus();
     if (donnees.occupe && !etat.regeneration) reprendreRegeneration(ident);
   }
 
+  function viderExercice() {
+    etat.exercice = null;
+    for (const id of ["#ex-infos", "#ex-validation", "#ex-avertissements", "#ex-questions"]) $(id).replaceChildren();
+    $("#ex-erreurs").hidden = true;
+    $("#ex-actions").hidden = true;
+    $("#ex-regeneration").hidden = true;
+    $("#ex-statut").replaceWith(el("span", { id: "ex-statut", class: "badge", hidden: true }));
+    $("#ex-apercu").removeAttribute("src");
+  }
+
   function afficherValidation(x, relecture) {
-    const v = (x.meta && x.meta.validation) || {};
+    // contrôles refaits par le serveur avec les règles du jour : un exercice ancien peut contenir une erreur
+    // que son verdict d'origine ignorait
+    const bloc = $("#ex-erreurs");
+    if (relecture.valide) {
+      bloc.hidden = true;
+    } else {
+      bloc.replaceChildren(
+        el("p", {}, el("strong", { texte: "Cet exercice contient une erreur détectée par les contrôles actuels." })),
+        el("ul", {}, ...relecture.questions.flatMap((q) => q.erreurs).concat(relecture.erreurs)
+          .map((m) => el("li", { texte: m }))),
+        el("p", { texte: "Régénérez la question concernée ; l'exercice ne peut pas être accepté en l'état." }));
+      bloc.hidden = false;
+    }
     const verifiees = relecture.questions.filter((q) => q.n4 === "verifie").length;
+    const faux = relecture.questions.filter((q) => q.n4 === "faux").length;
     let n4;
-    if (relecture.procedural) n4 = "N4 : calculs faits par le programme, justes par construction";
+    if (faux) n4 = `N4 : ${faux} calcul(s) faux`;
+    else if (relecture.procedural) n4 = "N4 : calculs faits par le programme, justes par construction";
     else if (x.matiere !== "maths") n4 = "N4 : hors mathématiques, aucun calcul à recalculer — le fond est à relire par vous";
     else if (relecture.a_relire) n4 = `N4 : ${verifiees} calcul(s) vérifié(s), ${relecture.a_relire} question(s) à relire`;
     else n4 = `N4 : ${verifiees} calcul(s) recalculé(s) et juste(s)`;
+    const n3 = !(relecture.niveau || "").includes("N3");
+    const n4ok = relecture.procedural || (x.matiere === "maths" && !relecture.a_relire);
     const lignes = [
-      [v.n1, "N1 : réponse lisible (JSON)"],
-      [v.n2, "N2 : conforme au format de l'exercice"],
-      [v.n3, "N3 : cohérence pédagogique (pas de doublon, une seule bonne réponse…)"],
-      [relecture.procedural || (x.matiere === "maths" && !relecture.a_relire), n4],
+      ["ok", "N1 : réponse lisible (JSON)"],
+      ["ok", "N2 : conforme au format de l'exercice"],
+      [n3 ? "ok" : "faux", "N3 : cohérence pédagogique (pas de doublon, une seule bonne réponse…)"],
+      [faux ? "faux" : (n4ok ? "ok" : "a-relire"), n4],
     ];
-    $("#ex-validation").replaceChildren(...lignes.map(([ok, texte]) =>
-      el("li", { class: ok ? "ok" : "a-relire" }, el("span", { "aria-hidden": "true", texte: ok ? "✔ " : "? " }), texte)));
+    const symboles = { ok: "✔ ", faux: "✘ ", "a-relire": "? " };
+    $("#ex-validation").replaceChildren(...lignes.map(([classe, texte]) =>
+      el("li", { class: classe }, el("span", { "aria-hidden": "true", texte: symboles[classe] }), texte)));
     const avertissements = relecture.avertissements || [];
     $("#ex-avertissements").replaceChildren(...avertissements.map((a) => el("p", { class: "avertissement", texte: `⚠ ${a}` })));
   }
@@ -388,6 +432,7 @@
     const items = x.questions.map((q, i) => {
       const info = relecture.questions[i] || {};
       const badges = el("span", { class: "badges" });
+      if (info.erreurs && info.erreurs.length) badges.append(el("span", { class: "badge n4-faux", texte: "✘ à corriger" }));
       if (info.calcul === "programme" && info.n4 !== "faux") {
         badges.append(el("span", { class: "badge n4-verifie", texte: "✔ calcul fait par le programme" }));
       } else if (info.n4) {
@@ -406,11 +451,12 @@
       }));
       const bouton = el("button", { type: "button", class: "secondaire petit regenerer", "data-numero": String(i + 1),
         texte: "Régénérer cette question" });
-      return el("li", { class: "question", id: `question-${i + 1}` },
+      return el("li", { class: "question", id: `question-${i + 1}`, tabindex: "-1" },
         el("div", { class: "question-entete" }, el("h3", { texte: `Question ${i + 1}` }), badges),
         el("p", { class: "enonce", texte: q.enonce }),
         propositions,
         el("p", { class: "explication" }, el("strong", { texte: "Explication : " }), q.explication),
+        ...(info.erreurs || []).map((a) => el("p", { class: "erreur", texte: `✘ ${a}` })),
         ...(info.avertissements || []).map((a) => el("p", { class: "avertissement", texte: `⚠ ${a}` })),
         bouton);
     });
@@ -418,7 +464,11 @@
   }
 
   function occuper(occupe) {
-    for (const b of document.querySelectorAll("#btn-accepter, #btn-rejeter, .regenerer")) b.disabled = Boolean(occupe);
+    etat.occupe = Boolean(occupe);
+    for (const b of document.querySelectorAll(".regenerer")) b.disabled = etat.occupe;
+    $("#btn-accepter").disabled = etat.occupe || !etat.valide || etat.statut === "accepte";
+    $("#btn-rejeter").disabled = etat.occupe || etat.statut === "rejete";
+    $("#btn-accepter").title = etat.valide ? "" : "L'exercice contient une erreur : régénérez la question concernée";
   }
 
   async function decider(decision, motif = null) {
@@ -426,6 +476,8 @@
     try {
       const { resume } = await api(`/api/exercices/${etat.exercice}/decision`, { decision, motif });
       $("#ex-statut").replaceWith(Object.assign(badgeStatut(resume.statut), { id: "ex-statut" }));
+      etat.statut = resume.statut;
+      occuper(etat.occupe);
       message.textContent = decision === "accepter"
         ? "Exercice accepté : il pourra être publié vers les postes élèves."
         : "Exercice rejeté. Il reste dans la banque, avec votre motif.";
@@ -485,6 +537,7 @@
         if (question) {
           question.classList.add("nouvelle");
           question.scrollIntoView({ behavior: "smooth", block: "center" });
+          question.focus({ preventScroll: true });
         }
       } else {
         const erreur = vue.erreur || { message: "échec" };

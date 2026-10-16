@@ -35,6 +35,7 @@ from generateur.interface.taches import File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre
 from generateur.moteur.fournisseurs import ErreurFournisseur
 from generateur.moteur.validation import ErreurValidation
+from generateur.moteur.validation.fond import controler
 
 STATIQUE = Path(__file__).with_name("statique")
 HOTES = {"127.0.0.1", "localhost", "[::1]"}
@@ -72,7 +73,7 @@ class Decision(BaseModel):
 
 
 class Regeneration(BaseModel):
-    motif: str | None = Field(None, max_length=200)
+    motif: str | None = Field(None, max_length=500)  # le moteur n'en transmet que 200 au modèle
 
 
 # --- outils --------------------------------------------------------------------------------------
@@ -247,8 +248,9 @@ def creer_application(file: File | None = None) -> FastAPI:
     @app.get("/api/exercices/{ident}")
     def exercice(ident: str):
         instance = _charger(ident)
-        return {"exercice": instance, "resume": banque.resume(instance), "relecture": banque.relecture(instance),
-                "occupe": file.occupee_pour(ident)}
+        fond = controler(instance)  # avec les règles du jour, pas le verdict enregistré à la génération
+        return {"exercice": instance, "resume": banque.resume(instance, fond),
+                "relecture": banque.relecture(instance, fond), "occupe": file.occupee_pour(ident)}
 
     @app.get("/api/exercices/{ident}/apercu", response_class=HTMLResponse)
     def apercu(ident: str):
@@ -270,6 +272,8 @@ def creer_application(file: File | None = None) -> FastAPI:
             instance = banque.decider(ident, corps.decision, corps.motif)
         except banque.ExerciceInconnu as e:
             raise HTTPException(404, str(e)) from None
+        except banque.ExerciceFaux as e:
+            raise HTTPException(409, str(e)) from None
         return {"resume": banque.resume(instance)}
 
     @app.post("/api/exercices/{ident}/questions/{numero}/regenerer", status_code=202)

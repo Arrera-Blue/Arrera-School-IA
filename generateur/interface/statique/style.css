@@ -163,6 +163,7 @@ progress { width: 100%; height: 0.8rem; accent-color: var(--accent); }
 .validation { list-style: none; padding: 0; margin: 0 0 0.5rem; display: grid; gap: 0.2rem; }
 .validation .ok { color: var(--ok); }
 .validation .a-relire { color: var(--relire); }
+.validation .faux { color: var(--danger); }
 .avertissement {
   color: var(--relire); background: var(--relire-fond); border-radius: 6px; padding: 0.4rem 0.6rem; margin: 0.4rem 0;
 }
@@ -181,6 +182,8 @@ progress { width: 100%; height: 0.8rem; accent-color: var(--accent); }
   box-shadow: var(--ombre); padding: 1rem 1.1rem;
 }
 .question.nouvelle { background: var(--nouveau-fond); }
+.question:focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+.question .erreur { margin: 0.4rem 0; }
 .question-entete { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .badges { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .enonce { font-weight: 600; margin: 0.6rem 0; }

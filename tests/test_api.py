@@ -65,6 +65,17 @@ def test_un_echec_n_arrete_pas_la_file():
     assert file.attendre(suivante.id, 5)["etat"] == TERMINE
 
 
+def test_la_file_survit_a_une_description_d_erreur_qui_echoue():
+    def description_cassee(e):
+        raise KeyError("bogue dans la description")
+
+    file = File(decrire_erreur=description_cassee)
+    echec = file.soumettre("generation", "plante", lambda suivi: 1 / 0)
+    suivante = file.soumettre("generation", "ok", lambda suivi: {"exercice": "x"})
+    assert file.attendre(echec.id, 5)["erreur"]["message"] == "Erreur inattendue (ZeroDivisionError)"
+    assert file.attendre(suivante.id, 5)["etat"] == TERMINE
+
+
 def test_file_pleine():
     file = File(taille_max=1)
     porte = threading.Event()
@@ -174,6 +185,22 @@ def test_pas_de_decision_pendant_une_regeneration(client):
         assert client.post(f"/api/exercices/{ident}/questions/2/regenerer", json={}).status_code == 409
         assert client.get(f"/api/exercices/{ident}").json()["occupe"] is True
     assert client.file.attendre(tache["id"], 10)["etat"] == TERMINE
+
+
+def test_un_exercice_faux_ne_peut_pas_etre_accepte(client):
+    ident = generer(client)["exercice"]
+    fichier = config.chemin("banque") / f"{ident}.json"
+    instance = json.loads(fichier.read_text(encoding="utf-8"))
+    instance["questions"][1]["index_correct"] = 0  # une réponse fausse que le meta ne signale pas
+    fichier.write_text(json.dumps(instance, ensure_ascii=False), encoding="utf-8")
+    vue = client.get(f"/api/exercices/{ident}").json()
+    assert vue["relecture"]["valide"] is False and vue["relecture"]["a_corriger"] == [2]
+    assert vue["resume"]["a_corriger"] == 1
+    refus = client.post(f"/api/exercices/{ident}/decision", json={"decision": "accepter"})
+    assert refus.status_code == 409 and "à corriger" in refus.json()["detail"]
+    tache = client.post(f"/api/exercices/{ident}/questions/2/regenerer", json={"motif": "x" * 500}).json()
+    assert client.file.attendre(tache["id"], 10)["etat"] == TERMINE
+    assert client.post(f"/api/exercices/{ident}/decision", json={"decision": "accepter"}).status_code == 200
 
 
 def test_un_echec_est_explique(client):

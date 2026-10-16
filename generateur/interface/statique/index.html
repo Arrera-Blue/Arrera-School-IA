@@ -128,7 +128,7 @@
               <th scope="col">Classe</th>
               <th scope="col">Questions</th>
               <th scope="col">Rédigé par</th>
-              <th scope="col">À relire</th>
+              <th scope="col">Contrôles</th>
               <th scope="col">Statut</th>
             </tr>
           </thead>
@@ -146,9 +146,10 @@
       </div>
       <p id="ex-infos" class="infos"></p>
       <ul id="ex-validation" class="validation" aria-label="Contrôles automatiques"></ul>
+      <div id="ex-erreurs" class="erreur" role="alert" hidden></div>
       <div id="ex-avertissements"></div>
 
-      <div class="actions barre-actions">
+      <div class="actions barre-actions" id="ex-actions">
         <button type="button" id="btn-accepter">Accepter l'exercice</button>
         <button type="button" id="btn-rejeter" class="secondaire">Rejeter…</button>
         <a id="btn-telecharger" class="bouton secondaire" href="#" download>Télécharger le fichier HTML</a>

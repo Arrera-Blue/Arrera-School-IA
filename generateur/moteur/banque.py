@@ -4,6 +4,10 @@ Statuts (architecture §11.2, règle n° 5) : « genere » à la création, puis
 l'enseignant. Seuls les exercices acceptés pourront être publiés (phase 4). Chaque décision est gardée dans
 meta.decisions : c'est la donnée du taux d'acceptation enseignant (phase 7).
 
+La relecture contrôle le fond avec les règles du jour (validation/fond.py), pas avec le verdict enregistré à la
+génération : un exercice accepté avant une amélioration de N3 ou N4 peut contenir une erreur que son meta
+ignore. Un exercice où le contrôle trouve une erreur ne peut pas être accepté.
+
 Les générations refusées par N1 → N4 ne sont pas dans la banque : elles sont dans banque/rejets/.
 """
 
@@ -16,6 +20,7 @@ from pathlib import Path
 
 from generateur.moteur import config, rendu
 from generateur.moteur.validation import numero_de_question
+from generateur.moteur.validation.fond import controler
 
 GENERE, ACCEPTE, REJETE = "genere", "accepte", "rejete"
 STATUTS = (GENERE, ACCEPTE, REJETE)
@@ -29,6 +34,10 @@ _VERROU = threading.RLock()
 
 class ExerciceInconnu(Exception):
     pass
+
+
+class ExerciceFaux(Exception):
+    """Accepter un exercice où le contrôle du fond trouve une erreur : refusé, il faut d'abord la corriger."""
 
 
 def chemin(ident: str) -> Path:
@@ -91,6 +100,9 @@ def decider(ident: str, decision: str, motif: str | None = None) -> dict:
         raise ValueError(f"décision inconnue : {decision!r} (accepter ou rejeter)")
     with _VERROU:
         instance = charger(ident)
+        if decision == "accepter" and (erreurs := controler(instance)["erreurs"]):
+            raise ExerciceFaux("l'exercice contient une erreur, à corriger (régénérer la question) avant de "
+                               "l'accepter : " + " ; ".join(erreurs))
         meta = instance.setdefault("meta", {"id": ident})
         meta["statut"] = DECISIONS[decision]
         meta.setdefault("decisions", []).append({"statut": meta["statut"], "date": _maintenant(),
@@ -107,10 +119,11 @@ def statut(instance: dict) -> str:
     return (instance.get("meta") or {}).get("statut") or GENERE
 
 
-def resume(instance: dict) -> dict:
-    """Une ligne de la liste de la banque."""
+def resume(instance: dict, fond: dict | None = None) -> dict:
+    """Une ligne de la liste de la banque. `fond` : le contrôle du fond, s'il a déjà été fait."""
     meta = instance.get("meta") or {}
-    n4 = (meta.get("validation") or {}).get("n4_questions") or []
+    fond = fond or controler(instance)
+    n4 = fond["n4_questions"]
     return {
         "id": meta.get("id"), "titre": instance.get("titre"), "matiere": instance.get("matiere"),
         "niveau": instance.get("niveau"), "notion": instance.get("notion"),
@@ -118,7 +131,8 @@ def resume(instance: dict) -> dict:
         "origine": "procedural" if meta.get("origine") == "procedural" else "modele",
         "fournisseur": meta.get("fournisseur"), "modele": meta.get("modele"), "duree_s": meta.get("duree_s"),
         "a_relire": 0 if meta.get("origine") == "procedural" else sum(s == "a_relire" for s in n4),
-        "avertissements": len(meta.get("avertissements") or []),
+        "a_corriger": len(fond["questions"]) or (1 if fond["erreurs"] else 0),
+        "avertissements": len(fond["avertissements"]),
     }
 
 
@@ -131,7 +145,10 @@ def lister(matiere: str | None = None, niveau: str | None = None, statut_voulu: 
             instance = json.loads(fichier.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        ligne = resume(instance)
+        try:
+            ligne = resume(instance)
+        except (KeyError, TypeError, IndexError):  # un fichier au format inattendu : on le saute
+            continue
         ligne["id"] = ligne["id"] or fichier.stem
         if (matiere and ligne["matiere"] != matiere) or (niveau and ligne["niveau"] != niveau) or \
                 (statut_voulu and ligne["statut"] != statut_voulu):
@@ -140,26 +157,31 @@ def lister(matiere: str | None = None, niveau: str | None = None, statut_voulu: 
     return sorted(lignes, key=lambda l: l["date"] or "", reverse=True)
 
 
-def relecture(instance: dict) -> dict:
+def relecture(instance: dict, fond: dict | None = None) -> dict:
     """Ce que l'enseignant doit savoir pour relire, question par question : N4, qui a écrit l'énoncé et fait
-    le calcul (programme ou modèle), les avertissements de N3, les questions déjà régénérées.
+    le calcul (programme ou modèle), les erreurs et avertissements de N3/N4 (règles du jour), les questions
+    déjà régénérées.
 
     « a_relire » ne compte que les calculs du modèle que N4 n'a pas su refaire : un calcul du programme est
     juste par construction, même quand N4 ne reconnaît pas l'énoncé réécrit par le modèle (essai du 16/10 :
     3 questions de pourcentages annoncées « à relire » à tort)."""
     meta = instance.get("meta") or {}
+    fond = fond or controler(instance)
     procedural = meta.get("origine") == "procedural"
-    statuts = (meta.get("validation") or {}).get("n4_questions") or []
+    statuts = fond["n4_questions"]
     origines = meta.get("questions") if procedural else None
     regenerees = {r.get("question") for r in meta.get("regenerations") or []}
-    par_question: dict[int, list[str]] = {}
-    generaux = []
-    for avertissement in meta.get("avertissements") or []:
-        n = numero_de_question(avertissement)
-        if n:
-            par_question.setdefault(n, []).append(avertissement)
-        else:
-            generaux.append(avertissement)
+
+    def ranger(messages: list[str]) -> tuple[dict[int, list[str]], list[str]]:
+        par_question: dict[int, list[str]] = {}
+        generaux = []
+        for message in messages:
+            n = numero_de_question(message)
+            (par_question.setdefault(n, []) if n else generaux).append(message)
+        return par_question, generaux
+
+    erreurs, erreurs_generales = ranger(fond["erreurs"])
+    par_question, generaux = ranger(fond["avertissements"])
     questions = []
     for n, _ in enumerate(instance.get("questions") or [], start=1):
         origine = origines[n - 1] if origines and n <= len(origines) else {}
@@ -168,8 +190,11 @@ def relecture(instance: dict) -> dict:
             "n4": statuts[n - 1] if n <= len(statuts) else None,
             "calcul": "programme" if procedural else "modele",
             "enonce": ("modele" if origine.get("habillage") == "modele" else "programme") if procedural else "modele",
+            "erreurs": erreurs.get(n, []),
             "avertissements": par_question.get(n, []),
             "regeneree": n in regenerees,
         })
-    return {"questions": questions, "avertissements": generaux, "procedural": procedural,
+    return {"questions": questions, "avertissements": generaux, "erreurs": erreurs_generales,
+            "procedural": procedural, "valide": not fond["erreurs"],
+            "a_corriger": sorted(erreurs), "niveau": fond["niveau"],
             "a_relire": sum(q["n4"] == "a_relire" and q["calcul"] == "modele" for q in questions)}
