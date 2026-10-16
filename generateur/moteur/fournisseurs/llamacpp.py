@@ -92,6 +92,8 @@ class LlamaCpp(Fournisseur):
                     if afficher:
                         print(f"   prompt lu en {maintenant - debut:.1f} s ; écriture…", file=sys.stderr, flush=True)
                 morceaux.append(texte)
+                if self.au_fil is not None:
+                    self.au_fil(texte)
                 if afficher and maintenant - derniere_ligne >= PROGRESSION_S:
                     derniere_ligne = maintenant
                     vitesse = len(morceaux) / max(maintenant - premier, 1e-9)

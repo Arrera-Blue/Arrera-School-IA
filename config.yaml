@@ -26,6 +26,10 @@ generation:
   tentatives_max: 3               # appels au modèle : la génération, puis 2 reprises des seules questions refusées
   temperature: 0.5
   habillage_min: 2                # générateur procédural : le modèle réécrit les énoncés s'il y en a au moins 2 à réécrire (≈ 60 s par appel)
+interface:                        # phase 3 : python -m generateur.interface.api → http://127.0.0.1:8000
+  port: 8000                      # l'adresse est toujours 127.0.0.1, sans réglage possible : aucune authentification
+  analyse_par_modele: true        # le modèle complète l'analyse d'une phrase quand les règles n'ont pas trouvé la matière ou la notion
+  file_max: 5                     # générations en attente au plus
 chemins:                          # relatifs à la racine du dépôt (/app dans le conteneur)
   types: "generateur/types"
   sortie: "sortie"

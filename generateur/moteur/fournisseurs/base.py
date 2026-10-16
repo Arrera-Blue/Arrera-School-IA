@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 
 class ErreurFournisseur(Exception):
@@ -10,6 +11,9 @@ class Fournisseur(ABC):
     modele: str
     # compteurs du dernier appel (tokens lus et écrits, durées en secondes), quand le fournisseur les donne
     compteurs: dict | None = None
+    # reçoit la réponse au fil de son écriture, morceau par morceau, quand le fournisseur la diffuse
+    # (llama.cpp) : l'interface en tire la question en cours d'écriture
+    au_fil: Callable[[str], None] | None = None
 
     @abstractmethod
     def generer(self, messages: list[dict], schema: dict) -> str:

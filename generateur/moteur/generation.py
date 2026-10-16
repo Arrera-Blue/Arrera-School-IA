@@ -18,43 +18,45 @@ import re
 import sys
 import time
 import unicodedata
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
 from generateur import procedural
-from generateur.moteur import config, machine, registre, rendu
-from generateur.moteur.fournisseurs import ErreurFournisseur, creer
-from generateur.moteur.validation import ErreurValidation, n3_pedagogie, n4_calcul
+from generateur.moteur import banque, config, machine, registre
+from generateur.moteur.analyse import QUESTIONS_MAX, QUESTIONS_MIN, lire_classe, lire_nombre_de_questions
+from generateur.moteur.fournisseurs import ErreurFournisseur, Fournisseur, creer
+from generateur.moteur.validation import ErreurValidation, n3_pedagogie, n4_calcul, numero_de_question
 from generateur.moteur.validation.n1_syntaxe import extraire_json
 from generateur.moteur.validation.n2_schema import valider
 from generateur.procedural import habillage
 
 MODES = ("auto", "ia", "procedural")
+ESSAIS_DE_TIRAGE = 20  # régénération d'une question procédurale : tirages au plus
+ENSEIGNANT = "enseignant"  # « niveau » d'un défaut signalé par l'enseignant, et non par N1 → N4
+# reçoit les étapes d'une génération : {"etape": "modele" | "ecriture" | "validation" | "refus" | "valide" | …,
+# "message": « texte lisible », …} ; c'est ainsi que l'interface affiche la progression
+Suivi = Callable[[dict], None]
 
 
 class AucunGenerateur(Exception):
     """--mode procedural pour une demande qu'aucun générateur procédural ne couvre."""
 
 
-# « un QCM de 15 questions sur … pour des 6e » : en attendant l'extraction d'intention (phase 3)
-NOMBRE_DE_QUESTIONS = re.compile(r"\b(\d{1,2}) questions?\b", re.IGNORECASE)
-CLASSE = re.compile(r"\b([3-6])(?:e|è|ème|eme)\b|\b(sixième|cinquième|quatrième|troisième)s?\b", re.IGNORECASE)
-CLASSES_EN_LETTRES = {"sixième": "6e", "cinquième": "5e", "quatrième": "4e", "troisième": "3e"}
-QUESTIONS_MIN, QUESTIONS_MAX = 3, 15  # les bornes du schéma QCM
-
-
 def completer_demande(demande: dict) -> dict:
-    """Le nombre de questions et la classe, lus dans la phrase de l'enseignant s'ils ne sont pas donnés.
+    """Le nombre de questions et la classe, lus dans la phrase de l'enseignant s'ils ne sont pas donnés
+    (mêmes règles que l'extraction d'intention, moteur/analyse.py).
 
     Sans cela, le générateur procédural produisait 5 questions pour « un QCM de 15 questions » (recette 1.6,
     08/10) ; et le schéma donné au modèle n'imposait pas le nombre demandé."""
     texte = demande.get("demande_enseignant") or ""
     complete = dict(demande)
-    if not complete.get("nb_questions") and (m := NOMBRE_DE_QUESTIONS.search(texte)):
-        if QUESTIONS_MIN <= int(m[1]) <= QUESTIONS_MAX:
-            complete["nb_questions"] = int(m[1])
-    if not complete.get("niveau") and (m := CLASSE.search(texte)):
-        complete["niveau"] = f"{m[1]}e" if m[1] else CLASSES_EN_LETTRES[m[2].lower()]
+    nombre = lire_nombre_de_questions(texte)
+    if not complete.get("nb_questions") and nombre is not None and QUESTIONS_MIN <= nombre <= QUESTIONS_MAX:
+        complete["nb_questions"] = nombre
+    if not complete.get("niveau") and (classe := lire_classe(texte)):
+        complete["niveau"] = classe
     return complete
 
 
@@ -101,9 +103,12 @@ def _enumerer(numeros: list[int]) -> str:
     return f"les questions {', '.join(map(str, numeros[:-1]))} et {numeros[-1]}"
 
 
-def message_de_reprise(defauts: list[str], a_remplacer: list[int] | None, format_refuse: list[str]) -> str:
-    """Ce qu'on dit au modèle pour qu'il corrige : les messages de N1 → N4, tels quels, puis la consigne."""
-    lignes = ["Ta réponse a été refusée par la vérification automatique :"]
+def message_de_reprise(defauts: list[str], a_remplacer: list[int] | None, format_refuse: list[str],
+                       enseignant: bool = False) -> str:
+    """Ce qu'on dit au modèle pour qu'il corrige : les messages de N1 → N4, tels quels, puis la consigne.
+    `enseignant` : ce n'est pas la vérification qui refuse, c'est l'enseignant qui demande une autre question."""
+    lignes = ["L'enseignant a relu l'exercice et demande une autre question :" if enseignant
+              else "Ta réponse a été refusée par la vérification automatique :"]
     lignes += [f"- {d}" for d in defauts]
     if format_refuse:
         lignes += ["", "Ta dernière correction n'était pas utilisable :"] + [f"- {d}" for d in format_refuse]
@@ -135,9 +140,7 @@ def identifiant(type_: str, instance: dict, horodatage: str = "%Y%m%d-%H%M%S") -
     return f"{type_}-{slug}-{instance.get('niveau', '')}-{datetime.now():{horodatage}}"
 
 
-def _numero(message: str) -> int:
-    m = re.match(r"question (\d+)", message)
-    return int(m[1]) if m else 0
+_numero = numero_de_question
 
 
 def valider_le_fond(instance: dict) -> tuple[list[str], dict]:
@@ -169,8 +172,173 @@ def valider_le_fond(instance: dict) -> tuple[list[str], dict]:
     return avertissements, bilan_n4
 
 
+def creer_fournisseur(nom: str | None = None) -> Fournisseur:
+    """Le fournisseur `nom` (défaut : le premier de `fournisseurs.ordre`), réglé d'après config.yaml."""
+    cfg = config.charger()
+    nom = nom or cfg["fournisseurs"]["ordre"][0]
+    reglages = dict(cfg["fournisseurs"].get(nom, {}))
+    if nom in ("ollama", "llamacpp"):
+        reglages["temperature"] = cfg["generation"]["temperature"]
+    return creer(nom, reglages)
+
+
+def _signaler(suivi: Suivi | None, **evenement) -> None:
+    """Prévient l'interface (phase 3) : `evenement` porte au moins `etape` et un `message` lisible."""
+    if suivi is not None:
+        suivi(evenement)
+
+
+def _au_fil(suivi: Suivi, sur: int | None, entete: str) -> Callable[[str], None]:
+    """Reçoit la réponse du modèle morceau par morceau (llama.cpp) et en déduit la question en cours
+    d'écriture : chaque question commence par la clé « enonce »."""
+    etat = {"texte": "", "vu": 0, "questions": 0, "morceaux": 0}
+
+    def recevoir(morceau: str) -> None:
+        etat["texte"] += morceau
+        etat["morceaux"] += 1
+        avant = etat["questions"]
+        while (i := etat["texte"].find('"enonce"', etat["vu"])) != -1:
+            etat["questions"] += 1
+            etat["vu"] = i + 1
+        etat["vu"] = max(etat["vu"], len(etat["texte"]) - len('"enonce"'))
+        if etat["questions"] != avant or etat["morceaux"] % 20 == 0:
+            n = etat["questions"]
+            quoi = f"question {n} sur {sur}" if n and sur else (f"question {n}" if n else "début de la réponse")
+            suivi({"etape": "ecriture", "message": f"{entete} : écriture, {quoi}…", "question": n, "sur": sur,
+                   "tokens": etat["morceaux"]})
+    return recevoir
+
+
+@dataclass
+class _Etat:
+    """Ce que la boucle génération + reprises fait évoluer, d'un appel au modèle à l'autre."""
+    instance: dict | None = None       # dernier exercice complet et bien formé (N1, N2)
+    precedent: str = ""                # ce que le modèle a « dit » en dernier, pour prolonger la conversation
+    defauts: ErreurValidation | None = None
+    format_refuse: list[str] = field(default_factory=list)  # N1/N2 d'une reprise ratée : redit au modèle ensuite
+    par_question: list[int] = field(default_factory=list)
+    reprises: list[dict] = field(default_factory=list)
+    appels: list[dict] = field(default_factory=list)        # un par appel au modèle : durée, tokens (étape 1.5)
+    duree_totale: float = 0.0
+    brut: str = ""
+    tentative: int = 0
+    avertissements: list[str] = field(default_factory=list)
+    bilan_n4: dict = field(default_factory=dict)
+
+
+def _generer_et_reprendre(fournisseur: Fournisseur, messages: list[dict], schema: dict, tentatives_max: int,
+                          etat: _Etat, suivi: Suivi | None = None,
+                          controle: Callable[[dict], None] | None = None) -> _Etat:
+    """La boucle commune à la génération et à la régénération d'une question : un appel au modèle, N1/N2, puis
+    N3/N4 ; les questions refusées sont renvoyées au modèle, au plus `tentatives_max` appels.
+
+    `etat.instance` vide : le premier appel écrit l'exercice entier. Rempli, avec `etat.defauts` : chaque appel
+    est une reprise (l'enseignant a demandé de remplacer une question). `controle` ajoute une vérification
+    après N3/N4 (lève ErreurValidation). En sortie, `etat.defauts` vaut None si l'exercice est accepté ;
+    sinon, il porte les derniers défauts."""
+    depart = etat.instance is not None
+    for tentative in range(1, tentatives_max + 1):
+        etat.tentative = tentative
+        reprise = depart or tentative > 1
+        a_remplacer = None
+        if not reprise:
+            appel, schema_appel = messages, schema
+            entete = "Génération"
+            _signaler(suivi, etape="modele", tentative=tentative, tentatives_max=tentatives_max,
+                      message=f"Le modèle lit la demande ({fournisseur.nom}, {fournisseur.modele})…")
+        else:
+            a_remplacer = questions_a_remplacer(etat.defauts) if etat.instance is not None else None
+            quoi = _enumerer(a_remplacer) if a_remplacer else "l'exercice entier"
+            numero = tentative if depart else tentative - 1
+            sur_reprises = tentatives_max if depart else tentatives_max - 1
+            # une régénération demandée par l'enseignant n'est pas une reprise après erreur : « essai »
+            entete = f"{'Essai' if depart else 'Reprise'} {numero}/{sur_reprises}"
+            print(f"→ {entete.lower()} : {quoi}…", flush=True)
+            _signaler(suivi, etape="modele", tentative=tentative, tentatives_max=tentatives_max,
+                      questions=a_remplacer, message=f"{entete} : le modèle réécrit {quoi}…")
+            appel = messages + [{"role": "assistant", "content": etat.precedent},
+                                {"role": "user", "content": message_de_reprise(
+                                    etat.defauts.erreurs, a_remplacer, etat.format_refuse,
+                                    enseignant=etat.defauts.niveau == ENSEIGNANT)}]
+            schema_appel = schema_partiel(schema, len(a_remplacer)) if a_remplacer else schema
+
+        bornes = schema_appel["properties"]["questions"]
+        sur = bornes.get("maxItems") if bornes.get("minItems") == bornes.get("maxItems") else None
+        fournisseur.au_fil = _au_fil(suivi, sur, entete) if suivi is not None else None
+        debut = time.monotonic()
+        try:
+            etat.brut = fournisseur.generer(appel, schema_appel)
+        finally:
+            fournisseur.au_fil = None
+        duree = round(time.monotonic() - debut, 1)
+        etat.duree_totale += duree
+        etat.appels.append({"tentative": tentative, "duree_s": duree, **(fournisseur.compteurs or {})})
+        print(f"→ réponse reçue en {duree} s{detail_appel(fournisseur.compteurs)}", flush=True)
+        _signaler(suivi, etape="validation", message=f"Réponse reçue en {duree} s : vérification N1 → N4…")
+
+        trace = {"tentative": tentative, "questions": a_remplacer or "toutes",
+                 "erreurs": list(etat.defauts.erreurs) if etat.defauts else [], "duree_s": duree}
+        # 1. la réponse est-elle bien formée (N1, N2) ?
+        try:
+            if a_remplacer:
+                partiel = extraire_json(etat.brut)
+                valider(partiel, schema_appel)
+                remplacees = [etat.instance["questions"][n - 1] for n in a_remplacer]
+                instance = copy.deepcopy(etat.instance)
+                for n, q in zip(a_remplacer, partiel["questions"]):
+                    instance["questions"][n - 1] = q
+                    etat.par_question[n - 1] += 1
+                etat.instance = instance
+                trace |= {"resultat": "questions remplacées", "questions_remplacees": remplacees}
+                etat.precedent = json.dumps(etat.instance, ensure_ascii=False, indent=2)
+            else:
+                nouvelle = extraire_json(etat.brut)
+                valider(nouvelle, schema)
+                if reprise:
+                    trace |= {"resultat": "exercice regénéré",
+                              "questions_remplacees": etat.instance["questions"] if etat.instance else None}
+                etat.par_question = [p + 1 for p in etat.par_question] if etat.instance and len(
+                    etat.par_question) == len(nouvelle["questions"]) else [1] * len(nouvelle["questions"])
+                etat.instance, etat.precedent = nouvelle, etat.brut
+            etat.format_refuse = []
+        except ErreurValidation as e:
+            if reprise:
+                etat.reprises.append(trace | {"resultat": f"réponse inutilisable ({e.niveau})",
+                                              "erreurs_reponse": e.erreurs})
+            print(f"✗ tentative {tentative} : réponse inutilisable ({e.niveau}) — {e.erreurs[0]}", flush=True)
+            _signaler(suivi, etape="refus", erreurs=e.erreurs,
+                      message=f"Tentative {tentative} : réponse inutilisable ({e.niveau}) — {e.erreurs[0]}")
+            if etat.instance is None:
+                etat.defauts, etat.precedent = e, etat.brut
+            else:
+                etat.format_refuse = e.erreurs
+            continue
+        if reprise:
+            etat.reprises.append(trace)
+
+        # 2. le fond est-il juste (N3, N4) ?
+        try:
+            etat.avertissements, etat.bilan_n4 = valider_le_fond(etat.instance)
+            if controle is not None:
+                controle(etat.instance)
+        except ErreurValidation as e:
+            etat.defauts = e
+            quoi = _enumerer(list(e.questions)) if e.questions else "l'exercice"
+            _signaler(suivi, etape="refus", erreurs=e.erreurs,
+                      message=f"Tentative {tentative} refusée ({e.niveau}) : {quoi}")
+            if tentative < tentatives_max:  # le dernier refus est détaillé par l'appelant
+                print(f"✗ tentative {tentative} refusée ({e.niveau}) : {quoi}", flush=True)
+                for message in e.erreurs:
+                    print(f"   - {message}", flush=True)
+            continue
+        etat.defauts = None
+        _signaler(suivi, etape="valide", message="Exercice validé : N1 → N4 passés")
+        break
+    return etat
+
+
 def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = None, mode: str = "auto",
-            graine: int | None = None) -> dict:
+            graine: int | None = None, suivi: Suivi | None = None) -> dict:
     """Génère l'exercice, puis reprend les questions refusées par N3 ou N4 sans regénérer les autres.
 
     La reprise prolonge la conversation : le modèle revoit sa réponse, lit les messages de la validation et
@@ -178,7 +346,8 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     (une nouvelle question peut dupliquer une ancienne). Au plus `tentatives_max` appels au modèle.
 
     `mode` : « auto » confie au générateur procédural les demandes qu'il couvre, « ia » ne passe jamais par lui,
-    « procedural » l'exige. `graine` rend un exercice procédural reproductible.
+    « procedural » l'exige. `graine` rend un exercice procédural reproductible. `suivi` reçoit les étapes de la
+    génération (interface enseignant).
     """
     demande = completer_demande(demande)
     notion = procedural.aiguiller(demande) if mode != "ia" and type_ == "qcm" else None
@@ -186,13 +355,9 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         raise AucunGenerateur(f"aucun générateur procédural ne couvre cette demande (disponibles : "
                               f"{', '.join(procedural.notions())}) ; une seule notion par exercice")
     cfg = config.charger()
-    nom_fournisseur = nom_fournisseur or cfg["fournisseurs"]["ordre"][0]
-    reglages = dict(cfg["fournisseurs"].get(nom_fournisseur, {}))
-    if nom_fournisseur in ("ollama", "llamacpp"):
-        reglages["temperature"] = cfg["generation"]["temperature"]
-    fournisseur = creer(nom_fournisseur, reglages)
+    fournisseur = creer_fournisseur(nom_fournisseur)
     if notion is not None:
-        return generer_procedural(demande, notion, fournisseur, graine)
+        return generer_procedural(demande, notion, fournisseur, graine, suivi)
     tentatives_max = max(1, int(cfg["generation"].get("tentatives_max", 1)))
 
     type_exo = registre.charger(type_)
@@ -200,111 +365,37 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     messages = construire_messages(type_exo, demande)
 
     print(f"→ génération par {fournisseur.nom} ({fournisseur.modele})… cela peut prendre plusieurs minutes", flush=True)
-    instance: dict | None = None       # dernier exercice complet et bien formé (N1, N2)
-    precedent = ""                     # ce que le modèle a « dit » en dernier, pour prolonger la conversation
-    defauts: ErreurValidation | None = None
-    format_refuse: list[str] = []      # N1/N2 d'une reprise ratée : redit au modèle à la tentative suivante
-    par_question: list[int] = []
-    reprises: list[dict] = []
-    appels: list[dict] = []            # un par appel au modèle : durée, tokens (étape 1.5)
-    duree_totale = 0.0
-    brut = ""
+    etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, _Etat(), suivi)
 
-    for tentative in range(1, tentatives_max + 1):
-        a_remplacer = None
-        if tentative == 1:
-            appel, schema_appel = messages, schema
-        else:
-            a_remplacer = questions_a_remplacer(defauts) if instance is not None else None
-            quoi = _enumerer(a_remplacer) if a_remplacer else "l'exercice entier"
-            print(f"→ reprise {tentative - 1}/{tentatives_max - 1} : {quoi}…", flush=True)
-            appel = messages + [{"role": "assistant", "content": precedent},
-                                {"role": "user", "content": message_de_reprise(defauts.erreurs, a_remplacer, format_refuse)}]
-            schema_appel = schema_partiel(schema, len(a_remplacer)) if a_remplacer else schema
-
-        debut = time.monotonic()
-        brut = fournisseur.generer(appel, schema_appel)
-        duree = round(time.monotonic() - debut, 1)
-        duree_totale += duree
-        appels.append({"tentative": tentative, "duree_s": duree, **(fournisseur.compteurs or {})})
-        print(f"→ réponse reçue en {duree} s{detail_appel(fournisseur.compteurs)}", flush=True)
-
-        trace = {"tentative": tentative, "questions": a_remplacer or "toutes",
-                 "erreurs": list(defauts.erreurs) if defauts else [], "duree_s": duree}
-        # 1. la réponse est-elle bien formée (N1, N2) ?
-        try:
-            if a_remplacer:
-                partiel = extraire_json(brut)
-                valider(partiel, schema_appel)
-                remplacees = [instance["questions"][n - 1] for n in a_remplacer]
-                instance = copy.deepcopy(instance)
-                for n, q in zip(a_remplacer, partiel["questions"]):
-                    instance["questions"][n - 1] = q
-                    par_question[n - 1] += 1
-                trace |= {"resultat": "questions remplacées", "questions_remplacees": remplacees}
-                precedent = json.dumps(instance, ensure_ascii=False, indent=2)
-            else:
-                nouvelle = extraire_json(brut)
-                valider(nouvelle, schema)
-                if tentative > 1:
-                    trace |= {"resultat": "exercice regénéré",
-                              "questions_remplacees": instance["questions"] if instance else None}
-                par_question = [p + 1 for p in par_question] if instance and len(par_question) == len(
-                    nouvelle["questions"]) else [1] * len(nouvelle["questions"])
-                instance, precedent = nouvelle, brut
-            format_refuse = []
-        except ErreurValidation as e:
-            if tentative > 1:
-                reprises.append(trace | {"resultat": f"réponse inutilisable ({e.niveau})", "erreurs_reponse": e.erreurs})
-            print(f"✗ tentative {tentative} : réponse inutilisable ({e.niveau}) — {e.erreurs[0]}", flush=True)
-            if instance is None:
-                defauts, precedent = e, brut
-            else:
-                format_refuse = e.erreurs
-            continue
-        if tentative > 1:
-            reprises.append(trace)
-
-        # 2. le fond est-il juste (N3, N4) ?
-        try:
-            avertissements, bilan_n4 = valider_le_fond(instance)
-        except ErreurValidation as e:
-            defauts = e
-            if tentative < tentatives_max:  # le dernier refus est détaillé par l'appelant
-                quoi = _enumerer(list(e.questions)) if e.questions else "l'exercice"
-                print(f"✗ tentative {tentative} refusée ({e.niveau}) : {quoi}", flush=True)
-                for message in e.erreurs:
-                    print(f"   - {message}", flush=True)
-            continue
-        defauts = None
-        break
-
-    if defauts is not None:
+    if etat.defauts is not None:
         # on garde la réponse fautive : c'est elle qu'il faut regarder pour corriger le prompt, et elle
         # compte dans les mesures (taux d'erreur du modèle, point de décision de N4)
-        ecrire_brut(brut)
+        ecrire_brut(etat.brut)
         try:
-            defauts.rejet = enregistrer_rejet(defauts, brut, instance, demande, type_, fournisseur,
-                                              round(duree_totale, 1), tentative, reprises, appels)
+            etat.defauts.rejet = enregistrer_rejet(etat.defauts, etat.brut, etat.instance, demande, type_, fournisseur,
+                                                   round(etat.duree_totale, 1), etat.tentative, etat.reprises,
+                                                   etat.appels)
         except OSError as erreur_disque:  # ne jamais masquer le rejet lui-même
             print(f"⚠ rejet non enregistré : {erreur_disque}", file=sys.stderr)
-        raise defauts
+        raise etat.defauts
 
+    instance = etat.instance
     instance["meta"] = {
         "id": identifiant(type_, instance),
         "fournisseur": fournisseur.nom,
         "modele": fournisseur.modele,
         "machine": machine.decrire(),
         "date": datetime.now().isoformat(timespec="seconds"),
-        "duree_s": round(duree_totale, 1),
-        "tentatives": tentative,
-        "tentatives_par_question": par_question,
-        "reprises": reprises,
-        "appels": appels,
-        "validation": {"n1": True, "n2": True, "n3": True, **bilan_n4},
-        "avertissements": avertissements,
+        "duree_s": round(etat.duree_totale, 1),
+        "tentatives": etat.tentative,
+        "tentatives_par_question": etat.par_question,
+        "reprises": etat.reprises,
+        "appels": etat.appels,
+        "validation": {"n1": True, "n2": True, "n3": True, **etat.bilan_n4},
+        "avertissements": etat.avertissements,
         "statut": "genere",
         "prompt_origine": demande.get("demande_enseignant") or demande,
+        "demande": demande,
     }
     return instance
 
@@ -320,7 +411,8 @@ def detail_appel(compteurs: dict | None) -> str:
     return f" ({lus}{compteurs['tokens_ecrits']} écrits{chargement}{durees})"
 
 
-def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | None = None) -> dict:
+def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | None = None,
+                       suivi: Suivi | None = None) -> dict:
     """Étape 1.7 : le programme tire les questions, le modèle réécrit les énoncés, puis N2, N3 et N4 contrôlent.
 
     Une question que N3 ou N4 refuse après habillage reprend son énoncé-gabarit ; refusée avec son
@@ -335,8 +427,14 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
 
     squelettes = procedural.tirer(notion, nombre, rng)
     print(f"→ génération procédurale ({module.NOTION}) : {nombre} questions tirées (graine {graine})", flush=True)
+    _signaler(suivi, etape="tirage", message=f"Générateur procédural ({module.NOTION}) : {nombre} questions "
+                                              "tirées, calculs faits par le programme")
+    habillage_min = int(config.charger()["generation"].get("habillage_min", 1))
+    if fournisseur.nom != "maquette" and sum(s.habillable for s in squelettes) >= habillage_min:
+        _signaler(suivi, etape="habillage", message="Le modèle réécrit les énoncés en situation concrète "
+                                                     "(les nombres ne changent pas)…")
     habille = habillage.habiller(squelettes, niveau, None if fournisseur.nom == "maquette" else fournisseur,
-                                 int(config.charger()["generation"].get("habillage_min", 1)))
+                                 habillage_min)
     if habille.appel:
         print(f"→ réponse reçue en {habille.appel['duree_s']} s{detail_appel(habille.appel)}", flush=True)
     enonces, par_question = habille.enonces, habille.par_question
@@ -385,8 +483,128 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
         "avertissements": avertissements,
         "statut": "genere",
         "prompt_origine": demande.get("demande_enseignant") or demande,
+        "demande": demande,
     }
+    _signaler(suivi, etape="valide", message="Exercice validé : N2 → N4 passés")
     return instance
+
+
+def _demande_d_origine(instance: dict) -> dict:
+    """La demande qui a produit l'exercice : enregistrée dans le meta depuis le 13/10, reconstituée avant."""
+    meta = instance.get("meta") or {}
+    if meta.get("demande"):
+        return dict(meta["demande"])
+    demande = {"type": instance.get("type", "qcm"), "matiere": instance.get("matiere"),
+               "niveau": instance.get("niveau"), "notion": instance.get("notion"),
+               "nb_questions": len(instance.get("questions") or [])}
+    if isinstance(meta.get("prompt_origine"), str):
+        demande["demande_enseignant"] = meta["prompt_origine"]
+    return {k: v for k, v in demande.items() if v}
+
+
+def regenerer_question(instance: dict, numero: int, motif: str | None = None, nom_fournisseur: str | None = None,
+                       suivi: Suivi | None = None) -> dict:
+    """Remplace la question `numero` (à partir de 1) à la demande de l'enseignant, sans toucher aux autres.
+
+    Exercice écrit par le modèle : la conversation de la génération est reconstituée (même demande, l'exercice
+    actuel comme réponse du modèle), le modèle écrit une seule question, revalidée avec tout l'exercice
+    (N2 → N4), et reprise si elle est refusée. Exercice procédural : une nouvelle question du même genre est
+    tirée par le programme, juste par construction ; son énoncé reste l'énoncé-gabarit.
+
+    Renvoie une nouvelle instance, à faire accepter de nouveau (statut « genere ») ; l'ancienne question est
+    gardée dans meta.regenerations. Lève ErreurValidation si aucune question acceptable n'a été obtenue :
+    l'exercice reste alors tel qu'il était."""
+    questions = instance.get("questions") or []
+    if not 1 <= numero <= len(questions):
+        raise ValueError(f"question {numero} inexistante : l'exercice en compte {len(questions)}")
+    motif = (motif or "").strip()[:200] or None
+    meta = copy.deepcopy(instance.get("meta") or {})
+    ancienne = questions[numero - 1]
+    debut = time.monotonic()
+    if meta.get("origine") == "procedural":
+        nouvelle, trace = _retirer_question(instance, numero, meta, suivi)
+    else:
+        nouvelle, trace = _reecrire_question(instance, numero, motif, nom_fournisseur, suivi)
+    meta.setdefault("regenerations", []).append({
+        "question": numero, "date": datetime.now().isoformat(timespec="seconds"), "motif": motif,
+        "duree_s": round(time.monotonic() - debut, 1), "ancienne": ancienne, **trace})
+    avertissements, bilan_n4 = valider_le_fond(nouvelle)
+    meta["validation"] = {"n1": True, "n2": True, "n3": True, **bilan_n4}
+    meta["avertissements"] = avertissements
+    meta["statut"] = banque.GENERE  # l'exercice a changé : l'enseignant doit l'accepter de nouveau
+    nouvelle["meta"] = meta
+    _signaler(suivi, etape="valide", message=f"Question {numero} remplacée : N1 → N4 passés")
+    return nouvelle
+
+
+def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fournisseur: str | None,
+                       suivi: Suivi | None) -> tuple[dict, dict]:
+    demande = _demande_d_origine(instance)
+    type_exo = registre.charger(instance.get("type", "qcm"))
+    schema = schema_de_sortie(type_exo.schema, demande)
+    messages = construire_messages(type_exo, demande)
+    exercice = {k: v for k, v in instance.items() if k != "meta"}
+    defaut = f"question {numero} : l'enseignant demande de la remplacer par une autre question"
+    etat = _Etat(instance=exercice, precedent=json.dumps(exercice, ensure_ascii=False, indent=2),
+                 defauts=ErreurValidation(ENSEIGNANT, [defaut + (f" ({motif})" if motif else "")], (numero,)),
+                 par_question=[1] * len(exercice["questions"]))
+    fournisseur = creer_fournisseur(nom_fournisseur)
+    tentatives_max = max(1, int(config.charger()["generation"].get("tentatives_max", 1)))
+    ancienne = n3_pedagogie.normaliser(instance["questions"][numero - 1]["enonce"])
+
+    def differente(candidate: dict) -> None:
+        # le modèle peut récrire à l'identique la question que l'enseignant veut voir partir
+        if n3_pedagogie.normaliser(candidate["questions"][numero - 1]["enonce"]) == ancienne:
+            raise ErreurValidation("N3", [f"question {numero} : c'est la question que l'enseignant a demandé de "
+                                          "remplacer ; écris une question différente"], (numero,))
+
+    print(f"→ régénération de la question {numero} par {fournisseur.nom} ({fournisseur.modele})…", flush=True)
+    etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, etat, suivi, differente)
+    if etat.defauts is not None:
+        # jamais remplacée : le dernier défaut est celui de la réponse illisible, ou celui de N3/N4
+        erreurs = etat.format_refuse or etat.defauts.erreurs
+        niveau = etat.defauts.niveau if etat.defauts.niveau != ENSEIGNANT else "N1/N2"
+        raise ErreurValidation(niveau, [f"la question {numero} n'a pas pu être remplacée après {etat.tentative} "
+                                        f"tentative(s)"] + erreurs, (numero,))
+    trace = {"origine": "modele", "fournisseur": fournisseur.nom, "modele": fournisseur.modele,
+             "machine": machine.decrire(), "tentatives": etat.tentative, "appels": etat.appels,
+             "reprises": etat.reprises}
+    return etat.instance, trace
+
+
+def _retirer_question(instance: dict, numero: int, meta: dict, suivi: Suivi | None) -> tuple[dict, dict]:
+    module = procedural.notions()[meta["generateur"]]
+    origines = meta.get("questions") or []
+    nom_du_genre = origines[numero - 1]["genre"] if numero <= len(origines) else ""
+    genre = next((g for g in module.GENRES if nom_du_genre.endswith(f".{g.__name__}")), None)
+    graine = random.SystemRandom().randrange(1_000_000)
+    rng = random.Random(graine)
+    ancienne = instance["questions"][numero - 1]
+    schema = schema_de_sortie(registre.charger("qcm").schema, _demande_d_origine(instance))
+    _signaler(suivi, etape="tirage", message=f"Générateur procédural ({module.NOTION}) : nouveau tirage de la "
+                                              f"question {numero}")
+    derniere = None
+    for _ in range(ESSAIS_DE_TIRAGE):
+        squelette = procedural.tirer_une(genre or rng.choice(module.GENRES), rng, set())
+        question = procedural.question(squelette, squelette.enonce, rng)
+        if question["enonce"] == ancienne["enonce"]:
+            continue
+        nouvelle = {k: v for k, v in instance.items() if k != "meta"}
+        nouvelle["questions"] = list(nouvelle["questions"])
+        nouvelle["questions"][numero - 1] = question
+        try:
+            valider(nouvelle, schema)
+            valider_le_fond(nouvelle)
+        except ErreurValidation as e:  # une question en double avec une autre, par exemple : on tire à nouveau
+            derniere = e
+            continue
+        meta["questions"] = list(origines)
+        if numero <= len(origines):
+            meta["questions"][numero - 1] = {"genre": squelette.genre, "habillage": "gabarit", "regeneree": True}
+        return nouvelle, {"origine": "procedural", "graine": graine}
+    raise ErreurValidation(derniere.niveau if derniere else "N3",
+                           [f"la question {numero} n'a pas pu être tirée à nouveau"] + (derniere.erreurs if derniere
+                                                                                       else []), (numero,))
 
 
 def enregistrer_rejet(erreur: ErreurValidation, brut: str, instance: dict | None, demande: dict, type_: str,
@@ -485,12 +703,7 @@ def main() -> None:
         print(f"   réponse brute conservée dans {config.chemin('sortie') / 'derniere_reponse_brute.txt'}", file=sys.stderr)
         sys.exit(f"   rejet enregistré (il compte dans les mesures) : {e.rejet}")
 
-    ident = instance["meta"]["id"]
-    json_chemin = config.chemin("banque") / f"{ident}.json"
-    json_chemin.parent.mkdir(parents=True, exist_ok=True)
-    json_chemin.write_text(json.dumps(instance, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    html_chemin = rendu.ecrire(rendu.rendre(instance, args.type), args.sortie or config.chemin("sortie") / f"{ident}.html")
+    json_chemin, html_chemin = banque.enregistrer(instance, args.sortie)
     meta = instance["meta"]
     if meta.get("origine") == "procedural":
         habilles = sum(q["habillage"] == "modele" for q in meta["questions"])
