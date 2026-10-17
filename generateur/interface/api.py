@@ -12,10 +12,12 @@ Points d'entrée (plan-suite 3.2) :
     POST /api/analyser                               phrase → requête structurée, à confirmer
     POST /api/generations                            requête → tâche (file d'attente, une génération à la fois)
     GET  /api/generations[/{id}]                     avancement : en attente | en cours (étape, question) | …
-    GET  /api/exercices                              la banque, filtrée par matière, classe, statut
+    GET  /api/exercices                              la banque, filtrée par matière, classe, statut, recherche
     GET  /api/exercices/{id}[/apercu|/telecharger]   l'exercice, sa relecture, son rendu HTML
     POST /api/exercices/{id}/decision                accepter | rejeter
     POST /api/exercices/{id}/questions/{n}/regenerer remplacer la question n (tâche)
+    PUT  /api/exercices/{id}/questions/{n}           la question n corrigée à la main (revalidée N2 → N4)
+    DELETE /api/exercices/{id}                       retirer l'exercice de la banque (déplacé dans banque/supprimes/)
 """
 
 import argparse
@@ -74,6 +76,16 @@ class Decision(BaseModel):
 
 class Regeneration(BaseModel):
     motif: str | None = Field(None, max_length=500)  # le moteur n'en transmet que 200 au modèle
+
+
+class Question(BaseModel):
+    """Une question corrigée par l'enseignant ; les limites fines (longueurs, 3 ou 4 propositions) sont celles
+    du schéma du type, contrôlées par N2 avec des messages en français."""
+    enonce: str = Field(max_length=2000)
+    propositions: list[str] = Field(max_length=10)
+    index_correct: int = Field(ge=0)
+    explication: str = Field(max_length=2000)
+    difficulte: Literal["facile", "moyen", "difficile"] | None = None
 
 
 # --- outils --------------------------------------------------------------------------------------
@@ -242,8 +254,9 @@ def creer_application(file: File | None = None) -> FastAPI:
         return vue
 
     @app.get("/api/exercices")
-    def exercices(matiere: str | None = None, niveau: str | None = None, statut: str | None = None):
-        return {"exercices": banque.lister(matiere or None, niveau or None, statut or None)}
+    def exercices(matiere: str | None = None, niveau: str | None = None, statut: str | None = None,
+                  recherche: str | None = None):
+        return {"exercices": banque.lister(matiere or None, niveau or None, statut or None, (recherche or "")[:200])}
 
     @app.get("/api/exercices/{ident}")
     def exercice(ident: str):
@@ -295,6 +308,39 @@ def creer_application(file: File | None = None) -> FastAPI:
         except FilePleine as e:
             raise HTTPException(429, str(e)) from None
         return file.lire(tache.id)
+
+    @app.put("/api/exercices/{ident}/questions/{numero}")
+    def modifier(ident: str, numero: int, corps: Question):
+        """La question corrigée à la main : enregistrée seulement si N2 → N4 l'acceptent ; sinon 422 et la liste
+        des défauts, pour que l'enseignant corrige sa saisie."""
+        _charger(ident)
+        if file.occupee_pour(ident):
+            raise HTTPException(409, "une question de cet exercice est en cours de régénération : attendre la fin")
+        question = {"enonce": corps.enonce.strip(), "propositions": [p.strip() for p in corps.propositions],
+                    "index_correct": corps.index_correct, "explication": corps.explication.strip(),
+                    "difficulte": corps.difficulte}
+        try:
+            instance = banque.modifier_question(ident, numero, question)
+        except banque.ExerciceInconnu as e:
+            raise HTTPException(404, str(e)) from None
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from None
+        except ErreurValidation as e:
+            raise HTTPException(422, f"modification refusée ({e.niveau}) : " + " ; ".join(e.erreurs)) from None
+        return {"resume": banque.resume(instance)}
+
+    @app.delete("/api/exercices/{ident}")
+    def supprimer(ident: str):
+        _charger(ident)
+        if file.occupee_pour(ident):
+            raise HTTPException(409, "une question de cet exercice est en cours de régénération : attendre la fin")
+        try:
+            banque.supprimer(ident)
+        except banque.ExerciceInconnu as e:
+            raise HTTPException(404, str(e)) from None
+        except banque.SuppressionRefusee as e:
+            raise HTTPException(409, str(e)) from None
+        return {"supprime": ident}
 
     return app
 

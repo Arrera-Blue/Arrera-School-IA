@@ -8,6 +8,11 @@ La relecture contrôle le fond avec les règles du jour (validation/fond.py), pa
 génération : un exercice accepté avant une amélioration de N3 ou N4 peut contenir une erreur que son meta
 ignore. Un exercice où le contrôle trouve une erreur ne peut pas être accepté.
 
+L'enseignant peut aussi corriger une question à la main (`modifier_question`) : la modification est revalidée
+(N2 → N4) avant d'être enregistrée, et l'ancienne version est gardée dans meta.modifications.
+
+Supprimer un exercice ne l'efface pas : il est déplacé dans banque/supprimes/, d'où on peut le remettre à la main.
+
 Les générations refusées par N1 → N4 ne sont pas dans la banque : elles sont dans banque/rejets/.
 """
 
@@ -15,12 +20,14 @@ import json
 import os
 import re
 import threading
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
-from generateur.moteur import config, rendu
-from generateur.moteur.validation import numero_de_question
-from generateur.moteur.validation.fond import controler
+from generateur.moteur import config, registre, rendu
+from generateur.moteur.validation import ErreurValidation, numero_de_question
+from generateur.moteur.validation.fond import controler, tolerant
+from generateur.moteur.validation.n2_schema import valider as valider_le_format
 
 GENERE, ACCEPTE, REJETE = "genere", "accepte", "rejete"
 STATUTS = (GENERE, ACCEPTE, REJETE)
@@ -38,6 +45,10 @@ class ExerciceInconnu(Exception):
 
 class ExerciceFaux(Exception):
     """Accepter un exercice où le contrôle du fond trouve une erreur : refusé, il faut d'abord la corriger."""
+
+
+class SuppressionRefusee(Exception):
+    """Supprimer un exercice accepté : refusé, il faut d'abord le rejeter (il pourrait déjà être publié)."""
 
 
 def chemin(ident: str) -> Path:
@@ -111,6 +122,76 @@ def decider(ident: str, decision: str, motif: str | None = None) -> dict:
     return instance
 
 
+def modifier_question(ident: str, numero: int, question: dict) -> dict:
+    """Remplace la question `numero` (à partir de 1) par la version écrite par l'enseignant.
+
+    La modification est revalidée comme une régénération : format (N2) sur tout l'exercice, puis fond (N3, N4) ;
+    seuls les défauts NOUVEAUX bloquent (ceux d'autres questions, déjà là avant, restent affichés à la relecture).
+    Lève ErreurValidation si elle est refusée : l'exercice reste alors tel qu'il était.
+    L'ancienne question est gardée dans meta.modifications ; l'exercice repasse « à relire »."""
+    with _VERROU:
+        instance = charger(ident)
+        questions = list(instance.get("questions") or [])
+        if not 1 <= numero <= len(questions):
+            raise ValueError(f"question {numero} inexistante : l'exercice en compte {len(questions)}")
+        ancienne = questions[numero - 1]
+        nouvelle = {cle: valeur for cle, valeur in question.items() if valeur is not None}
+        if "difficulte" in ancienne and "difficulte" not in nouvelle:
+            nouvelle["difficulte"] = ancienne["difficulte"]
+        if nouvelle == ancienne:
+            raise ValueError("la question n'a pas changé")
+        questions[numero - 1] = nouvelle
+        modifiee = instance | {"questions": questions}
+        valider_le_format(modifiee, registre.charger(instance.get("type", "qcm")).schema, meta_autorise=True)
+        avertissements, bilan_n4 = tolerant(instance, numero)({k: v for k, v in modifiee.items() if k != "meta"})
+        meta = json.loads(json.dumps(instance.get("meta") or {"id": ident}))
+        meta.setdefault("modifications", []).append({"question": numero, "date": _maintenant(), "ancienne": ancienne})
+        meta["validation"] = {"n1": True, "n2": True, "n3": True, **bilan_n4}
+        meta["avertissements"] = avertissements
+        meta["statut"] = GENERE  # l'exercice a changé : l'enseignant doit l'accepter de nouveau
+        modifiee["meta"] = meta
+        ecrire(modifiee)
+    return modifiee
+
+
+def supprimer(ident: str) -> Path:
+    """Retire l'exercice de la banque : son JSON part dans banque/supprimes/ (récupérable à la main), son rendu
+    HTML est effacé. Un exercice accepté doit d'abord être rejeté. Renvoie le chemin du fichier déplacé."""
+    with _VERROU:
+        instance = charger(ident)
+        if statut(instance) == ACCEPTE:
+            raise SuppressionRefusee("un exercice accepté ne peut pas être supprimé : le rejeter d'abord")
+        corbeille = config.chemin("supprimes")
+        corbeille.mkdir(parents=True, exist_ok=True)
+        destination = corbeille / f"{ident}.json"
+        os.replace(chemin(ident), destination)
+        (config.chemin("sortie") / f"{ident}.html").unlink(missing_ok=True)
+    return destination
+
+
+def historique(instance: dict) -> list[dict]:
+    """Les régénérations et les modifications à la main, de la plus ancienne à la plus récente, chacune avec sa
+    « nature ». Défaire l'historique à l'envers redonne l'exercice tel que la chaîne l'a produit (bilan_n4)."""
+    meta = instance.get("meta") or {}
+    evenements = [{**r, "nature": "regeneration"} for r in meta.get("regenerations") or []] + \
+                 [{**m, "nature": "modification"} for m in meta.get("modifications") or []]
+    return sorted(evenements, key=lambda e: e.get("date") or "")
+
+
+def _sans_accents(texte: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", texte.casefold()) if not unicodedata.combining(c))
+
+
+def correspond(instance: dict, recherche: str) -> bool:
+    """Recherche plein texte : chaque mot doit apparaître dans le titre, la notion, la consigne ou une question
+    (énoncé, propositions, explication), sans tenir compte des majuscules ni des accents."""
+    morceaux = [instance.get("titre"), instance.get("notion"), instance.get("consigne")]
+    for q in instance.get("questions") or []:
+        morceaux += [q.get("enonce"), q.get("explication"), *(q.get("propositions") or [])]
+    texte = _sans_accents(" ".join(m for m in morceaux if isinstance(m, str)))
+    return all(mot in texte for mot in _sans_accents(recherche).split())
+
+
 def _maintenant() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
@@ -123,27 +204,30 @@ def resume(instance: dict, fond: dict | None = None) -> dict:
     """Une ligne de la liste de la banque. `fond` : le contrôle du fond, s'il a déjà été fait."""
     meta = instance.get("meta") or {}
     fond = fond or controler(instance)
-    n4 = fond["n4_questions"]
     return {
         "id": meta.get("id"), "titre": instance.get("titre"), "matiere": instance.get("matiere"),
         "niveau": instance.get("niveau"), "notion": instance.get("notion"),
         "questions": len(instance.get("questions") or []), "statut": statut(instance), "date": meta.get("date"),
         "origine": "procedural" if meta.get("origine") == "procedural" else "modele",
         "fournisseur": meta.get("fournisseur"), "modele": meta.get("modele"), "duree_s": meta.get("duree_s"),
-        "a_relire": 0 if meta.get("origine") == "procedural" else sum(s == "a_relire" for s in n4),
+        "a_relire": relecture(instance, fond)["a_relire"],
         "a_corriger": len(fond["questions"]) or (1 if fond["erreurs"] else 0),
         "avertissements": len(fond["avertissements"]),
     }
 
 
-def lister(matiere: str | None = None, niveau: str | None = None, statut_voulu: str | None = None) -> list[dict]:
-    """Les exercices de la banque, du plus récent au plus ancien, éventuellement filtrés."""
+def lister(matiere: str | None = None, niveau: str | None = None, statut_voulu: str | None = None,
+           recherche: str | None = None) -> list[dict]:
+    """Les exercices de la banque, du plus récent au plus ancien, éventuellement filtrés (`recherche` : voir
+    `correspond`)."""
     dossier = config.chemin("banque")
     lignes = []
     for fichier in dossier.glob("*.json") if dossier.is_dir() else []:
         try:
             instance = json.loads(fichier.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
+            continue
+        if recherche and recherche.strip() and not correspond(instance, recherche):
             continue
         try:
             ligne = resume(instance)
@@ -159,18 +243,19 @@ def lister(matiere: str | None = None, niveau: str | None = None, statut_voulu: 
 
 def relecture(instance: dict, fond: dict | None = None) -> dict:
     """Ce que l'enseignant doit savoir pour relire, question par question : N4, qui a écrit l'énoncé et fait
-    le calcul (programme ou modèle), les erreurs et avertissements de N3/N4 (règles du jour), les questions
-    déjà régénérées.
+    le calcul (programme, modèle ou enseignant), les erreurs et avertissements de N3/N4 (règles du jour), les
+    questions déjà régénérées ou modifiées à la main (la plus récente des deux l'emporte).
 
     « a_relire » ne compte que les calculs du modèle que N4 n'a pas su refaire : un calcul du programme est
     juste par construction, même quand N4 ne reconnaît pas l'énoncé réécrit par le modèle (essai du 16/10 :
-    3 questions de pourcentages annoncées « à relire » à tort)."""
+    3 questions de pourcentages annoncées « à relire » à tort). Une question modifiée à la main n'est pas non
+    plus « à relire » : l'enseignant l'a écrite."""
     meta = instance.get("meta") or {}
     fond = fond or controler(instance)
     procedural = meta.get("origine") == "procedural"
     statuts = fond["n4_questions"]
     origines = meta.get("questions") if procedural else None
-    regenerees = {r.get("question") for r in meta.get("regenerations") or []}
+    derniers = {e.get("question"): e["nature"] for e in historique(instance)}  # le plus récent l'emporte
 
     def ranger(messages: list[str]) -> tuple[dict[int, list[str]], list[str]]:
         par_question: dict[int, list[str]] = {}
@@ -185,14 +270,21 @@ def relecture(instance: dict, fond: dict | None = None) -> dict:
     questions = []
     for n, _ in enumerate(instance.get("questions") or [], start=1):
         origine = origines[n - 1] if origines and n <= len(origines) else {}
+        modifiee = derniers.get(n) == "modification"
+        if modifiee:
+            calcul = enonce = "enseignant"
+        else:
+            calcul = "programme" if procedural else "modele"
+            enonce = ("modele" if origine.get("habillage") == "modele" else "programme") if procedural else "modele"
         questions.append({
             "numero": n,
             "n4": statuts[n - 1] if n <= len(statuts) else None,
-            "calcul": "programme" if procedural else "modele",
-            "enonce": ("modele" if origine.get("habillage") == "modele" else "programme") if procedural else "modele",
+            "calcul": calcul,
+            "enonce": enonce,
             "erreurs": erreurs.get(n, []),
             "avertissements": par_question.get(n, []),
-            "regeneree": n in regenerees,
+            "regeneree": derniers.get(n) == "regeneration",
+            "modifiee": modifiee,
         })
     return {"questions": questions, "avertissements": generaux, "erreurs": erreurs_generales,
             "procedural": procedural, "valide": not fond["erreurs"],

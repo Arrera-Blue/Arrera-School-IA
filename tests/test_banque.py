@@ -121,3 +121,99 @@ def test_un_calcul_du_programme_n_est_jamais_a_relire(dossiers, monkeypatch):
     assert relecture["procedural"] and relecture["a_relire"] == 0
     assert all(q["calcul"] == "programme" for q in relecture["questions"])
     assert banque.resume(instance)["a_relire"] == 0
+
+
+# --- modifier une question à la main, rechercher, supprimer (architecture §11, B1, B3, B4) ---------------
+
+IDENT = "qcm-pythagore-4e-20261013-100000"
+HYPOTENUSE_6_8 = {"enonce": "Un triangle rectangle a pour côtés de l'angle droit 6 cm et 8 cm. Quelle est la longueur "
+                            "de l'hypoténuse ?",
+                  "propositions": ["14 cm", "10 cm", "48 cm"], "index_correct": 1,
+                  "explication": "6² + 8² = 36 + 64 = 100, et 100 = 10², donc l'hypoténuse mesure 10 cm."}
+
+
+def test_modifier_une_question(dossiers):
+    banque.ecrire(exercice(statut="accepte"))
+    instance = banque.modifier_question(IDENT, 2, dict(HYPOTENUSE_6_8))
+    assert instance["questions"][1] == {**HYPOTENUSE_6_8, "difficulte": "facile"}  # la difficulté est gardée
+    meta = instance["meta"]
+    assert meta["statut"] == "genere"  # l'exercice a changé : à accepter de nouveau
+    assert meta["modifications"][0]["question"] == 2 and meta["modifications"][0]["ancienne"]["propositions"][2] == "5 cm"
+    assert meta["validation"]["n4_questions"][1] == "verifie"
+    assert banque.charger(IDENT) == instance  # enregistrée
+    relue = banque.relecture(instance)["questions"][1]
+    assert relue["modifiee"] and not relue["regeneree"] and relue["calcul"] == "enseignant"
+
+
+@pytest.mark.parametrize("changement, message", [
+    ({"propositions": ["14 cm", "10 cm"]}, "il en faut au moins 3"),  # N2
+    ({"index_correct": 0}, "10"),  # N4 : 14 cm annoncé, c'est 10 cm
+    ({"propositions": ["10 cm", "10 cm", "48 cm"]}, "question 2"),  # N3 : deux propositions identiques
+])
+def test_une_modification_fausse_est_refusee(dossiers, changement, message):
+    banque.ecrire(exercice())
+    with pytest.raises(banque.ErreurValidation, match=message):
+        banque.modifier_question(IDENT, 2, {**HYPOTENUSE_6_8, **changement})
+    assert banque.charger(IDENT)["questions"][1]["propositions"] == ["7 cm", "12 cm", "5 cm", "25 cm"]  # inchangée
+
+
+def test_une_modification_tolere_les_defauts_d_autres_questions(dossiers):
+    banque.ecrire(faux_pythagore())  # question 2 fausse
+    instance = banque.modifier_question(IDENT, 1, {**exercice()["questions"][0], "enonce": "Dans un triangle ABC "
+                                                   "rectangle en A, laquelle de ces égalités est vraie ?"})
+    assert instance["questions"][0]["enonce"].endswith("laquelle de ces égalités est vraie ?")
+    with pytest.raises(ValueError, match="pas changé"):
+        banque.modifier_question(IDENT, 1, instance["questions"][0])
+    with pytest.raises(ValueError, match="inexistante"):
+        banque.modifier_question(IDENT, 4, HYPOTENUSE_6_8)
+
+
+def test_la_plus_recente_des_regeneration_et_modification_l_emporte():
+    instance = exercice(regenerations=[{"question": 2, "date": "2026-10-17T10:00:00", "ancienne": {"enonce": "A"}}],
+                        modifications=[{"question": 2, "date": "2026-10-17T11:00:00", "ancienne": {"enonce": "B"}},
+                                       {"question": 3, "date": "2026-10-17T09:00:00", "ancienne": {"enonce": "C"}}])
+    assert [(e["question"], e["nature"]) for e in banque.historique(instance)] == \
+        [(3, "modification"), (2, "regeneration"), (2, "modification")]
+    questions = banque.relecture(instance)["questions"]
+    assert questions[1]["modifiee"] and not questions[1]["regeneree"]
+    from generateur.outils.bilan_n4 import avant_regenerations
+    origine = avant_regenerations(instance)["questions"]
+    assert [origine[1]["enonce"], origine[2]["enonce"]] == ["A", "C"]  # défait à l'envers : la version de la chaîne
+
+
+def test_une_question_du_programme_modifiee_n_est_plus_un_calcul_du_programme(dossiers):
+    instance = generation.generer({"type": "qcm", "notion": "pourcentages", "niveau": "5e"}, "qcm", "maquette",
+                                  graine=1)
+    instance["meta"]["modifications"] = [{"question": 1, "date": "2026-10-17T10:00:00", "ancienne": {}}]
+    questions = banque.relecture(instance)["questions"]
+    assert questions[0]["calcul"] == "enseignant" and questions[1]["calcul"] == "programme"
+
+
+def test_rechercher(dossiers):
+    banque.ecrire(exercice())
+    autre = exercice("qcm-revolution-4e-20261013-110000", "2026-10-13T11:00:00")
+    autre.update(titre="La Révolution française", matiere="histoire-geo", notion="1789",
+                 questions=[{"enonce": "En quelle année a lieu la prise de la Bastille ?", "propositions": ["1789", "1792",
+                             "1815"], "index_correct": 0, "explication": "Le 14 juillet 1789."}] * 3)
+    banque.ecrire(autre)
+    assert [x["id"] for x in banque.lister(recherche="revolution")] == ["qcm-revolution-4e-20261013-110000"]
+    assert [x["id"] for x in banque.lister(recherche="HYPOTÉNUSE 5 cm")] == [IDENT]  # énoncés, propositions
+    assert banque.lister(recherche="hypoténuse révolution") == []  # chaque mot doit y être
+    assert len(banque.lister(recherche="  ")) == 2
+
+
+def test_supprimer(dossiers):
+    _, page = banque.ecrire(exercice())
+    destination = banque.supprimer(IDENT)
+    assert destination == dossiers / "supprimes" / f"{IDENT}.json" and destination.exists()
+    assert not page.exists() and banque.lister() == []
+    with pytest.raises(banque.ExerciceInconnu):
+        banque.supprimer(IDENT)
+
+
+def test_un_exercice_accepte_ne_peut_pas_etre_supprime(dossiers):
+    banque.ecrire(exercice(statut="accepte"))
+    with pytest.raises(banque.SuppressionRefusee, match="rejeter"):
+        banque.supprimer(IDENT)
+    banque.decider(IDENT, "rejeter")
+    assert banque.supprimer(IDENT).exists()

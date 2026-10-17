@@ -25,7 +25,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from generateur.moteur import config
+from generateur.moteur import banque, config
 from generateur.moteur.validation.n4_calcul import A_RELIRE, FAUX, VERIFIE, verifier
 
 GENERATIONS_MIN = 10
@@ -100,16 +100,17 @@ def premier_essai(instance: dict, reprises: list[dict] | None) -> dict:
 
 
 def avant_regenerations(instance: dict) -> dict:
-    """L'exercice tel que la chaîne l'a accepté, avant que l'enseignant n'en fasse régénérer des questions
-    (interface, phase 3) : les mesures portent sur le modèle et ses reprises, pas sur les choix de l'enseignant."""
-    regenerations = (instance.get("meta") or {}).get("regenerations")
-    if not regenerations:
+    """L'exercice tel que la chaîne l'a accepté, avant que l'enseignant n'en fasse régénérer ou n'en modifie à la
+    main des questions (interface, phase 3) : les mesures portent sur le modèle et ses reprises, pas sur les
+    choix de l'enseignant."""
+    evenements = banque.historique(instance)
+    if not evenements:
         return instance
     questions = list(instance["questions"])
-    for regeneration in reversed(regenerations):
-        n = regeneration.get("question")
-        if regeneration.get("ancienne") and isinstance(n, int) and 1 <= n <= len(questions):
-            questions[n - 1] = regeneration["ancienne"]
+    for evenement in reversed(evenements):
+        n = evenement.get("question")
+        if evenement.get("ancienne") and isinstance(n, int) and 1 <= n <= len(questions):
+            questions[n - 1] = evenement["ancienne"]
     return instance | {"questions": questions}
 
 

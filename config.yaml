@@ -35,3 +35,4 @@ chemins:                          # relatifs à la racine du dépôt (/app dans 
   sortie: "sortie"
   banque: "banque/instances"
   rejets: "banque/rejets"         # générations rejetées par N1 → N4 : elles comptent dans les mesures
+  supprimes: "banque/supprimes"   # exercices supprimés depuis l'interface : récupérables à la main
