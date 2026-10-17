@@ -12,6 +12,7 @@ Points d'entrée (plan-suite 3.2) :
     POST /api/analyser                               phrase → requête structurée, à confirmer
     POST /api/generations                            requête → tâche (file d'attente, une génération à la fois)
     GET  /api/generations[/{id}]                     avancement : en attente | en cours (étape, question) | …
+    POST /api/generations/{id}/annuler               arrêter une génération ou une régénération
     GET  /api/exercices                              la banque, filtrée par matière, classe, statut, recherche
     GET  /api/exercices/{id}[/apercu|/telecharger]   l'exercice, sa relecture, son rendu HTML
     POST /api/exercices/{id}/decision                accepter | rejeter
@@ -22,8 +23,10 @@ Points d'entrée (plan-suite 3.2) :
 
 import argparse
 import threading
+import time
 import traceback
 import webbrowser
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
@@ -33,9 +36,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from generateur import procedural
-from generateur.interface.taches import File, FilePleine
+from generateur.interface.taches import DejaFinie, File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre
-from generateur.moteur.fournisseurs import ErreurFournisseur
+from generateur.moteur.fournisseurs import ErreurFournisseur, llamacpp
 from generateur.moteur.validation import ErreurValidation
 from generateur.moteur.validation.fond import controler
 
@@ -145,12 +148,50 @@ def _procedural(requete: dict) -> dict | None:
     return {"nom": nom, "notion": procedural.notions()[nom].NOTION} if nom else None
 
 
+def decharger_si_inactif(file: File, delai_s: float, maintenant: float | None = None) -> bool:
+    """Libère le modèle (llama.cpp, dans ce processus) si rien ne s'en est servi depuis `delai_s` secondes.
+    Jamais pendant une génération ou une analyse : le verrou du modèle doit être libre, et aucune tâche en
+    attente. Renvoie True si le modèle a été libéré. (Ollama, lui, se décharge seul : KEEP_ALIVE.)"""
+    if delai_s <= 0 or not file.modele.acquire(blocking=False):
+        return False
+    try:
+        inactif = (maintenant or time.monotonic()) - file.derniere_activite >= delai_s
+        if not (inactif and file.inactive()):
+            return False
+        libere = llamacpp.decharger()
+    finally:
+        file.modele.release()
+    if libere:
+        print(f"Modèle déchargé après {delai_s / 60:g} min sans génération : il sera rechargé à la prochaine "
+              "demande (quelques secondes).", flush=True)
+    return libere
+
+
+def _surveiller(file: File, delai_s: float, arret: threading.Event) -> None:
+    while not arret.wait(min(60.0, max(delai_s / 4, 1.0))):
+        decharger_si_inactif(file, delai_s)
+
+
 # --- l'application -------------------------------------------------------------------------------
 
 def creer_application(file: File | None = None) -> FastAPI:
     reglages = config.charger().get("interface") or {}
     file = file or File(int(reglages.get("file_max", 5)), decrire_erreur)
-    app = FastAPI(title="Générateur d'exercices — interface enseignant", docs_url="/api/docs", redoc_url=None,
+    delai_dechargement_s = float(reglages.get("decharger_apres_min", 10)) * 60
+
+    @asynccontextmanager
+    async def cycle_de_vie(_app):
+        """Pendant que le serveur tourne : décharger le modèle après un moment sans génération (3.3, C3)."""
+        arret = threading.Event()
+        if delai_dechargement_s > 0:
+            threading.Thread(target=_surveiller, args=(file, delai_dechargement_s, arret), name="dechargement",
+                             daemon=True).start()
+        yield
+        arret.set()
+
+    # pas de page /api/docs : elle charge ses scripts sur internet (le PC enseignant peut être hors ligne, et la
+    # page n'en charge aucun d'ailleurs) ; la description de l'API reste lisible dans /api/openapi.json
+    app = FastAPI(lifespan=cycle_de_vie, title="Générateur d'exercices — interface enseignant", docs_url=None, redoc_url=None,
                   openapi_url="/api/openapi.json")
     app.state.file = file
 
@@ -219,6 +260,7 @@ def creer_application(file: File | None = None) -> FastAPI:
             resultat = analyse.analyser(corps.phrase, fournisseur).en_dict()
         finally:
             if pris:
+                file.noter_activite()
                 file.modele.release()
         if par_le_modele and not pris and {"matiere", "notion"} & set(resultat["a_verifier"]):
             resultat["remarques"].append("le modèle est occupé par une génération : analyse par les règles seules")
@@ -249,6 +291,17 @@ def creer_application(file: File | None = None) -> FastAPI:
     @app.get("/api/generations/{ident}")
     def tache(ident: str):
         vue = file.lire(ident)
+        if vue is None:
+            raise HTTPException(404, "tâche inconnue (le serveur a peut-être redémarré)")
+        return vue
+
+    @app.post("/api/generations/{ident}/annuler")
+    def annuler(ident: str):
+        """Rien n'est enregistré d'une tâche annulée : ni exercice, ni question régénérée."""
+        try:
+            vue = file.annuler(ident)
+        except DejaFinie as e:
+            raise HTTPException(409, str(e)) from None
         if vue is None:
             raise HTTPException(404, "tâche inconnue (le serveur a peut-être redémarré)")
         return vue

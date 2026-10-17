@@ -30,6 +30,7 @@ interface:                        # phase 3 : python -m generateur.interface.api
   port: 8000                      # l'adresse est toujours 127.0.0.1, sans réglage possible : aucune authentification
   analyse_par_modele: true        # le modèle complète l'analyse d'une phrase quand les règles n'ont pas trouvé la matière ou la notion
   file_max: 5                     # générations en attente au plus
+  decharger_apres_min: 10         # libérer le modèle (~6 Go) après 10 min sans génération ; 0 = le garder chargé
 chemins:                          # relatifs à la racine du dépôt (/app dans le conteneur)
   types: "generateur/types"
   sortie: "sortie"

@@ -73,6 +73,10 @@ def schema_de_sortie(schema: dict, demande: dict) -> dict:
     return s
 
 
+# les champs du formulaire de l'interface, confirmés par l'enseignant : ils priment sur sa phrase (3.3, C1)
+CHAMPS_DU_FORMULAIRE = ("matiere", "niveau", "notion", "nb_questions", "difficulte")
+
+
 def construire_messages(type_exo: registre.TypeExercice, demande: dict) -> list[dict]:
     """Ce qui ne change jamais d'abord (consignes, schéma générique, exemple), la demande à la fin : le début
     du message est le même pour toutes les demandes, et son traitement est réutilisé d'une génération à
@@ -86,6 +90,12 @@ def construire_messages(type_exo: registre.TypeExercice, demande: dict) -> list[
         "Demande :\n"
         f"{json.dumps(demande, ensure_ascii=False, indent=2)}"
     )
+    if demande.get("demande_enseignant") and (champs := [c for c in CHAMPS_DU_FORMULAIRE if demande.get(c)]):
+        # essai du 17/10 : phrase « la Révolution française, 4e », formulaire corrigé « les châteaux forts, 5e » ;
+        # le modèle suivait la phrase 2 fois sur 3. Rappelé en fin de message, là où il le suit le mieux.
+        utilisateur += ("\n\nRappel : " + ", ".join(f"{c} = « {demande[c]} »" for c in champs) +
+                        ". Ces champs ont été vérifiés par l'enseignant et priment sur sa phrase "
+                        "(« demande_enseignant ») : si elle les contredit, suis les champs.")
     return [{"role": "system", "content": type_exo.prompt}, {"role": "user", "content": utilisateur}]
 
 

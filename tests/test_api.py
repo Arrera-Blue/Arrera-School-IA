@@ -6,7 +6,7 @@ import warnings
 
 import pytest
 
-from generateur.interface.taches import ECHEC, EN_ATTENTE, EN_COURS, TERMINE, File, FilePleine
+from generateur.interface.taches import ANNULE, ECHEC, EN_ATTENTE, EN_COURS, TERMINE, DejaFinie, File, FilePleine
 from generateur.moteur import config, generation, registre
 from generateur.moteur.fournisseurs.base import Fournisseur
 
@@ -297,3 +297,118 @@ def test_rechercher_et_supprimer(client):
     assert client.delete(f"/api/exercices/{ident}", headers=json_).json() == {"supprime": ident}
     assert client.get(f"/api/exercices/{ident}").status_code == 404
     assert client.delete(f"/api/exercices/{ident}", headers=json_).status_code == 404
+
+
+def test_pas_de_page_de_documentation_qui_charge_des_scripts_sur_internet(client):
+    assert client.get("/api/docs").status_code == 404
+    assert client.get("/api/openapi.json").json()["info"]["title"].startswith("Générateur d'exercices")
+
+
+# --- annuler une génération (3.3, C5) ---------------------------------------------------------------
+
+def test_annuler_une_tache_en_attente():
+    file = File(decrire_erreur=decrire_erreur)
+    porte = threading.Event()
+    premiere = file.soumettre("generation", "occupe", lambda suivi: porte.wait(5) and {})
+    lancee = []
+    seconde = file.soumettre("generation", "attend", lambda suivi: lancee.append(1) or {})
+    assert file.annuler(seconde.id)["etat"] == ANNULE
+    porte.set()
+    assert file.attendre(premiere.id, 5)["etat"] == TERMINE
+    assert file.attendre(seconde.id, 5)["etat"] == ANNULE and lancee == []  # jamais exécutée
+    with pytest.raises(DejaFinie):
+        file.annuler(seconde.id)
+    assert file.annuler("inconnue") is None
+
+
+def test_annuler_une_tache_en_cours_au_prochain_signe_de_vie():
+    file = File(decrire_erreur=decrire_erreur)
+    demarree, apres = threading.Event(), []
+
+    def longue(suivi):
+        demarree.set()
+        for i in range(500):  # comme llama.cpp, qui signale l'écriture au fil des morceaux
+            suivi({"etape": "ecriture", "message": f"morceau {i}"})
+            threading.Event().wait(0.01)
+        apres.append("fin atteinte")
+        return {"exercice": "x"}
+
+    tache = file.soumettre("generation", "longue", longue)
+    demarree.wait(5)
+    vue = file.annuler(tache.id)
+    assert vue["etat"] == EN_COURS and vue["annulation"] is True
+    fin = file.attendre(tache.id, 5)
+    assert fin["etat"] == ANNULE and fin["resultat"] is None and apres == []
+    assert fin["journal"][-1]["message"] == "Annulée"
+    assert file.soumettre("generation", "suivante", lambda suivi: {"exercice": "y"}).etat  # la file continue
+
+
+def test_une_annulation_n_est_pas_arretee_par_un_except_exception():
+    file = File(decrire_erreur=decrire_erreur)
+    demarree = threading.Event()
+
+    def avec_repli(suivi):
+        demarree.set()
+        for _ in range(500):
+            try:  # un repli (habillage…) qui rattrape les erreurs ne doit pas avaler l'annulation
+                suivi({"etape": "habillage", "message": "réécriture"})
+            except Exception:
+                pass
+            threading.Event().wait(0.01)
+        return {"exercice": "x"}
+
+    tache = file.soumettre("generation", "repli", avec_repli)
+    demarree.wait(5)
+    file.annuler(tache.id)
+    assert file.attendre(tache.id, 5)["etat"] == ANNULE
+
+
+def test_annuler_par_l_api(client):
+    ident = generer(client)["exercice"]
+    avant = client.get(f"/api/exercices/{ident}").json()["exercice"]
+    with client.file.modele:  # le fil de travail attend le modèle : la régénération n'a pas commencé son travail
+        tache = client.post(f"/api/exercices/{ident}/questions/2/regenerer", json={}).json()
+        vue = client.post(f"/api/generations/{tache['id']}/annuler", json={})
+        assert vue.status_code == 200 and vue.json()["annulation"] is True
+    assert client.file.attendre(tache["id"], 10)["etat"] == ANNULE
+    assert client.get(f"/api/exercices/{ident}").json()["exercice"] == avant  # rien n'a changé
+    assert client.post(f"/api/generations/{tache['id']}/annuler", json={}).status_code == 409
+    assert client.post("/api/generations/inconnue/annuler", json={}).status_code == 404
+
+
+# --- décharger le modèle après un moment sans génération (3.3, C3) -----------------------------------
+
+class FauxLlama:
+    fermes = 0
+
+    def close(self):
+        FauxLlama.fermes += 1
+
+
+def test_decharger_le_modele_apres_inactivite(monkeypatch):
+    from generateur.interface.api import decharger_si_inactif
+    from generateur.moteur.fournisseurs import llamacpp
+    monkeypatch.setattr(llamacpp, "_CHARGES", {("modele",): FauxLlama()})
+    file = File()
+    file.derniere_activite = 1000.0
+    assert not decharger_si_inactif(file, 600, maintenant=1300.0)  # 5 min seulement
+    with file.modele:  # une génération ou une analyse en cours
+        assert not decharger_si_inactif(file, 600, maintenant=2000.0)
+    assert not decharger_si_inactif(file, 0, maintenant=2000.0)  # 0 : jamais
+    assert decharger_si_inactif(file, 600, maintenant=2000.0)
+    assert llamacpp._CHARGES == {} and FauxLlama.fermes == 1
+    assert not decharger_si_inactif(file, 600, maintenant=3000.0)  # rien à décharger
+
+
+def test_pas_de_dechargement_si_une_tache_attend(monkeypatch):
+    from generateur.interface.api import decharger_si_inactif
+    from generateur.moteur.fournisseurs import llamacpp
+    monkeypatch.setattr(llamacpp, "_CHARGES", {("modele",): FauxLlama()})
+    file = File()
+    porte = threading.Event()
+    file.soumettre("generation", "attend", lambda suivi: porte.wait(5) and {})
+    file.derniere_activite = 0.0
+    try:
+        assert not decharger_si_inactif(file, 600, maintenant=10_000.0)
+    finally:
+        porte.set()
