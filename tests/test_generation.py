@@ -358,3 +358,17 @@ def test_debut_du_message_identique_pour_toutes_les_demandes():
     commun = a[1]["content"].split("Demande :")[0]
     assert b[1]["content"].startswith(commun)
     assert "Exemple d'une sortie valide" in commun
+
+
+def test_les_champs_du_formulaire_priment_sur_la_phrase():
+    # 17/10 : phrase « la Révolution française, 4e », formulaire « les châteaux forts, 5e » : le modèle suivait la
+    # phrase 2 fois sur 3 ; avec le rappel en fin de message, 5 fois sur 5 le formulaire
+    type_exo = generation.registre.charger("qcm")
+    demande = {"type": "qcm", "matiere": "histoire-geo", "niveau": "5e", "notion": "les châteaux forts",
+               "demande_enseignant": "un QCM sur la Révolution française pour des 4e"}
+    message = generation.construire_messages(type_exo, demande)[1]["content"]
+    assert message.endswith("si elle les contredit, suis les champs.")
+    assert "niveau = « 5e », notion = « les châteaux forts »" in message
+    assert "PRIMENT sur sa phrase" in generation.construire_messages(type_exo, demande)[0]["content"]
+    sans_phrase = generation.construire_messages(type_exo, {k: v for k, v in demande.items() if k != "demande_enseignant"})
+    assert "Rappel" not in sans_phrase[1]["content"]

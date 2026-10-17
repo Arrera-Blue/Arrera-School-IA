@@ -76,8 +76,8 @@
         </div>
         <label for="precisions">Précisions transmises au modèle <span class="facultatif">(facultatif)</span></label>
         <textarea id="precisions" rows="2" maxlength="1000"></textarea>
-        <p class="aide">Votre phrase est transmise telle quelle. Si vous changez la notion ci-dessus, adaptez-la ou
-          videz-la, pour que le modèle ne reçoive pas deux consignes contraires.</p>
+        <p class="aide">Votre phrase est transmise au modèle pour préciser la demande. Si elle contredit les champs
+          ci-dessus (autre notion, autre classe…), ce sont les champs qui l'emportent.</p>
         <div class="actions">
           <button type="submit" id="btn-generer">Générer l'exercice</button>
         </div>
@@ -89,6 +89,9 @@
         <p id="prog-message" class="prog-message" aria-live="polite"></p>
         <progress id="prog-barre" max="1"></progress>
         <p id="prog-temps" class="note"></p>
+        <div class="actions">
+          <button type="button" id="btn-annuler-generation" class="secondaire petit" hidden>Annuler la génération</button>
+        </div>
         <ol id="prog-journal" class="journal"></ol>
         <div id="prog-erreur" class="erreur" role="alert" hidden></div>
       </section>

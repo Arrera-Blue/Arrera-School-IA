@@ -1,5 +1,7 @@
 """Fournisseurs Ollama et llama-cpp-python, sans réseau ni modèle : ce qu'on envoie, ce qu'on garde."""
 
+import contextlib
+import json
 import sys
 import types
 
@@ -26,12 +28,51 @@ def test_compteurs_absents():
     assert compteurs({"eval_count": 12, "message": {}}) == {"tokens_ecrits": 12}
 
 
+def flux(*lignes: dict, statut: int = 200, texte: str | None = None):
+    """Remplace httpx.stream : la réponse d'Ollama en stream, une ligne JSON par morceau (3.3, C4)."""
+    corps = texte if texte is not None else "\n".join(json.dumps(l) for l in lignes) + "\n"
+    recu = {}
+
+    @contextlib.contextmanager
+    def stream(methode, url, json=None, timeout=None):
+        recu.update(methode=methode, url=url, json=json)
+        yield httpx.Response(statut, content=corps.encode())
+    stream.recu = recu
+    return stream
+
+
+def morceaux_de(reponse: dict) -> list[dict]:
+    """La réponse non diffusée de REPONSE, découpée comme Ollama la diffuse : du texte, puis « done »."""
+    texte = reponse["message"]["content"]
+    lignes = [{"message": {"role": "assistant", "content": texte[i:i + 5]}, "done": False}
+              for i in range(0, len(texte), 5)]
+    return lignes + [{**reponse, "message": {"role": "assistant", "content": ""}}]
+
+
 def test_generer_garde_les_compteurs_du_dernier_appel(monkeypatch):
-    monkeypatch.setattr(ollama.httpx, "post", lambda *a, **k: httpx.Response(200, json=REPONSE))
+    stream = flux(*morceaux_de(REPONSE))
+    monkeypatch.setattr(ollama.httpx, "stream", stream)
     fournisseur = Ollama("gemma4:e4b-it-qat", "http://127.0.0.1:11434", 600, 8192, False)
     assert fournisseur.compteurs is None
+    recus = []
+    fournisseur.au_fil = recus.append
     assert fournisseur.generer([], {}) == "{\"questions\": []}"
-    assert fournisseur.compteurs["tokens_ecrits"] == 412
+    assert fournisseur.compteurs["tokens_ecrits"] == 412 and fournisseur.compteurs["lecture_s"] == 4.2
+    assert "".join(recus) == "{\"questions\": []}" and len(recus) > 1  # au fil de l'écriture
+    assert stream.recu["json"]["stream"] is True and stream.recu["url"].endswith("/api/chat")
+
+
+def test_ollama_erreurs_lisibles(monkeypatch):
+    fournisseur = Ollama("gemma4:e4b-it-qat", "http://127.0.0.1:11434", 600, 8192, False)
+    monkeypatch.setattr(ollama.httpx, "stream", flux(statut=404, texte='{"error":"model \'x\' not found"}'))
+    with pytest.raises(ErreurFournisseur, match="ollama pull gemma4:e4b-it-qat"):
+        fournisseur.generer([], {})
+    monkeypatch.setattr(ollama.httpx, "stream", flux({"error": "mémoire insuffisante"}))
+    with pytest.raises(ErreurFournisseur, match="mémoire insuffisante"):
+        fournisseur.generer([], {})
+    monkeypatch.setattr(ollama.httpx, "stream", flux(texte="pas du JSON\n"))
+    with pytest.raises(ErreurFournisseur, match="illisible"):
+        fournisseur.generer([], {})
 
 
 # --- llama-cpp-python, sans le vrai modèle (étape : migration-llamacpp.md) -----------------------

@@ -10,6 +10,7 @@ Le modèle est un fichier GGUF (config.yaml : `llamacpp.modele`), le même Gemma
 `llama_cpp` n'est importé qu'à la première génération : les tests et le reste du code s'en passent.
 """
 
+import gc
 import sys
 import time
 from pathlib import Path
@@ -21,6 +22,21 @@ from generateur.moteur.fournisseurs.base import ErreurFournisseur, Fournisseur
 _CHARGES: dict[tuple, object] = {}
 GIGA = 1024 ** 3
 PROGRESSION_S = 2  # une ligne de progression toutes les 2 s, dans un terminal seulement
+
+
+def decharger() -> bool:
+    """Libère les modèles chargés dans ce processus (~5 Go chacun) ; le prochain appel les recharge (2 à 5 s).
+    Sert à l'interface, qui tourne des heures : sur un PC de 12 Go, garder le modèle sans s'en servir prive le
+    reste de la machine (3.3, C3). Renvoie True si un modèle a été libéré."""
+    if not _CHARGES:
+        return False
+    for llm in _CHARGES.values():
+        fermer = getattr(llm, "close", None)
+        if fermer is not None:
+            fermer()
+    _CHARGES.clear()
+    gc.collect()
+    return True
 
 
 class LlamaCpp(Fournisseur):

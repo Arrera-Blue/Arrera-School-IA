@@ -16,7 +16,8 @@
   // origine : la vue d'où l'on a ouvert l'exercice, pour le lien « Retour »
   // statut, valide, occupe : ceux de l'exercice ouvert, pour l'état des boutons
   // donnees : la dernière réponse de /api/exercices/{id}, pour remplir le formulaire de modification
-  const etat = { types: [], suivi: null, exercice: null, regeneration: null, origine: "banque",
+  // generation : l'identifiant de la génération suivie, pour pouvoir l'annuler
+  const etat = { types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
     statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null };
   const $ = (selecteur) => document.querySelector(selecteur);
 
@@ -226,8 +227,19 @@
     }
   }
 
+  const enCours = (vue) => vue.etat === "en_attente" || vue.etat === "en_cours";
+
+  async function annulerTache(ident) {
+    try {
+      return await api(`/api/generations/${ident}/annuler`, {});
+    } catch (e) {
+      return { erreurAnnulation: e.message };
+    }
+  }
+
   function suivreGeneration(tache) {
     clearTimeout(etat.suivi);
+    etat.generation = tache.id;
     $("#progression").hidden = false;
     $("#prog-erreur").hidden = true;
     $("#btn-generer").disabled = true;
@@ -269,12 +281,26 @@
       barre.removeAttribute("value"); // barre indéterminée : lecture de la demande, vérification…
     }
     $("#prog-temps").textContent = vue.ecoule_s !== undefined ? `Temps écoulé : ${duree(vue.ecoule_s)}` : "";
+    const bouton = $("#btn-annuler-generation");
+    bouton.hidden = !enCours(vue);
+    bouton.disabled = Boolean(vue.annulation);
+    if (vue.annulation && enCours(vue)) {
+      $("#prog-message").textContent = "Annulation demandée : le modèle s'arrête dès qu'il donne signe de vie " +
+        "(pendant la lecture de la demande, il faut attendre qu'il ait fini de la lire).";
+    }
     $("#prog-journal").replaceChildren(
       ...(vue.journal || []).map((j) => el("li", {}, el("span", { class: "temps", texte: duree(j.t) }), " ", j.message)));
   }
 
   function finGeneration(vue) {
     $("#btn-generer").disabled = false;
+    $("#btn-annuler-generation").hidden = true;
+    etat.generation = null;
+    if (vue.etat === "annule") {
+      $("#prog-message").textContent = "Génération annulée : rien n'a été enregistré.";
+      $("#prog-erreur").hidden = true;
+      return;
+    }
     if (vue.etat === "termine" && vue.exercice) {
       const lien = el("a", { href: `#/exercice/${vue.exercice}`, texte: "ouvrir la relecture" });
       $("#prog-message").replaceChildren("Exercice prêt : ", lien, ".");
@@ -614,11 +640,14 @@
     bloc.hidden = false;
     const afficher = (vue) => {
       const p = vue.progression || {};
-      const texte = vue.etat === "en_attente" && vue.devant
+      let texte = vue.etat === "en_attente" && vue.devant
         ? `Question ${numero} : en attente (${vue.devant} tâche(s) avant).`
         : `Question ${numero} : ${p.message || "démarrage…"}`;
+      if (vue.annulation) texte = `Question ${numero} : annulation demandée…`;
       const lignes = [el("p", { texte })];
       if (vue.ecoule_s !== undefined) lignes.push(el("p", { class: "note", texte: `Temps écoulé : ${duree(vue.ecoule_s)}` }));
+      lignes.push(el("button", { type: "button", class: "secondaire petit annuler-tache", "data-tache": tache.id,
+        disabled: Boolean(vue.annulation), texte: "Annuler la régénération" }));
       bloc.replaceChildren(...lignes);
     };
     afficher(tache);
@@ -639,7 +668,10 @@
         return;
       }
       etat.regeneration = null;
-      if (vue.etat === "termine") {
+      if (vue.etat === "annule") {
+        bloc.replaceChildren(el("p", { texte: `Régénération de la question ${numero} annulée : la question d'origine est conservée.` }));
+        occuper(false);
+      } else if (vue.etat === "termine") {
         bloc.hidden = true;
         $("#ex-message").textContent = `Question ${numero} remplacée. L'exercice est à accepter de nouveau.`;
         await ouvrirExercice(ident, true);
@@ -720,6 +752,20 @@
       if (motif !== null) decider("rejeter", motif || null);
     });
     $("#btn-supprimer").addEventListener("click", supprimer);
+    $("#btn-annuler-generation").addEventListener("click", async () => {
+      if (!etat.generation) return;
+      $("#btn-annuler-generation").disabled = true;
+      const vue = await annulerTache(etat.generation);
+      if (vue.erreurAnnulation) $("#prog-message").textContent = `Annulation impossible : ${vue.erreurAnnulation}`;
+      else afficherProgression(vue);
+    });
+    $("#ex-regeneration").addEventListener("click", async (e) => {
+      const bouton = e.target.closest(".annuler-tache");
+      if (!bouton || bouton.disabled) return;
+      bouton.disabled = true;
+      const vue = await annulerTache(bouton.dataset.tache);
+      if (vue.erreurAnnulation) $("#ex-message").textContent = `Annulation impossible : ${vue.erreurAnnulation}`;
+    });
     $("#ex-questions").addEventListener("submit", (e) => {
       if (!e.target.matches("form.edition")) return;
       e.preventDefault();
