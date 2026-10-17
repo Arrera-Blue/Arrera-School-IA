@@ -98,6 +98,11 @@
     <section id="vue-banque" class="vue" aria-labelledby="titre-banque" hidden>
       <h1 id="titre-banque">Banque d'exercices</h1>
       <form id="filtres" class="filtres" novalidate>
+        <div class="champ champ-recherche">
+          <label for="filtre-recherche">Rechercher</label>
+          <input id="filtre-recherche" type="search" maxlength="200" autocomplete="off"
+                 placeholder="titre, notion, mot d'une question…">
+        </div>
         <div class="champ">
           <label for="filtre-matiere">Matière</label>
           <select id="filtre-matiere"><option value="">Toutes</option></select>
@@ -153,6 +158,7 @@
         <button type="button" id="btn-accepter">Accepter l'exercice</button>
         <button type="button" id="btn-rejeter" class="secondaire">Rejeter…</button>
         <a id="btn-telecharger" class="bouton secondaire" href="#" download>Télécharger le fichier HTML</a>
+        <button type="button" id="btn-supprimer" class="secondaire danger">Supprimer…</button>
       </div>
       <p id="ex-message" class="etat" role="status"></p>
       <div id="ex-regeneration" class="carte regeneration" aria-live="polite" hidden></div>
@@ -175,8 +181,10 @@
     <form id="dialogue-form" novalidate>
       <h2 id="dialogue-titre"></h2>
       <p id="dialogue-texte"></p>
-      <label for="dialogue-motif" id="dialogue-label"></label>
-      <textarea id="dialogue-motif" rows="3" maxlength="500"></textarea>
+      <div id="dialogue-champ">
+        <label for="dialogue-motif" id="dialogue-label"></label>
+        <textarea id="dialogue-motif" rows="3" maxlength="500"></textarea>
+      </div>
       <div class="actions">
         <button type="submit" id="dialogue-ok"></button>
         <button type="button" id="dialogue-annuler" class="secondaire">Annuler</button>

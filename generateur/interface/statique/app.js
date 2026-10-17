@@ -11,11 +11,13 @@
   const SOURCES = { modele: "proposé par le modèle : à vérifier", devine: "deviné dans la phrase : à vérifier" };
   const N4 = { verifie: "✔ calcul vérifié", a_relire: "? à relire", faux: "✘ calcul faux" };
   const INTERVALLE_MS = 1000;
+  const ATTENTE_RECHERCHE_MS = 250;
 
   // origine : la vue d'où l'on a ouvert l'exercice, pour le lien « Retour »
   // statut, valide, occupe : ceux de l'exercice ouvert, pour l'état des boutons
+  // donnees : la dernière réponse de /api/exercices/{id}, pour remplir le formulaire de modification
   const etat = { types: [], suivi: null, exercice: null, regeneration: null, origine: "banque",
-    statut: null, valide: true, occupe: false };
+    statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null };
   const $ = (selecteur) => document.querySelector(selecteur);
 
   // --- outils -----------------------------------------------------------------------------------
@@ -32,13 +34,10 @@
     return e;
   }
 
-  async function api(chemin, corps) {
-    const init = { headers: { Accept: "application/json" } };
-    if (corps !== undefined) {
-      init.method = "POST";
-      init.headers["Content-Type"] = "application/json";
-      init.body = JSON.stringify(corps);
-    }
+  async function api(chemin, corps, methode = corps === undefined ? "GET" : "POST") {
+    const init = { method: methode, headers: { Accept: "application/json" } };
+    if (methode !== "GET") init.headers["Content-Type"] = "application/json"; // exigé par le serveur (requêtes intersites)
+    if (corps !== undefined) init.body = JSON.stringify(corps);
     let reponse;
     try {
       reponse = await fetch(chemin, init);
@@ -305,8 +304,9 @@
 
   async function chargerBanque() {
     const parametres = new URLSearchParams();
-    for (const [cle, id] of [["matiere", "#filtre-matiere"], ["niveau", "#filtre-niveau"], ["statut", "#filtre-statut"]]) {
-      if ($(id).value) parametres.set(cle, $(id).value);
+    for (const [cle, id] of [["matiere", "#filtre-matiere"], ["niveau", "#filtre-niveau"], ["statut", "#filtre-statut"],
+      ["recherche", "#filtre-recherche"]]) {
+      if ($(id).value.trim()) parametres.set(cle, $(id).value.trim());
     }
     const message = $("#banque-etat");
     message.textContent = "Chargement…";
@@ -323,7 +323,9 @@
         el("td", {}, controles(x)),
         el("td", {}, badgeStatut(x.statut))));
       $("#table-banque tbody").replaceChildren(...lignes);
-      message.textContent = exercices.length ? `${exercices.length} exercice(s).` : "Aucun exercice ne correspond.";
+      const compte = exercices.length ? `${exercices.length} exercice(s).` : "Aucun exercice ne correspond.";
+      message.textContent = etat.annonce ? `${etat.annonce} ${compte}` : compte;
+      etat.annonce = null;
     } catch (e) {
       message.textContent = `Banque illisible : ${e.message}`;
     }
@@ -356,6 +358,7 @@
     // l'enseignant a ouvert un autre exercice pendant le chargement : la réponse arrivée en retard est ignorée
     if (location.hash !== `#/exercice/${ident}`) return;
     etat.exercice = ident;
+    etat.donnees = donnees;
     $("#ex-actions").hidden = false;
     const { exercice: x, resume, relecture } = donnees;
     const meta = x.meta || {};
@@ -383,6 +386,7 @@
 
   function viderExercice() {
     etat.exercice = null;
+    etat.donnees = null;
     for (const id of ["#ex-infos", "#ex-validation", "#ex-avertissements", "#ex-questions"]) $(id).replaceChildren();
     $("#ex-erreurs").hidden = true;
     $("#ex-actions").hidden = true;
@@ -402,7 +406,7 @@
         el("p", {}, el("strong", { texte: "Cet exercice contient une erreur détectée par les contrôles actuels." })),
         el("ul", {}, ...relecture.questions.flatMap((q) => q.erreurs).concat(relecture.erreurs)
           .map((m) => el("li", { texte: m }))),
-        el("p", { texte: "Régénérez la question concernée ; l'exercice ne peut pas être accepté en l'état." }));
+        el("p", { texte: "Modifiez ou régénérez la question concernée ; l'exercice ne peut pas être accepté en l'état." }));
       bloc.hidden = false;
     }
     const verifiees = relecture.questions.filter((q) => q.n4 === "verifie").length;
@@ -435,6 +439,8 @@
       if (info.erreurs && info.erreurs.length) badges.append(el("span", { class: "badge n4-faux", texte: "✘ à corriger" }));
       if (info.calcul === "programme" && info.n4 !== "faux") {
         badges.append(el("span", { class: "badge n4-verifie", texte: "✔ calcul fait par le programme" }));
+      } else if (info.calcul === "enseignant" && info.n4 === "a_relire") {
+        // écrite par l'enseignant : rien à relire de plus ; seul un calcul faux ou vérifié par N4 est signalé
       } else if (info.n4) {
         badges.append(el("span", { class: `badge n4-${info.n4}`, texte: N4[info.n4] || info.n4 }));
       }
@@ -442,6 +448,7 @@
         badges.append(el("span", { class: "badge", texte: "énoncé réécrit par le modèle" }));
       }
       if (info.regeneree) badges.append(el("span", { class: "badge", texte: "régénérée" }));
+      if (info.modifiee) badges.append(el("span", { class: "badge", texte: "modifiée à la main" }));
       const propositions = el("ul", { class: "propositions" }, ...q.propositions.map((p, j) => {
         const juste = j === q.index_correct;
         return el("li", { class: juste ? "juste" : null },
@@ -449,8 +456,11 @@
           el("span", { texte: p }),
           juste ? el("span", { class: "visuellement-cache", texte: " (bonne réponse)" }) : null);
       }));
-      const bouton = el("button", { type: "button", class: "secondaire petit regenerer", "data-numero": String(i + 1),
-        texte: "Régénérer cette question" });
+      const boutons = el("div", { class: "question-actions" },
+        el("button", { type: "button", class: "secondaire petit modifier", "data-numero": String(i + 1),
+          texte: "Modifier" }),
+        el("button", { type: "button", class: "secondaire petit regenerer", "data-numero": String(i + 1),
+          texte: "Régénérer cette question" }));
       return el("li", { class: "question", id: `question-${i + 1}`, tabindex: "-1" },
         el("div", { class: "question-entete" }, el("h3", { texte: `Question ${i + 1}` }), badges),
         el("p", { class: "enonce", texte: q.enonce }),
@@ -458,17 +468,101 @@
         el("p", { class: "explication" }, el("strong", { texte: "Explication : " }), q.explication),
         ...(info.erreurs || []).map((a) => el("p", { class: "erreur", texte: `✘ ${a}` })),
         ...(info.avertissements || []).map((a) => el("p", { class: "avertissement", texte: `⚠ ${a}` })),
-        bouton);
+        boutons);
     });
     $("#ex-questions").replaceChildren(...items);
   }
 
+  // --- modifier une question à la main ----------------------------------------------------------
+
+  const PROPOSITIONS_MAX = 4;
+
+  function ouvrirEdition(numero) {
+    const q = etat.donnees && etat.donnees.exercice.questions[numero - 1];
+    const item = document.getElementById(`question-${numero}`);
+    if (!q || !item) return;
+    const ouverte = document.querySelector("form.edition");
+    if (ouverte) fermerEdition(ouverte);
+    const lignes = [];
+    for (let j = 0; j < PROPOSITIONS_MAX; j++) {
+      const id = `edit-prop-${numero}-${j}`;
+      lignes.push(el("div", { class: "proposition-edit" },
+        el("input", { type: "radio", name: `juste-${numero}`, value: String(j), checked: j === q.index_correct,
+          "aria-label": `Proposition ${j + 1} : bonne réponse` }),
+        el("input", { type: "text", id, maxlength: "150", value: q.propositions[j] || "",
+          "aria-label": `Proposition ${j + 1}` + (j >= 3 ? " (facultative)" : "") })));
+    }
+    const formulaire = el("form", { class: "edition", "data-numero": String(numero), novalidate: true },
+      el("div", {}, el("label", { for: `edit-enonce-${numero}`, texte: "Énoncé" }),
+        el("textarea", { id: `edit-enonce-${numero}`, rows: "3", maxlength: "300", texte: q.enonce })),
+      el("fieldset", {}, el("legend", { texte: "Propositions" }),
+        el("p", { class: "aide", texte: "Cochez la bonne réponse. 3 ou 4 propositions : laissez la 4e vide pour n'en garder que 3." }),
+        ...lignes),
+      el("div", {}, el("label", { for: `edit-explication-${numero}`, texte: "Explication" }),
+        el("textarea", { id: `edit-explication-${numero}`, rows: "3", maxlength: "400", texte: q.explication })),
+      el("p", { class: "erreur", role: "alert", hidden: true }),
+      el("div", { class: "actions" },
+        el("button", { type: "submit", texte: "Enregistrer" }),
+        el("button", { type: "button", class: "secondaire annuler-edition", texte: "Annuler" })),
+      el("p", { class: "note", texte: "La question est revérifiée (N2 → N4) avant d'être enregistrée ; l'exercice sera à accepter de nouveau." }));
+    for (const enfant of item.children) if (!enfant.matches(".question-entete")) enfant.hidden = true;
+    item.append(formulaire);
+    formulaire.querySelector("textarea").focus();
+  }
+
+  function fermerEdition(formulaire) {
+    const item = formulaire.closest(".question");
+    formulaire.remove();
+    for (const enfant of item.children) enfant.hidden = false;
+  }
+
+  async function enregistrerEdition(formulaire) {
+    const numero = parseInt(formulaire.dataset.numero, 10);
+    const erreur = formulaire.querySelector(".erreur");
+    const montrer = (texte) => { erreur.textContent = texte; erreur.hidden = false; };
+    const textes = [...formulaire.querySelectorAll(".proposition-edit input[type=text]")].map((i) => i.value.trim());
+    const cochee = formulaire.querySelector(".proposition-edit input[type=radio]:checked");
+    if (!cochee) return montrer("Cochez la bonne réponse.");
+    if (!textes[parseInt(cochee.value, 10)]) return montrer("La bonne réponse cochée est vide.");
+    // les propositions vides sont retirées ; l'indice de la bonne réponse suit
+    const propositions = [];
+    let indexCorrect = 0;
+    textes.forEach((texte, j) => {
+      if (!texte) return;
+      if (j === parseInt(cochee.value, 10)) indexCorrect = propositions.length;
+      propositions.push(texte);
+    });
+    const corps = {
+      enonce: formulaire.querySelector(`#edit-enonce-${numero}`).value.trim(),
+      propositions, index_correct: indexCorrect,
+      explication: formulaire.querySelector(`#edit-explication-${numero}`).value.trim(),
+    };
+    const bouton = formulaire.querySelector("button[type=submit]");
+    bouton.disabled = true;
+    try {
+      await api(`/api/exercices/${etat.exercice}/questions/${numero}`, corps, "PUT");
+    } catch (e) {
+      montrer(e.message.charAt(0).toUpperCase() + e.message.slice(1));
+      bouton.disabled = false;
+      return;
+    }
+    $("#ex-message").textContent = `Question ${numero} modifiée. L'exercice est à accepter de nouveau.`;
+    await ouvrirExercice(etat.exercice, true);
+    const question = document.getElementById(`question-${numero}`);
+    if (question) {
+      question.classList.add("nouvelle");
+      question.focus({ preventScroll: true });
+    }
+  }
+
   function occuper(occupe) {
     etat.occupe = Boolean(occupe);
-    for (const b of document.querySelectorAll(".regenerer")) b.disabled = etat.occupe;
+    for (const b of document.querySelectorAll(".regenerer, .modifier")) b.disabled = etat.occupe;
     $("#btn-accepter").disabled = etat.occupe || !etat.valide || etat.statut === "accepte";
     $("#btn-rejeter").disabled = etat.occupe || etat.statut === "rejete";
-    $("#btn-accepter").title = etat.valide ? "" : "L'exercice contient une erreur : régénérez la question concernée";
+    $("#btn-supprimer").disabled = etat.occupe || etat.statut === "accepte";
+    $("#btn-accepter").title = etat.valide ? "" : "L'exercice contient une erreur : modifiez ou régénérez la question concernée";
+    $("#btn-supprimer").title = etat.statut === "accepte" ? "Un exercice accepté doit d'abord être rejeté" : "";
   }
 
   async function decider(decision, motif = null) {
@@ -484,6 +578,22 @@
     } catch (e) {
       message.textContent = `Décision non enregistrée : ${e.message}`;
     }
+  }
+
+  async function supprimer() {
+    const ident = etat.exercice;
+    const titre = $("#ex-titre").textContent;
+    const ok = await demander({ titre: "Supprimer l'exercice", ok: "Supprimer", champ: false,
+      texte: `« ${titre} » sera retiré de la banque. Il reste récupérable dans le dossier banque/supprimes/ du serveur.` });
+    if (ok === null) return;
+    try {
+      await api(`/api/exercices/${ident}`, undefined, "DELETE");
+    } catch (e) {
+      $("#ex-message").textContent = `Suppression impossible : ${e.message}`;
+      return;
+    }
+    etat.annonce = `« ${titre} » supprimé.`; // affiché par la banque, qui s'ouvre
+    location.hash = "#/banque";
   }
 
   async function regenerer(numero, motif) {
@@ -561,10 +671,12 @@
 
   // --- boîte de dialogue (motif d'un rejet, d'une régénération) -----------------------------------
 
-  function demander({ titre, texte, label, ok }) {
+  // champ : false pour une simple confirmation (la promesse donne alors "" si confirmé, null si annulé)
+  function demander({ titre, texte, label = "", ok, champ = true }) {
     const dialogue = $("#dialogue");
     $("#dialogue-titre").textContent = titre;
     $("#dialogue-texte").textContent = texte;
+    $("#dialogue-champ").hidden = !champ;
     $("#dialogue-label").textContent = label;
     $("#dialogue-ok").textContent = ok;
     $("#dialogue-motif").value = "";
@@ -580,7 +692,7 @@
       $("#dialogue-annuler").onclick = () => fermer(null);
       dialogue.onclose = () => fermer(null);
       dialogue.showModal();
-      $("#dialogue-motif").focus();
+      (champ ? $("#dialogue-motif") : $("#dialogue-ok")).focus();
     });
   }
 
@@ -596,13 +708,28 @@
       $(id).addEventListener("input", () => { $("#chemin").hidden = true; });
     }
     $("#filtres").addEventListener("change", chargerBanque);
+    $("#filtres").addEventListener("submit", (e) => { e.preventDefault(); chargerBanque(); });
+    $("#filtre-recherche").addEventListener("input", () => {
+      clearTimeout(etat.recherche);
+      etat.recherche = setTimeout(chargerBanque, ATTENTE_RECHERCHE_MS);
+    });
     $("#btn-accepter").addEventListener("click", () => decider("accepter"));
     $("#btn-rejeter").addEventListener("click", async () => {
       const motif = await demander({ titre: "Rejeter l'exercice", label: "Motif (facultatif)", ok: "Rejeter",
         texte: "L'exercice restera dans la banque, marqué « rejeté ». Votre motif aide à améliorer le générateur." });
       if (motif !== null) decider("rejeter", motif || null);
     });
+    $("#btn-supprimer").addEventListener("click", supprimer);
+    $("#ex-questions").addEventListener("submit", (e) => {
+      if (!e.target.matches("form.edition")) return;
+      e.preventDefault();
+      enregistrerEdition(e.target);
+    });
     $("#ex-questions").addEventListener("click", async (e) => {
+      const annuler = e.target.closest(".annuler-edition");
+      if (annuler) { fermerEdition(annuler.closest("form.edition")); return; }
+      const modifier = e.target.closest(".modifier");
+      if (modifier && !modifier.disabled) { ouvrirEdition(parseInt(modifier.dataset.numero, 10)); return; }
       const bouton = e.target.closest(".regenerer");
       if (!bouton || bouton.disabled) return;
       const numero = bouton.dataset.numero;
