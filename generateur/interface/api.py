@@ -3,10 +3,11 @@
     python -m generateur.interface.api                       # http://127.0.0.1:8000, ouvre le navigateur
     python -m generateur.interface.api --port 8001 --sans-navigateur
 
-L'application n'écoute que sur 127.0.0.1 : elle n'a aucune authentification (architecture §11, §16). Elle
-refuse aussi les requêtes qu'un autre site, ouvert dans le navigateur de l'enseignant, pourrait lui adresser
-(voir `proteger`). L'aperçu d'un exercice tourne dans un bac à sable : ses scripts ne peuvent ni appeler
-l'API, ni lire la page qui l'affiche.
+L'application n'écoute que sur 127.0.0.1, et toute l'API exige une session (évolution E1 :
+docs/etapes/etape-E1-securite.md) : connexion par identifiant et mot de passe, cookie HttpOnly et
+SameSite=Strict. Elle refuse aussi les requêtes qu'un autre site, ouvert dans le navigateur de l'enseignant,
+pourrait lui adresser (voir `proteger`). L'aperçu d'un exercice tourne dans un bac à sable : ses scripts ne
+peuvent ni appeler l'API, ni lire la page qui l'affiche.
 
 Points d'entrée (plan-suite 3.2) :
     POST /api/analyser                               phrase → requête structurée, à confirmer
@@ -19,9 +20,21 @@ Points d'entrée (plan-suite 3.2) :
     POST /api/exercices/{id}/questions/{n}/regenerer remplacer la question n (tâche)
     PUT  /api/exercices/{id}/questions/{n}           la question n corrigée à la main (revalidée N2 → N4)
     DELETE /api/exercices/{id}                       retirer l'exercice de la banque (déplacé dans banque/supprimes/)
+
+Connexion et comptes (E1) :
+    POST /api/session                                se connecter (seule route ouverte sans session)
+    GET  /api/session · DELETE /api/session          le compte connecté · se déconnecter
+    POST /api/session/mot-de-passe                   changer son mot de passe (l'ancien est exigé)
+    GET  /api/comptes · POST /api/comptes            administrateurs : lister, créer (mot de passe provisoire)
+    POST /api/comptes/{identifiant}/reinitialiser    administrateurs : nouveau mot de passe provisoire
+    POST /api/comptes/{identifiant}/debloquer        administrateurs : lever le verrou de 5 échecs
+    DELETE /api/comptes/{identifiant}                administrateurs : supprimer un compte
+    GET  /api/journal                                administrateurs : le journal des accès
+Créer, réinitialiser et supprimer un compte redemandent le mot de passe de l'administrateur (⚖1).
 """
 
 import argparse
+import sqlite3
 import threading
 import time
 import traceback
@@ -31,11 +44,14 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from generateur import procedural
+from generateur.donnees import comptes, journal, sessions
+from generateur.donnees.base import Base
 from generateur.interface.taches import DejaFinie, File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre
 from generateur.moteur.fournisseurs import ErreurFournisseur, llamacpp
@@ -52,6 +68,12 @@ CSP_PAGE = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 's
 # l'aperçu : la politique du gabarit, plus un bac à sable (origine opaque) même ouvert hors de l'iframe
 CSP_APERCU = ("sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
               "img-src data:; frame-ancestors 'self'")
+COOKIE = "session"
+# sans session : se connecter, et rien d'autre
+PUBLIQUES = {("POST", "/api/session")}
+# avec un mot de passe provisoire : le changer, et rien d'autre
+AVANT_CHANGEMENT = {("GET", "/api/session"), ("DELETE", "/api/session"), ("POST", "/api/session/mot-de-passe")}
+ENTRETIEN_S = 3600
 
 
 # --- les corps de requête ------------------------------------------------------------------------
@@ -79,6 +101,27 @@ class Decision(BaseModel):
 
 class Regeneration(BaseModel):
     motif: str | None = Field(None, max_length=500)  # le moteur n'en transmet que 200 au modèle
+
+
+class Identifiants(BaseModel):
+    identifiant: str = Field(max_length=200)
+    mot_de_passe: str = Field(max_length=200)
+
+
+class Confirmation(BaseModel):
+    """Le mot de passe de la personne connectée, redemandé avant une action sensible (⚖1)."""
+    mot_de_passe: str = Field(max_length=200)
+
+
+class ChangementMotDePasse(BaseModel):
+    ancien: str = Field(max_length=200)
+    nouveau: str = Field(max_length=200)
+
+
+class NouveauCompte(Confirmation):
+    identifiant: str = Field(max_length=100)
+    nom: str = Field(max_length=100)
+    role: Literal["admin", "enseignant"] = "enseignant"
 
 
 class Question(BaseModel):
@@ -172,17 +215,41 @@ def _surveiller(file: File, delai_s: float, arret: threading.Event) -> None:
         decharger_si_inactif(file, delai_s)
 
 
+def entretenir(base: Base, dossier_sauvegardes: Path) -> None:
+    """Une sauvegarde par jour, gardée 7 jours (SEC-13) ; le ménage : sessions expirées, journal de plus de
+    6 mois."""
+    try:
+        base.sauvegarder_si_besoin(dossier_sauvegardes)
+        sessions.purger(base)
+    except (OSError, sqlite3.Error) as e:
+        print(f"Entretien de la base impossible : {e}", flush=True)
+
+
+def _entretenir_chaque_heure(base: Base, dossier_sauvegardes: Path, arret: threading.Event) -> None:
+    entretenir(base, dossier_sauvegardes)
+    while not arret.wait(ENTRETIEN_S):
+        entretenir(base, dossier_sauvegardes)
+
+
 # --- l'application -------------------------------------------------------------------------------
 
-def creer_application(file: File | None = None) -> FastAPI:
+def creer_application(file: File | None = None, base: Base | None = None) -> FastAPI:
     reglages = config.charger().get("interface") or {}
     file = file or File(int(reglages.get("file_max", 5)), decrire_erreur)
+    base = base or Base(config.chemin("base"))  # créée et migrée à la première utilisation
     delai_dechargement_s = float(reglages.get("decharger_apres_min", 10)) * 60
 
     @asynccontextmanager
     async def cycle_de_vie(_app):
-        """Pendant que le serveur tourne : décharger le modèle après un moment sans génération (3.3, C3)."""
+        """Pendant que le serveur tourne : décharger le modèle après un moment sans génération (3.3, C3) ;
+        sauvegarder la base chaque jour et faire le ménage (E1)."""
         arret = threading.Event()
+        base.preparer()
+        if not comptes.nombre(base):
+            print("Aucun compte : créez le compte administrateur avec\n"
+                  "    python -m generateur.donnees.comptes creer-admin", flush=True)
+        threading.Thread(target=_entretenir_chaque_heure, args=(base, config.chemin("sauvegardes"), arret),
+                         name="entretien", daemon=True).start()
         if delai_dechargement_s > 0:
             threading.Thread(target=_surveiller, args=(file, delai_dechargement_s, arret), name="dechargement",
                              daemon=True).start()
@@ -194,14 +261,17 @@ def creer_application(file: File | None = None) -> FastAPI:
     app = FastAPI(lifespan=cycle_de_vie, title="Générateur d'exercices — interface enseignant", docs_url=None, redoc_url=None,
                   openapi_url="/api/openapi.json")
     app.state.file = file
+    app.state.base = base
 
-    @app.middleware("http")
-    async def proteger(request: Request, call_next):
-        """Sans authentification, la seule barrière est l'adresse 127.0.0.1. Deux attaques la contournent
-        depuis le navigateur de l'enseignant, et sont refusées ici :
-        - le « DNS rebinding » : un site dont le nom pointe soudain vers 127.0.0.1 → l'en-tête Host le trahit ;
-        - la requête intersite : une page d'un autre site poste un formulaire vers 127.0.0.1 → l'en-tête Origin
-          le trahit, et un formulaire ne peut pas envoyer de JSON sans demander la permission (CORS)."""
+    async def refuser(request: Request) -> Response | None:
+        """Une réponse de refus, ou None si la requête peut passer.
+        1. Deux attaques venues du navigateur de l'enseignant :
+           - le « DNS rebinding » : un site dont le nom pointe soudain vers 127.0.0.1 → l'en-tête Host le trahit ;
+           - la requête intersite : une page d'un autre site poste un formulaire vers 127.0.0.1 → l'en-tête
+             Origin le trahit, et un formulaire ne peut pas envoyer de JSON sans demander la permission (CORS).
+        2. La session (SEC-8) : toute l'API la demande, sauf la connexion ; refus par défaut, pour qu'une route
+           ajoutée plus tard ne soit jamais ouverte par oubli. La page et ses fichiers statiques, eux, ne
+           contiennent aucune donnée : ils restent publics."""
         hote = request.headers.get("host", "")
         if _hote(hote) not in HOTES:
             return PlainTextResponse("hôte refusé : l'interface ne répond qu'à 127.0.0.1", status_code=400)
@@ -211,10 +281,28 @@ def creer_application(file: File | None = None) -> FastAPI:
                 return PlainTextResponse("origine refusée", status_code=403)
             if request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
                 return PlainTextResponse("le corps de la requête doit être du JSON", status_code=415)
-        reponse = await call_next(request)
+        route = (request.method, request.url.path)
+        if not request.url.path.startswith("/api/") or route in PUBLIQUES:
+            return None
+        compte = await run_in_threadpool(sessions.session, base, request.cookies.get(COOKIE))
+        if compte is None:
+            sans_compte = await run_in_threadpool(comptes.nombre, base) == 0
+            return JSONResponse({"detail": "connexion requise", "sans_compte": sans_compte}, status_code=401)
+        if compte["doit_changer"] and route not in AVANT_CHANGEMENT:
+            return JSONResponse({"detail": "mot de passe provisoire : choisissez d'abord le vôtre",
+                                 "doit_changer": True}, status_code=403)
+        request.state.compte = compte
+        return None
+
+    @app.middleware("http")
+    async def proteger(request: Request, call_next):
+        reponse = await refuser(request) or await call_next(request)
         reponse.headers.setdefault("X-Content-Type-Options", "nosniff")
         reponse.headers.setdefault("Referrer-Policy", "no-referrer")
-        if request.url.path.startswith(("/api/", "/statique/")):
+        if request.url.path.startswith("/api/"):
+            # rien de l'API dans le cache du navigateur (SEC-11)
+            reponse.headers.setdefault("Cache-Control", "no-store")
+        elif request.url.path.startswith("/statique/"):
             reponse.headers.setdefault("Cache-Control", "no-cache")
         return reponse
 
@@ -228,6 +316,119 @@ def creer_application(file: File | None = None) -> FastAPI:
         return Response(status_code=204)  # pas d'icône : le navigateur la demande quand même
 
     app.mount("/statique", StaticFiles(directory=STATIQUE), name="statique")
+
+    # --- connexion et comptes (E1) ----------------------------------------------------------------
+
+    def admin(request: Request) -> dict:
+        compte = request.state.compte
+        if compte["role"] != "admin":
+            raise HTTPException(403, "réservé aux administrateurs")
+        return compte
+
+    def confirmer(compte: dict, mot_de_passe: str) -> None:
+        try:
+            sessions.confirmer(base, compte, mot_de_passe)
+        except sessions.CompteVerrouille as e:
+            raise HTTPException(429, str(e)) from None
+        except sessions.ConnexionRefusee:
+            raise HTTPException(403, "mot de passe incorrect") from None
+
+    def pas_soi_meme(compte: dict, identifiant: str, conseil: str) -> None:
+        if identifiant.strip().lower() == compte["identifiant"]:
+            raise HTTPException(409, f"impossible sur votre propre compte : {conseil}")
+
+    @app.post("/api/session")
+    def connexion(corps: Identifiants, request: Request, response: Response):
+        # pas de fixation de session (M3) : l'ancien jeton de ce navigateur meurt, un nouveau est tiré
+        sessions.deconnecter(base, request.cookies.get(COOKIE))
+        try:
+            jeton, compte = sessions.connecter(base, corps.identifiant, corps.mot_de_passe)
+        except sessions.CompteVerrouille as e:
+            raise HTTPException(429, str(e)) from None
+        except sessions.ConnexionRefusee as e:
+            raise HTTPException(401, str(e)) from None
+        # pas de Secure : l'interface est en HTTP sur 127.0.0.1 ; le serveur de classe (E4), en HTTPS, l'aura
+        response.set_cookie(COOKIE, jeton, httponly=True, samesite="strict", path="/")
+        return {"compte": compte}
+
+    @app.get("/api/session")
+    def compte_connecte(request: Request):
+        return {"compte": request.state.compte}
+
+    @app.delete("/api/session")
+    def deconnexion(request: Request, response: Response):
+        sessions.deconnecter(base, request.cookies.get(COOKIE), request.state.compte)
+        response.delete_cookie(COOKIE, path="/", httponly=True, samesite="strict")
+        return {"deconnecte": True}
+
+    @app.post("/api/session/mot-de-passe")
+    def changer_mot_de_passe(corps: ChangementMotDePasse, request: Request):
+        try:
+            compte = sessions.changer_mot_de_passe(base, request.state.compte, corps.ancien, corps.nouveau,
+                                                   request.cookies.get(COOKIE))
+        except sessions.CompteVerrouille as e:
+            raise HTTPException(429, str(e)) from None
+        except sessions.ConnexionRefusee:
+            raise HTTPException(403, "mot de passe actuel incorrect") from None
+        except comptes.CompteInvalide as e:
+            raise HTTPException(422, str(e)) from None
+        return {"compte": compte}
+
+    @app.get("/api/comptes")
+    def lister_comptes(request: Request):
+        admin(request)
+        return {"comptes": comptes.lister(base)}
+
+    @app.post("/api/comptes", status_code=201)
+    def creer_compte(corps: NouveauCompte, request: Request):
+        """Le compte reçoit un mot de passe provisoire, affiché une seule fois, à changer à la connexion."""
+        auteur = admin(request)
+        confirmer(auteur, corps.mot_de_passe)
+        mot_de_passe = comptes.provisoire()
+        try:
+            compte = comptes.creer(base, corps.identifiant, corps.nom, mot_de_passe, corps.role, doit_changer=True,
+                                   par=auteur)
+        except comptes.CompteInvalide as e:
+            raise HTTPException(422, str(e)) from None
+        return {"compte": compte, "mot_de_passe_provisoire": mot_de_passe}
+
+    @app.post("/api/comptes/{identifiant}/reinitialiser")
+    def reinitialiser_compte(identifiant: str, corps: Confirmation, request: Request):
+        auteur = admin(request)
+        pas_soi_meme(auteur, identifiant, "changez votre mot de passe dans « Mon compte »")
+        confirmer(auteur, corps.mot_de_passe)
+        try:
+            return {"mot_de_passe_provisoire": comptes.reinitialiser(base, identifiant, par=auteur)}
+        except comptes.CompteInconnu as e:
+            raise HTTPException(404, str(e)) from None
+
+    @app.post("/api/comptes/{identifiant}/debloquer")
+    def debloquer_compte(identifiant: str, request: Request):
+        try:
+            comptes.debloquer(base, identifiant, par=admin(request))
+        except comptes.CompteInconnu as e:
+            raise HTTPException(404, str(e)) from None
+        return {"debloque": identifiant}
+
+    @app.delete("/api/comptes/{identifiant}")
+    def supprimer_compte(identifiant: str, corps: Confirmation, request: Request):
+        auteur = admin(request)
+        pas_soi_meme(auteur, identifiant, "demandez à un autre administrateur")
+        confirmer(auteur, corps.mot_de_passe)
+        try:
+            comptes.supprimer(base, identifiant, par=auteur)
+        except comptes.CompteInconnu as e:
+            raise HTTPException(404, str(e)) from None
+        except comptes.CompteInvalide as e:
+            raise HTTPException(409, str(e)) from None
+        return {"supprime": identifiant}
+
+    @app.get("/api/journal")
+    def lire_journal(request: Request, limite: int = 100):
+        admin(request)
+        return {"journal": journal.lire(base, max(1, min(limite, 500)))}
+
+    # --- génération et banque (phase 3) -------------------------------------------------------------
 
     @app.get("/api/types")
     def types():
@@ -413,7 +614,8 @@ def main() -> None:
     print(f"Interface enseignant : {url}   (Ctrl-C pour arrêter)", flush=True)
     if not args.sans_navigateur:
         threading.Timer(1.5, webbrowser.open, (url,)).start()
-    # toujours 127.0.0.1 : jamais une adresse joignable depuis le réseau de la salle (aucune authentification)
+    # toujours 127.0.0.1 : jamais une adresse joignable depuis le réseau de la salle (seul le serveur de
+    # classe, application séparée et sans route enseignant, y sera ouvert : E4)
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
 
 

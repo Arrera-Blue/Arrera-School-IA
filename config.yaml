@@ -27,7 +27,7 @@ generation:
   temperature: 0.5
   habillage_min: 2                # générateur procédural : le modèle réécrit les énoncés s'il y en a au moins 2 à réécrire (≈ 60 s par appel)
 interface:                        # phase 3 : python -m generateur.interface.api → http://127.0.0.1:8000
-  port: 8000                      # l'adresse est toujours 127.0.0.1, sans réglage possible : aucune authentification
+  port: 8000                      # l'adresse est toujours 127.0.0.1, sans réglage possible ; connexion obligatoire (E1)
   analyse_par_modele: true        # le modèle complète l'analyse d'une phrase quand les règles n'ont pas trouvé la matière ou la notion
   file_max: 5                     # générations en attente au plus
   decharger_apres_min: 10         # libérer le modèle (~6 Go) après 10 min sans génération ; 0 = le garder chargé
@@ -37,3 +37,5 @@ chemins:                          # relatifs à la racine du dépôt (/app dans 
   banque: "banque/instances"
   rejets: "banque/rejets"         # générations rejetées par N1 → N4 : elles comptent dans les mesures
   supprimes: "banque/supprimes"   # exercices supprimés depuis l'interface : récupérables à la main
+  base: "donnees/arrera.sqlite3"  # comptes, sessions, journal des accès (E1) ; jamais versionnée ; droits 600, dossier 700
+  sauvegardes: "donnees/sauvegardes"  # une copie de la base par jour, gardée 7 jours, droits 600

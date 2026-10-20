@@ -77,6 +77,10 @@ nav a {
 nav a:hover { background: var(--fond); }
 nav a[aria-current="page"] { background: var(--accent); color: var(--accent-texte); }
 
+.entete-compte { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.entete-compte a { color: var(--texte-doux); text-decoration: none; font-weight: 500; }
+.entete-compte a:hover, .entete-compte a[aria-current="page"] { color: var(--texte); text-decoration: underline; }
+
 main { max-width: 1280px; margin: 0 auto; padding: 1rem 1rem 4rem; }
 h1 { font-size: 1.6rem; margin: 0.5rem 0 1rem; }
 h2 { font-size: 1.15rem; margin: 0 0 0.75rem; }
@@ -125,6 +129,15 @@ button.lien {
 button.petit { padding: 0.3rem 0.7rem; font-size: 0.9rem; }
 button.danger { color: var(--danger); border-color: var(--danger); }
 button.danger:hover { background: var(--danger-fond); border-color: var(--danger); }
+
+/* --- connexion, comptes (E1) -------------------------------------------------------------------- */
+
+.vue-etroite { max-width: 34rem; margin: 1.5rem auto 0; }
+.vue-etroite form label:not(:first-of-type) { margin-top: 0.9rem; }
+pre { overflow-x: auto; background: var(--fond); border: 1px solid var(--bordure); border-radius: 6px; padding: 0.6rem 0.8rem; }
+.provisoire { border-color: var(--accent); background: var(--nouveau-fond); }
+.provisoire code { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em; user-select: all; }
+.titre-journal { margin-top: 2rem; }
 
 /* --- progression -------------------------------------------------------------------------------- */
 
