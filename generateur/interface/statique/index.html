@@ -12,14 +12,136 @@
   <header class="entete">
     <div class="entete-contenu">
       <p class="marque">Générateur d'exercices</p>
-      <nav aria-label="Sections">
+      <nav id="nav-principale" aria-label="Sections" hidden>
         <a href="#/generer" data-vue="generer">Générer</a>
         <a href="#/banque" data-vue="banque">Banque</a>
+        <a href="#/comptes" data-vue="comptes" id="lien-comptes" hidden>Comptes</a>
       </nav>
+      <div id="entete-compte" class="entete-compte" hidden>
+        <a href="#/compte" data-vue="compte" id="entete-nom" title="Mon compte"></a>
+        <button type="button" id="btn-deconnexion" class="secondaire petit">Se déconnecter</button>
+      </div>
     </div>
   </header>
 
   <main>
+    <!-- Connexion (E1) : rien d'autre n'est accessible sans elle -->
+    <section id="vue-connexion" class="vue vue-etroite" aria-labelledby="titre-connexion" hidden>
+      <h1 id="titre-connexion">Connexion</h1>
+      <p id="connexion-info" class="avertissement" role="status" hidden></p>
+      <form id="form-connexion" class="carte" novalidate>
+        <label for="connexion-identifiant">Identifiant</label>
+        <input id="connexion-identifiant" type="text" maxlength="100" autocomplete="username" autocapitalize="none"
+               spellcheck="false" required>
+        <label for="connexion-mot-de-passe">Mot de passe</label>
+        <input id="connexion-mot-de-passe" type="password" maxlength="200" autocomplete="current-password" required>
+        <div class="actions">
+          <button type="submit" id="btn-connexion">Se connecter</button>
+        </div>
+        <p id="connexion-erreur" class="erreur" role="alert" hidden></p>
+      </form>
+      <div id="connexion-sans-compte" class="carte" hidden>
+        <h2>Aucun compte pour l'instant</h2>
+        <p>Le premier compte, administrateur, se crée sur ce PC, dans un terminal ouvert dans le dossier du
+          générateur :</p>
+        <pre><code>python -m generateur.donnees.comptes creer-admin</code></pre>
+        <p>Puis rechargez cette page.</p>
+      </div>
+    </section>
+
+    <!-- Mon compte : changer son mot de passe (obligatoire s'il est provisoire) -->
+    <section id="vue-compte" class="vue vue-etroite" aria-labelledby="titre-compte" hidden>
+      <h1 id="titre-compte">Mon compte</h1>
+      <p id="compte-infos" class="infos"></p>
+      <p id="compte-provisoire" class="avertissement" role="alert" hidden>Votre mot de passe est provisoire :
+        choisissez le vôtre pour continuer.</p>
+      <form id="form-mot-de-passe" class="carte" novalidate>
+        <h2>Changer de mot de passe</h2>
+        <label for="mdp-ancien">Mot de passe actuel</label>
+        <input id="mdp-ancien" type="password" maxlength="200" autocomplete="current-password" required>
+        <label for="mdp-nouveau">Nouveau mot de passe
+          <span class="facultatif">(12 caractères au moins : une petite phrase se retient bien)</span></label>
+        <input id="mdp-nouveau" type="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+        <label for="mdp-confirmation">Le même, encore une fois</label>
+        <input id="mdp-confirmation" type="password" maxlength="128" autocomplete="new-password" required>
+        <div class="actions">
+          <button type="submit" id="btn-mot-de-passe">Changer le mot de passe</button>
+        </div>
+        <p id="mdp-message" class="etat" role="status"></p>
+      </form>
+    </section>
+
+    <!-- Comptes (administrateurs) : créer, réinitialiser, débloquer, supprimer ; le journal des accès -->
+    <section id="vue-comptes" class="vue" aria-labelledby="titre-comptes" hidden>
+      <h1 id="titre-comptes">Comptes</h1>
+      <form id="form-nouveau-compte" class="carte" novalidate>
+        <h2>Créer un compte</h2>
+        <div class="grille">
+          <div class="champ">
+            <label for="nouveau-identifiant">Identifiant</label>
+            <input id="nouveau-identifiant" type="text" maxlength="40" autocomplete="off" autocapitalize="none"
+                   spellcheck="false" placeholder="m.dupont" required>
+          </div>
+          <div class="champ">
+            <label for="nouveau-nom">Nom affiché</label>
+            <input id="nouveau-nom" type="text" maxlength="60" autocomplete="off" placeholder="M. Dupont" required>
+          </div>
+          <div class="champ">
+            <label for="nouveau-role">Rôle</label>
+            <select id="nouveau-role">
+              <option value="enseignant">Enseignant</option>
+              <option value="admin">Administrateur</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" id="btn-nouveau-compte">Créer le compte…</button>
+        </div>
+        <p id="nouveau-message" class="etat" role="status"></p>
+      </form>
+      <div id="provisoire" class="carte provisoire" role="alert" hidden>
+        <h2 id="provisoire-titre"></h2>
+        <p>Mot de passe provisoire, à transmettre à la personne : <code id="provisoire-valeur"></code></p>
+        <p class="note">Il ne sera plus affiché. La personne devra le changer à sa première connexion.</p>
+        <div class="actions">
+          <button type="button" id="btn-provisoire-ok" class="secondaire petit">C'est noté</button>
+        </div>
+      </div>
+      <p id="comptes-etat" class="etat" role="status"></p>
+      <div class="tableau-defilant">
+        <table id="table-comptes" class="tableau">
+          <caption class="visuellement-cache">Comptes de l'interface enseignant</caption>
+          <thead>
+            <tr>
+              <th scope="col">Identifiant</th>
+              <th scope="col">Nom</th>
+              <th scope="col">Rôle</th>
+              <th scope="col">État</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <h2 class="titre-journal">Journal des accès
+        <span class="facultatif">(les 100 derniers événements ; chaque entrée est gardée 6 mois)</span></h2>
+      <div class="tableau-defilant">
+        <table id="table-journal" class="tableau">
+          <caption class="visuellement-cache">Journal des accès, du plus récent au plus ancien</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Compte</th>
+              <th scope="col">Événement</th>
+              <th scope="col">Compte visé</th>
+              <th scope="col">Détail</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- Générer : la demande, sa vérification, la progression -->
     <section id="vue-generer" class="vue" aria-labelledby="titre-generer" hidden>
       <h1 id="titre-generer">Créer un exercice</h1>
@@ -187,6 +309,10 @@
       <div id="dialogue-champ">
         <label for="dialogue-motif" id="dialogue-label"></label>
         <textarea id="dialogue-motif" rows="3" maxlength="500"></textarea>
+      </div>
+      <div id="dialogue-champ-mdp" hidden>
+        <label for="dialogue-mdp">Votre mot de passe</label>
+        <input id="dialogue-mdp" type="password" maxlength="200" autocomplete="current-password">
       </div>
       <div class="actions">
         <button type="submit" id="dialogue-ok"></button>

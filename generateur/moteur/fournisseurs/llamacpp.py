@@ -11,6 +11,7 @@ Le modèle est un fichier GGUF (config.yaml : `llamacpp.modele`), le même Gemma
 """
 
 import gc
+import os
 import sys
 import time
 from pathlib import Path
@@ -77,7 +78,10 @@ class LlamaCpp(Fournisseur):
         except (ValueError, RuntimeError) as e:
             raise ErreurFournisseur(f"llama.cpp ne sait pas charger {self.chemin.name} : {e}") from e
         if self.cache:
+            # diskcache relit ses entrées avec pickle : qui peut écrire dans ce dossier peut faire exécuter du
+            # code au serveur (CVE-2025-69872, sans correctif ; relevé par pip-audit, E1). Dossier privé, donc.
             self.cache.mkdir(parents=True, exist_ok=True)
+            os.chmod(self.cache, 0o700)
             llm.set_cache(llama_cpp.LlamaDiskCache(cache_dir=str(self.cache),
                                                    capacity_bytes=int(self.cache_max_go * GIGA)))
         self.chargement_s = round(time.monotonic() - debut, 1)

@@ -1,5 +1,6 @@
-// Interface enseignant (phase 3). Aucune dépendance : le PC enseignant peut être hors ligne.
-// Règle de sécurité : tout texte venant du modèle est inséré avec textContent, jamais comme du HTML.
+// Interface enseignant (phase 3 ; connexion et comptes : E1). Aucune dépendance : le PC enseignant peut être
+// hors ligne. Règle de sécurité : tout texte venant du modèle est inséré avec textContent, jamais comme du HTML ;
+// un mot de passe ne reste jamais dans la page après usage.
 "use strict";
 
 (() => {
@@ -10,6 +11,13 @@
   const STATUTS = { genere: "À relire", accepte: "Accepté", rejete: "Rejeté" };
   const SOURCES = { modele: "proposé par le modèle : à vérifier", devine: "deviné dans la phrase : à vérifier" };
   const N4 = { verifie: "✔ calcul vérifié", a_relire: "? à relire", faux: "✘ calcul faux" };
+  const ROLES = { admin: "Administrateur", enseignant: "Enseignant" };
+  const EVENEMENTS = {
+    connexion: "Connexion", deconnexion: "Déconnexion", echec_connexion: "Échec de connexion",
+    echec_confirmation: "Mot de passe redemandé : erreur", verrouillage: "Compte verrouillé (15 min)",
+    compte_cree: "Compte créé", compte_supprime: "Compte supprimé", compte_debloque: "Compte débloqué",
+    mot_de_passe_change: "Mot de passe changé", mot_de_passe_reinitialise: "Mot de passe réinitialisé",
+  };
   const INTERVALLE_MS = 1000;
   const ATTENTE_RECHERCHE_MS = 250;
 
@@ -17,7 +25,8 @@
   // statut, valide, occupe : ceux de l'exercice ouvert, pour l'état des boutons
   // donnees : la dernière réponse de /api/exercices/{id}, pour remplir le formulaire de modification
   // generation : l'identifiant de la génération suivie, pour pouvoir l'annuler
-  const etat = { types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
+  // compte : le compte connecté (null : écran de connexion)
+  const etat = { compte: null, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
     statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null };
   const $ = (selecteur) => document.querySelector(selecteur);
 
@@ -47,7 +56,12 @@
     }
     let donnees = null;
     try { donnees = await reponse.json(); } catch (_) { /* corps vide ou non JSON */ }
-    if (!reponse.ok) throw new Error(messageErreur(donnees, reponse.status));
+    if (!reponse.ok) {
+      // 401 : plus de session (30 min sans activité, déconnexion ailleurs) ; sauf l'échec de la connexion elle-même
+      if (reponse.status === 401 && !(methode === "POST" && chemin === "/api/session")) sessionPerdue(donnees);
+      else if (reponse.status === 403 && donnees && donnees.doit_changer) imposerChangement();
+      throw new Error(messageErreur(donnees, reponse.status));
+    }
     return donnees;
   }
 
@@ -83,15 +97,29 @@
 
   function afficherVue(nom) {
     for (const vue of document.querySelectorAll(".vue")) vue.hidden = vue.id !== `vue-${nom}`;
-    for (const lien of document.querySelectorAll("nav a")) {
+    for (const lien of document.querySelectorAll("a[data-vue]")) {
       if (lien.dataset.vue === nom) lien.setAttribute("aria-current", "page");
       else lien.removeAttribute("aria-current");
     }
   }
 
   function router() {
+    if (!etat.compte) {
+      afficherVue("connexion");
+      return;
+    }
+    if (etat.compte.doit_changer && location.hash !== "#/compte") {
+      location.hash = "#/compte"; // le changement de hash rappelle router()
+      return;
+    }
     const m = location.hash.match(/^#\/exercice\/([a-z0-9_-]+)$/);
-    if (m) {
+    if (location.hash === "#/compte") {
+      afficherVue("compte");
+      afficherCompte();
+    } else if (location.hash === "#/comptes" && etat.compte.role === "admin") {
+      afficherVue("comptes");
+      chargerComptes();
+    } else if (m) {
       afficherVue("exercice");
       ouvrirExercice(m[1]);
     } else if (location.hash === "#/banque") {
@@ -102,6 +130,252 @@
       etat.origine = "generer";
       afficherVue("generer");
     }
+  }
+
+  // --- connexion (E1) ---------------------------------------------------------------------------
+
+  function afficherConnexion(message = "", sansCompte = false) {
+    $("#nav-principale").hidden = true;
+    $("#entete-compte").hidden = true;
+    $("#connexion-info").textContent = message;
+    $("#connexion-info").hidden = !message;
+    $("#form-connexion").hidden = sansCompte;
+    $("#connexion-sans-compte").hidden = !sansCompte;
+    afficherVue("connexion");
+    if (!sansCompte) $("#connexion-identifiant").focus();
+  }
+
+  // ce que la page montre d'une session finie ne doit pas rester sous les yeux du suivant
+  function viderVues() {
+    clearTimeout(etat.suivi);
+    for (const id of ["#table-banque tbody", "#ex-questions", "#table-comptes tbody", "#table-journal tbody"]) {
+      $(id).replaceChildren();
+    }
+    $("#ex-apercu").removeAttribute("src");
+    $("#provisoire").hidden = true;
+    $("#provisoire-valeur").textContent = "";
+  }
+
+  function sessionPerdue(donnees) {
+    const avait = etat.compte !== null;
+    etat.compte = null;
+    viderVues();
+    afficherConnexion(avait ? "Votre session a pris fin (30 minutes sans activité, ou déconnexion) : reconnectez-vous." : "",
+      Boolean(donnees && donnees.sans_compte));
+  }
+
+  function imposerChangement() {
+    if (etat.compte) etat.compte.doit_changer = true;
+    location.hash = "#/compte";
+  }
+
+  async function chargerTypes() {
+    const { types } = await api("/api/types");
+    etat.types = types;
+    remplirSelect($("#type"), types.map((t) => t.nom), Object.fromEntries(types.map((t) => [t.nom, t.titre])));
+    choisirType();
+    const premier = types[0] || { matieres: [], niveaux: [] };
+    remplirSelect($("#filtre-matiere"), premier.matieres, MATIERES, "Toutes");
+    remplirSelect($("#filtre-niveau"), premier.niveaux, {}, "Toutes");
+  }
+
+  async function ouvrirSession(compte) {
+    etat.compte = compte;
+    $("#entete-nom").textContent = compte.nom;
+    $("#lien-comptes").hidden = compte.role !== "admin";
+    $("#nav-principale").hidden = false;
+    $("#entete-compte").hidden = false;
+    $("#connexion-info").hidden = true;
+    if (compte.doit_changer) {
+      router();
+      return;
+    }
+    try {
+      if (!etat.types.length) await chargerTypes();
+    } catch (e) {
+      $("#analyse-etat").textContent = `Le serveur ne répond pas : ${e.message}`;
+    }
+    router();
+    reprendreSuivi();
+  }
+
+  async function seConnecter(evenement) {
+    evenement.preventDefault();
+    const identifiant = $("#connexion-identifiant").value.trim();
+    const motDePasse = $("#connexion-mot-de-passe");
+    const erreur = $("#connexion-erreur");
+    erreur.hidden = true;
+    if (!identifiant || !motDePasse.value) {
+      erreur.textContent = "Saisissez votre identifiant et votre mot de passe.";
+      erreur.hidden = false;
+      return;
+    }
+    $("#btn-connexion").disabled = true;
+    try {
+      const { compte } = await api("/api/session", { identifiant, mot_de_passe: motDePasse.value });
+      motDePasse.value = "";
+      await ouvrirSession(compte);
+    } catch (e) {
+      motDePasse.value = "";
+      erreur.textContent = e.message.charAt(0).toUpperCase() + e.message.slice(1);
+      erreur.hidden = false;
+      motDePasse.focus();
+    } finally {
+      $("#btn-connexion").disabled = false;
+    }
+  }
+
+  async function seDeconnecter() {
+    try { await api("/api/session", undefined, "DELETE"); } catch (_) { /* déjà déconnecté */ }
+    location.replace("/"); // page rechargée : plus rien de la session en mémoire
+  }
+
+  // --- mon compte ---------------------------------------------------------------------------------
+
+  function afficherCompte() {
+    const compte = etat.compte;
+    $("#compte-infos").textContent = `${compte.nom} · identifiant « ${compte.identifiant} » · ${ROLES[compte.role] || compte.role}`;
+    $("#compte-provisoire").hidden = !compte.doit_changer;
+    $("#mdp-message").textContent = "";
+  }
+
+  async function changerMotDePasse(evenement) {
+    evenement.preventDefault();
+    const champs = ["#mdp-ancien", "#mdp-nouveau", "#mdp-confirmation"].map((id) => $(id));
+    const [ancien, nouveau, confirmation] = champs.map((c) => c.value);
+    const message = $("#mdp-message");
+    if (nouveau.length < 12) {
+      message.textContent = "Le nouveau mot de passe doit faire 12 caractères au moins.";
+      return;
+    }
+    if (nouveau !== confirmation) {
+      message.textContent = "Les deux saisies du nouveau mot de passe diffèrent.";
+      return;
+    }
+    $("#btn-mot-de-passe").disabled = true;
+    try {
+      const { compte } = await api("/api/session/mot-de-passe", { ancien, nouveau });
+      const etaitProvisoire = etat.compte.doit_changer;
+      for (const c of champs) c.value = "";
+      if (etaitProvisoire) {
+        location.hash = "#/generer";
+        await ouvrirSession(compte);
+        return;
+      }
+      etat.compte = compte;
+      afficherCompte();
+      message.textContent = "Mot de passe changé. Vos autres sessions ont été fermées.";
+    } catch (e) {
+      $("#mdp-ancien").value = "";
+      message.textContent = `Mot de passe non changé : ${e.message}`;
+    } finally {
+      $("#btn-mot-de-passe").disabled = false;
+    }
+  }
+
+  // --- comptes (administrateurs) ------------------------------------------------------------------
+
+  async function chargerComptes() {
+    const etatComptes = $("#comptes-etat");
+    etatComptes.textContent = "Chargement…";
+    let comptes, journal;
+    try {
+      [{ comptes }, { journal }] = await Promise.all([api("/api/comptes"), api("/api/journal")]);
+    } catch (e) {
+      etatComptes.textContent = `Comptes illisibles : ${e.message}`;
+      return;
+    }
+    etatComptes.textContent = `${comptes.length} compte${comptes.length > 1 ? "s" : ""}.`;
+    $("#table-comptes tbody").replaceChildren(...comptes.map((c) => {
+      const etats = [];
+      if (c.verrouille) etats.push(el("span", { class: "badge statut-rejete", texte: "verrouillé" }));
+      if (c.doit_changer) etats.push(el("span", { class: "badge statut-genere", texte: "mot de passe provisoire" }));
+      if (!etats.length) etats.push(el("span", { class: "badge statut-accepte", texte: "actif" }));
+      const soiMeme = c.identifiant === etat.compte.identifiant;
+      const actions = el("div", { class: "question-actions" });
+      if (soiMeme) actions.append(el("span", { class: "note", texte: "vous" }));
+      else {
+        if (c.verrouille) actions.append(el("button", { type: "button", class: "secondaire petit", "data-action": "debloquer",
+          "data-identifiant": c.identifiant, texte: "Débloquer" }));
+        actions.append(el("button", { type: "button", class: "secondaire petit", "data-action": "reinitialiser",
+          "data-identifiant": c.identifiant, texte: "Réinitialiser le mot de passe…" }));
+        actions.append(el("button", { type: "button", class: "secondaire petit danger", "data-action": "supprimer",
+          "data-identifiant": c.identifiant, texte: "Supprimer…" }));
+      }
+      return el("tr", {}, el("td", { texte: c.identifiant }), el("td", { texte: c.nom }),
+        el("td", { texte: ROLES[c.role] || c.role }), el("td", {}, el("div", { class: "badges" }, ...etats)),
+        el("td", {}, actions));
+    }));
+    $("#table-journal tbody").replaceChildren(...journal.map((e) => el("tr", {},
+      el("td", { texte: date(e.date) }), el("td", { texte: e.identifiant || "ligne de commande" }),
+      el("td", { texte: EVENEMENTS[e.action] || e.action }), el("td", { texte: e.cible || "" }),
+      el("td", { texte: e.detail || "" }))));
+  }
+
+  // le mot de passe de l'administrateur, redemandé avant une action sensible (⚖1) ; null si annulé
+  function redemanderMotDePasse(titre, texte, ok) {
+    return demander({ titre, texte, ok, champ: false, motDePasse: true });
+  }
+
+  function montrerProvisoire(titre, motDePasse) {
+    $("#provisoire-titre").textContent = titre;
+    $("#provisoire-valeur").textContent = motDePasse;
+    $("#provisoire").hidden = false;
+    $("#provisoire").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  async function creerCompte(evenement) {
+    evenement.preventDefault();
+    const identifiant = $("#nouveau-identifiant").value.trim().toLowerCase();
+    const nom = $("#nouveau-nom").value.trim();
+    const role = $("#nouveau-role").value;
+    const message = $("#nouveau-message");
+    if (!identifiant || !nom) {
+      message.textContent = "Indiquez l'identifiant et le nom affiché.";
+      return;
+    }
+    const motDePasse = await redemanderMotDePasse(`Créer le compte « ${identifiant} »`,
+      "Pour confirmer, saisissez votre mot de passe d'administrateur.", "Créer le compte");
+    if (motDePasse === null) return;
+    try {
+      const reponse = await api("/api/comptes", { identifiant, nom, role, mot_de_passe: motDePasse });
+      $("#form-nouveau-compte").reset();
+      message.textContent = "";
+      montrerProvisoire(`Compte « ${reponse.compte.identifiant} » créé`, reponse.mot_de_passe_provisoire);
+    } catch (e) {
+      message.textContent = `Compte non créé : ${e.message}`;
+    }
+    chargerComptes();
+  }
+
+  async function agirSurCompte(evenement) {
+    const bouton = evenement.target.closest("button[data-action]");
+    if (!bouton) return;
+    const { action, identifiant } = bouton.dataset;
+    const message = $("#comptes-etat");
+    try {
+      if (action === "debloquer") {
+        await api(`/api/comptes/${encodeURIComponent(identifiant)}/debloquer`, {});
+        message.textContent = `Compte « ${identifiant} » débloqué.`;
+      } else if (action === "reinitialiser") {
+        const motDePasse = await redemanderMotDePasse(`Réinitialiser le mot de passe de « ${identifiant} »`,
+          "Ses sessions seront fermées, et il recevra un mot de passe provisoire. Pour confirmer, saisissez votre mot de passe.",
+          "Réinitialiser");
+        if (motDePasse === null) return;
+        const reponse = await api(`/api/comptes/${encodeURIComponent(identifiant)}/reinitialiser`, { mot_de_passe: motDePasse });
+        montrerProvisoire(`Nouveau mot de passe de « ${identifiant} »`, reponse.mot_de_passe_provisoire);
+      } else if (action === "supprimer") {
+        const motDePasse = await redemanderMotDePasse(`Supprimer le compte « ${identifiant} »`,
+          "Le compte ne pourra plus se connecter ; ses actions restent dans le journal. Pour confirmer, saisissez votre mot de passe.",
+          "Supprimer");
+        if (motDePasse === null) return;
+        await api(`/api/comptes/${encodeURIComponent(identifiant)}`, { mot_de_passe: motDePasse }, "DELETE");
+        message.textContent = `Compte « ${identifiant} » supprimé.`;
+      }
+    } catch (e) {
+      message.textContent = `Action refusée : ${e.message}`;
+    }
+    chargerComptes();
   }
 
   // --- 1. analyser la demande -------------------------------------------------------------------
@@ -704,33 +978,50 @@
   // --- boîte de dialogue (motif d'un rejet, d'une régénération) -----------------------------------
 
   // champ : false pour une simple confirmation (la promesse donne alors "" si confirmé, null si annulé)
-  function demander({ titre, texte, label = "", ok, champ = true }) {
+  // motDePasse : true pour redemander le mot de passe (la promesse le donne ; il est effacé du champ aussitôt)
+  function demander({ titre, texte, label = "", ok, champ = true, motDePasse = false }) {
     const dialogue = $("#dialogue");
     $("#dialogue-titre").textContent = titre;
     $("#dialogue-texte").textContent = texte;
     $("#dialogue-champ").hidden = !champ;
+    $("#dialogue-champ-mdp").hidden = !motDePasse;
     $("#dialogue-label").textContent = label;
     $("#dialogue-ok").textContent = ok;
     $("#dialogue-motif").value = "";
+    $("#dialogue-mdp").value = "";
     return new Promise((resoudre) => {
       const fermer = (valeur) => {
         $("#dialogue-form").onsubmit = null;
         $("#dialogue-annuler").onclick = null;
         dialogue.onclose = null;
+        $("#dialogue-mdp").value = "";
         if (dialogue.open) dialogue.close();
         resoudre(valeur);
       };
-      $("#dialogue-form").onsubmit = (e) => { e.preventDefault(); fermer($("#dialogue-motif").value.trim()); };
+      $("#dialogue-form").onsubmit = (e) => {
+        e.preventDefault();
+        if (motDePasse && !$("#dialogue-mdp").value) { $("#dialogue-mdp").focus(); return; }
+        fermer(motDePasse ? $("#dialogue-mdp").value : $("#dialogue-motif").value.trim());
+      };
       $("#dialogue-annuler").onclick = () => fermer(null);
       dialogue.onclose = () => fermer(null);
       dialogue.showModal();
-      (champ ? $("#dialogue-motif") : $("#dialogue-ok")).focus();
+      (motDePasse ? $("#dialogue-mdp") : champ ? $("#dialogue-motif") : $("#dialogue-ok")).focus();
     });
   }
 
   // --- démarrage --------------------------------------------------------------------------------
 
   async function demarrer() {
+    $("#form-connexion").addEventListener("submit", seConnecter);
+    $("#btn-deconnexion").addEventListener("click", seDeconnecter);
+    $("#form-mot-de-passe").addEventListener("submit", changerMotDePasse);
+    $("#form-nouveau-compte").addEventListener("submit", creerCompte);
+    $("#table-comptes").addEventListener("click", agirSurCompte);
+    $("#btn-provisoire-ok").addEventListener("click", () => {
+      $("#provisoire").hidden = true;
+      $("#provisoire-valeur").textContent = "";
+    });
     $("#form-phrase").addEventListener("submit", analyser);
     $("#btn-a-la-main").addEventListener("click", remplirALaMain);
     $("#form-requete").addEventListener("submit", generer);
@@ -785,19 +1076,13 @@
     });
     window.addEventListener("hashchange", router);
 
+    // déjà connecté (page rechargée) ? sinon, l'écran de connexion (affiché par api() sur le 401)
     try {
-      const { types } = await api("/api/types");
-      etat.types = types;
-      remplirSelect($("#type"), types.map((t) => t.nom), Object.fromEntries(types.map((t) => [t.nom, t.titre])));
-      choisirType();
-      const premier = types[0] || { matieres: [], niveaux: [] };
-      remplirSelect($("#filtre-matiere"), premier.matieres, MATIERES, "Toutes");
-      remplirSelect($("#filtre-niveau"), premier.niveaux, {}, "Toutes");
+      const { compte } = await api("/api/session");
+      await ouvrirSession(compte);
     } catch (e) {
-      $("#analyse-etat").textContent = `Le serveur ne répond pas : ${e.message}`;
+      if ($("#vue-connexion").hidden) afficherConnexion(`Le serveur ne répond pas : ${e.message}`);
     }
-    router();
-    reprendreSuivi();
   }
 
   document.addEventListener("DOMContentLoaded", demarrer);

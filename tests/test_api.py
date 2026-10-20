@@ -6,6 +6,7 @@ import warnings
 
 import pytest
 
+from generateur.donnees import comptes
 from generateur.interface.taches import ANNULE, ECHEC, EN_ATTENTE, EN_COURS, TERMINE, DejaFinie, File, FilePleine
 from generateur.moteur import config, generation, registre
 from generateur.moteur.fournisseurs.base import Fournisseur
@@ -19,6 +20,7 @@ from generateur.interface.api import CSP_APERCU, creer_application, decrire_erre
 NOUVELLE = {"enonce": "Dans un triangle rectangle, comment s'appelle le côté opposé à l'angle droit ?",
             "propositions": ["la médiane", "l'hypoténuse", "la hauteur"], "index_correct": 1,
             "explication": "Le côté opposé à l'angle droit est le plus long : c'est l'hypoténuse."}
+MOT_DE_PASSE = "un mot de passe de test"
 QCM_MAQUETTE = {"type": "qcm", "matiere": "maths", "niveau": "4e", "notion": "Pythagore", "fournisseur": "maquette",
                 "mode": "ia"}
 
@@ -108,12 +110,15 @@ class Modele(Fournisseur):
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
+    """L'interface, avec une base neuve dans tmp_path et un administrateur « prof » connecté (E1)."""
     vrai_chemin = config.chemin
     monkeypatch.setattr(config, "chemin", lambda nom: vrai_chemin(nom) if nom == "types" else tmp_path / nom)
     monkeypatch.setattr(generation, "creer", lambda nom, reglages: Modele())  # jamais le vrai modèle en test
     app = creer_application(File(decrire_erreur=decrire_erreur))
+    comptes.creer(app.state.base, "prof", "Professeur Essai", MOT_DE_PASSE, "admin")
     c = TestClient(app, base_url="http://127.0.0.1:8000")
-    c.file = app.state.file
+    c.file, c.base = app.state.file, app.state.base
+    assert c.post("/api/session", json={"identifiant": "prof", "mot_de_passe": MOT_DE_PASSE}).status_code == 200
     return c
 
 
@@ -229,7 +234,7 @@ def test_inconnus(client):
     assert client.get("/api/exercices/qcm-absent-4e-20261013-100000/apercu").status_code == 404
 
 
-# --- les protections : sans authentification, 127.0.0.1 est la seule barrière ----------------------
+# --- les protections du navigateur : hôte, origine, JSON seul (la session : test_api_connexion.py) --
 
 def test_dns_rebinding_refuse(client):
     # un site dont le nom pointe soudain vers 127.0.0.1 : son nom reste dans l'en-tête Host
