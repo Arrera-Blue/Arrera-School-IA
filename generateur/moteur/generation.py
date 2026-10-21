@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from generateur import procedural
+from generateur import procedural, programmes
 from generateur.moteur import banque, config, machine, registre
 from generateur.moteur.analyse import QUESTIONS_MAX, QUESTIONS_MIN, lire_classe, lire_nombre_de_questions
 from generateur.moteur.fournisseurs import ErreurFournisseur, Fournisseur, creer
@@ -74,7 +74,32 @@ def schema_de_sortie(schema: dict, demande: dict) -> dict:
 
 
 # les champs du formulaire de l'interface, confirmés par l'enseignant : ils priment sur sa phrase (3.3, C1)
-CHAMPS_DU_FORMULAIRE = ("matiere", "niveau", "notion", "nb_questions", "difficulte")
+CHAMPS_DU_FORMULAIRE = ("matiere", "niveau", "notion", "attendu", "nb_questions", "difficulte")
+
+
+def decrire_attendu(cible: str) -> dict:
+    """Ce que le modèle lit de l'attendu visé (E2.4) : le libellé officiel et sa place dans le programme ; pour un
+    thème entier, les libellés de ses attendus qui se prêtent à un QCM."""
+    if a := programmes.attendu(cible):
+        return {"libelle": a.libelle, "theme": a.theme, "classe": a.niveau,
+                "programme": f"programme officiel ({a.source})"}
+    t = programmes.theme(cible)
+    return {"theme": t["theme"], "attendus": [a.libelle for a in t["attendus"] if a.qcm], "classe": t["niveau"],
+            "programme": f"programme officiel ({t['source']})"}
+
+
+def programme_de(demande: dict, travailles: list[str] | tuple[str, ...] = ()) -> dict | None:
+    """`meta.programme` (E2.5) : l'attendu ou le thème choisi par l'enseignant ; sinon ceux que les questions
+    travaillent (générateur procédural) ; None si l'exercice n'est rattaché à rien."""
+    cible = demande.get("attendu")
+    attendus = [cible] if cible else sorted(set(travailles))
+    attendus = [a for a in attendus if programmes.existe(a)]
+    if not attendus:
+        return None
+    sources = {programmes.attendu(a).source if programmes.attendu(a) else programmes.theme(a)["source"]
+               for a in attendus}
+    return {"attendus": attendus, "libelles": [programmes.libelle(a) for a in attendus],
+            "choisi": bool(cible), "source": ", ".join(sorted(sources))}
 
 
 def construire_messages(type_exo: registre.TypeExercice, demande: dict) -> list[dict]:
@@ -82,18 +107,22 @@ def construire_messages(type_exo: registre.TypeExercice, demande: dict) -> list[
     du message est le même pour toutes les demandes, et son traitement est réutilisé d'une génération à
     l'autre (cache d'Ollama tant que le modèle est chargé, cache sur disque de llama.cpp). Le schéma resserré
     sur la demande (nombre de questions, classe) n'est pas écrit ici : il est imposé à la génération."""
+    pour_le_modele = dict(demande)
+    if demande.get("attendu") and programmes.existe(demande["attendu"]):
+        pour_le_modele["attendu"] = decrire_attendu(demande["attendu"])  # le texte officiel, pas un identifiant
     utilisateur = (
         "Schéma JSON à respecter :\n"
         f"{json.dumps(schema_de_sortie(type_exo.schema, {}), ensure_ascii=False, indent=2)}\n\n"
         "Exemple d'une sortie valide :\n"
         f"{json.dumps(type_exo.exemple, ensure_ascii=False, indent=2)}\n\n"
         "Demande :\n"
-        f"{json.dumps(demande, ensure_ascii=False, indent=2)}"
+        f"{json.dumps(pour_le_modele, ensure_ascii=False, indent=2)}"
     )
     if demande.get("demande_enseignant") and (champs := [c for c in CHAMPS_DU_FORMULAIRE if demande.get(c)]):
         # essai du 17/10 : phrase « la Révolution française, 4e », formulaire corrigé « les châteaux forts, 5e » ;
         # le modèle suivait la phrase 2 fois sur 3. Rappelé en fin de message, là où il le suit le mieux.
-        utilisateur += ("\n\nRappel : " + ", ".join(f"{c} = « {demande[c]} »" for c in champs) +
+        valeurs = {c: programmes.libelle(demande[c]) if c == "attendu" else demande[c] for c in champs}
+        utilisateur += ("\n\nRappel : " + ", ".join(f"{c} = « {valeurs[c]} »" for c in champs) +
                         ". Ces champs ont été vérifiés par l'enseignant et priment sur sa phrase "
                         "(« demande_enseignant ») : si elle les contredit, suis les champs.")
     return [{"role": "system", "content": type_exo.prompt}, {"role": "user", "content": utilisateur}]
@@ -385,6 +414,8 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         "prompt_origine": demande.get("demande_enseignant") or demande,
         "demande": demande,
     }
+    if programme := programme_de(demande):
+        instance["meta"]["programme"] = programme
     return instance
 
 
@@ -413,7 +444,9 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
     nombre = demande.get("nb_questions") or 5
     debut = time.monotonic()
 
-    squelettes = procedural.tirer(notion, nombre, rng)
+    # un attendu du programme : seulement les genres qui le travaillent (E2.5)
+    genres = procedural.genres_pour(module, demande["attendu"], niveau) if demande.get("attendu") else None
+    squelettes = procedural.tirer(notion, nombre, rng, genres)
     print(f"→ génération procédurale ({module.NOTION}) : {nombre} questions tirées (graine {graine})", flush=True)
     _signaler(suivi, etape="tirage", message=f"Générateur procédural ({module.NOTION}) : {nombre} questions "
                                               "tirées, calculs faits par le programme")
@@ -473,6 +506,9 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
         "prompt_origine": demande.get("demande_enseignant") or demande,
         "demande": demande,
     }
+    travailles = [a for s in squelettes for a in procedural.attendus_du_genre(module, s.genre.split(".")[-1], niveau)]
+    if programme := programme_de(demande, travailles):
+        instance["meta"]["programme"] = programme
     _signaler(suivi, etape="valide", message="Exercice validé : N2 → N4 passés")
     return instance
 

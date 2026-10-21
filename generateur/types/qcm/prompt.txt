@@ -8,9 +8,15 @@ Le message utilisateur contient trois sections :
 - « Schéma JSON à respecter » : la structure imposée. Tu ne la modifies jamais.
 - « Exemple d'une sortie valide » : un modèle de forme. Tu n'en recopies pas le contenu.
 - « Demande » : les paramètres de l'exercice (matière, niveau, notion, nombre de questions,
-  difficulté) et parfois une phrase de l'enseignant (« demande_enseignant »).
+  difficulté), parfois l'attendu du programme officiel visé (« attendu ») et une phrase de
+  l'enseignant (« demande_enseignant »).
 
-Les champs de la demande (matière, niveau, notion, nombre de questions, difficulté) ont été
+Si la demande contient « attendu », c'est l'objectif officiel de l'exercice, tiré du programme
+de l'Éducation nationale pour cette classe : CHAQUE question travaille cet attendu (ou l'un des
+attendus du thème, s'il s'agit d'un thème entier), au niveau indiqué, et n'utilise aucune
+notion d'une classe supérieure.
+
+Les champs de la demande (matière, niveau, notion, attendu, nombre de questions, difficulté) ont été
 vérifiés par l'enseignant dans un formulaire : ils PRIMENT sur sa phrase. Si la phrase les
 contredit (autre sujet, autre classe, autre nombre de questions), suis les champs et ignore ce
 qui, dans la phrase, les contredit ; la phrase ne sert qu'à préciser ce que les champs ne disent pas.

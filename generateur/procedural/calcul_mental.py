@@ -87,3 +87,9 @@ def division(rng: random.Random) -> Squelette:
 
 
 GENRES = (addition, soustraction, multiplication, division)
+# les attendus du programme (E2.5) : seules l'addition et la soustraction répondent à un objectif de 6e ; les
+# tables (multiplication, division exacte) sont des automatismes, hors du référentiel des objectifs
+ATTENDUS = {
+    "addition": {"6e": ("maths.6e.nombres-decimaux.14",)},       # Additionner et soustraire des nombres décimaux
+    "soustraction": {"6e": ("maths.6e.nombres-decimaux.14",)},
+}

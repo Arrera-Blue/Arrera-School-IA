@@ -140,3 +140,13 @@ def taux(rng: random.Random) -> Squelette:
 
 
 GENRES = (pourcentage_de, remise, augmentation, en_pourcentage, taux)
+# les attendus du programme que chaque genre travaille (E2.5)
+_APPLIQUER = {"6e": ("maths.6e.fractions.17",),          # Appliquer un pourcentage à une grandeur ou à un nombre
+              "5e": ("maths.5e.proportionnalite.02",)}   # Calculer, appliquer des proportions, des pourcentages.
+ATTENDUS = {
+    "pourcentage_de": _APPLIQUER, "remise": _APPLIQUER, "augmentation": _APPLIQUER,
+    "en_pourcentage": {"6e": ("maths.6e.nombres-decimaux.06",),   # Associer et utiliser différentes écritures…
+                       "5e": ("maths.5e.proportionnalite.01",)},  # Utiliser des proportions, des pourcentages.
+    "taux": {"6e": ("maths.6e.fractions.16",),                     # Calculer une proportion… sous forme de pourcentage
+             "5e": ("maths.5e.proportionnalite.02",)},
+}

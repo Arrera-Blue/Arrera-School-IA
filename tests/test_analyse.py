@@ -46,7 +46,8 @@ def test_ce_qui_manque_est_signale_a_l_enseignant():
     assert resultat.sources["nb_questions"] == "defaut"
     assert any("classe non trouvée" in r for r in resultat.remarques)
     devinee = analyser("QCM fractions 6e")  # sans « sur … » : notion devinée, à vérifier
-    assert devinee.requete["notion"] == "fractions" and devinee.a_verifier == ["notion"]
+    assert devinee.requete["notion"] == "fractions" and devinee.a_verifier == ["notion", "attendu"]
+    assert devinee.requete["attendu"] == "maths.6e.fractions"  # le thème du programme, proposé (E2.3)
 
 
 def test_nombre_de_questions_ramene_dans_les_bornes():

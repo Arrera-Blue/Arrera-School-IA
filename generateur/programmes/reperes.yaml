@@ -1,0 +1,39 @@
+# Repères de niveau (évolution E2.6) : des notions qui n'apparaissent qu'à partir d'une classe donnée, dans les
+# programmes officiels. Un exercice d'une classe plus basse qui en contient une reçoit un AVERTISSEMENT (« à
+# relire »), jamais un rejet : une notion peut être citée sans être travaillée.
+#
+# Choisies pour ne pas se déclencher à tort : chaque motif a été cherché dans le programme du cycle 3 (BO n° 16 du
+# 17 avril 2025), où il n'apparaît pas — « distributivité » et « losange » y apparaissent, d'où leur absence ici.
+# Motifs : expressions régulières, sur le texte en minuscules et sans accents.
+# source : l'attendu du référentiel où la notion apparaît, ou, pour la 4e et la 3e (hors référentiel), le
+# libellé du programme du cycle 4 (BO n° 10 du 5 mars 2026).
+
+reperes:
+  # --- maths : notions de 5e ---------------------------------------------------------------------
+  - {matiere: maths, niveau: 5e, notion: nombres relatifs, motif: '\bnombres? relatifs?\b', source: maths.5e.nombres-relatifs.01}
+  - {matiere: maths, niveau: 5e, notion: valeur absolue, motif: '\bvaleur absolue\b', source: maths.5e.nombres-relatifs.02}
+  - {matiere: maths, niveau: 5e, notion: puissances, motif: '\bpuissances?\b|\bau (?:carre|cube)\b', source: maths.5e.puissances.01}
+  - {matiere: maths, niveau: 5e, notion: priorités opératoires, motif: '\bpriorites? operatoires?\b', source: maths.5e.operations.07}
+  - {matiere: maths, niveau: 5e, notion: expression littérale, motif: '\bexpressions? litterales?\b', source: maths.5e.calcul-litteral.02}
+  - {matiere: maths, niveau: 5e, notion: équation, motif: '\bequations?\b', source: maths.5e.calcul-litteral.11}
+  - {matiere: maths, niveau: 5e, notion: symétrie centrale, motif: '\bsymetrie centrale\b|\bdemi-tour\b', source: maths.5e.transformations.01}
+  - {matiere: maths, niveau: 5e, notion: parallélogramme, motif: '\bparallelogrammes?\b', source: maths.5e.parallelogrammes.01}
+  - {matiere: maths, niveau: 5e, notion: hauteur d'un triangle, motif: '\bhauteurs?\b[^.?!]{0,40}\btriangle|\btriangle\b[^.?!]{0,40}\bhauteurs?\b', source: maths.5e.triangles.05}
+  - {matiere: maths, niveau: 5e, notion: médiane d'un triangle, motif: '\bmedianes?\b', source: maths.5e.triangles.07}
+  # --- maths : notions de 4e et de 3e (programme du cycle 4) --------------------------------------
+  - {matiere: maths, niveau: 4e, notion: racine carrée, motif: '\bracines? carrees?\b|√', source: '4e, « Racine carrée » (programme de mathématiques du cycle 4)'}
+  - {matiere: maths, niveau: 4e, notion: théorème de Pythagore, motif: '\bpythagore\b|\bhypotenuse\b', source: '4e, « Connaitre le théorème de Pythagore, sa réciproque, sa contraposée. »'}
+  - {matiere: maths, niveau: 4e, notion: translation, motif: '\btranslations?\b', source: '4e, « Comprendre l’effet d’une translation. »'}
+  - {matiere: maths, niveau: 3e, notion: notation scientifique, motif: '\bnotation scientifique\b', source: '3e, « Déterminer la notation scientifique d’un nombre. »'}
+  - {matiere: maths, niveau: 3e, notion: inéquation, motif: '\binequations?\b', source: '3e, « Résoudre analytiquement et graphiquement une inéquation du premier degré »'}
+  - {matiere: maths, niveau: 3e, notion: identités remarquables, motif: '\bidentites? remarquables?\b', source: '3e, « Manipuler les trois identités remarquables »'}
+  - {matiere: maths, niveau: 3e, notion: théorème de Thalès, motif: '\bthales\b', source: '3e, « Connaitre et appliquer le théorème de Thalès »'}
+  - {matiere: maths, niveau: 3e, notion: trigonométrie, motif: '\bcosinus\b|\bsinus\b|\btrigonometri', source: '3e, « Connaitre et utiliser les lignes trigonométriques dans le triangle rectangle »'}
+  - {matiere: maths, niveau: 3e, notion: fonction affine, motif: '\bfonctions? affines?\b', source: '3e, « Définir et utiliser les fonctions affines. »'}
+  # --- français ----------------------------------------------------------------------------------
+  - {matiere: francais, niveau: 5e, notion: passé antérieur et futur antérieur, motif: '\bpasse anterieur\b|\bfutur anterieur\b', source: francais.5e.formes-verbales.03}
+  - {matiere: francais, niveau: 4e, notion: subjonctif, motif: '\bsubjonctif\b', source: '4e, « Identifier les valeurs du mode subjonctif. » (programme de français du cycle 4)'}
+  - {matiere: francais, niveau: 4e, notion: voix passive, motif: '\bvoix passive\b|\bforme passive\b', source: '4e, « Comprendre la construction de la voix passive. »'}
+  - {matiere: francais, niveau: 4e, notion: proposition subordonnée relative, motif: '\bsubordonnees? relatives?\b|\bpronoms? relatifs?\b', source: '4e, « Comprendre les fonctions grammaticales des propositions subordonnées relatives et conjonctives. »'}
+  - {matiere: francais, niveau: 4e, notion: conditionnel passé, motif: '\bconditionnel passe\b', source: '4e, « … futur antérieur et conditionnel passé de l’indicatif »'}
+  - {matiere: francais, niveau: 3e, notion: discours indirect libre, motif: '\bdiscours indirect libre\b', source: '3e, « Identifier des paroles rapportées au discours indirect libre »'}

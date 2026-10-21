@@ -182,6 +182,15 @@
             <input id="notion" type="text" maxlength="120" required>
             <p class="source"></p>
           </div>
+          <div class="champ champ-pleine" data-champ="attendu">
+            <label for="attendu">Attendu du programme officiel
+              <span class="facultatif">(maths et français, 6e et 5e)</span></label>
+            <input id="filtre-attendu" type="search" maxlength="80" autocomplete="off" aria-controls="attendu"
+                   aria-label="Filtrer les attendus du programme" placeholder="filtrer la liste : fraction, accord…">
+            <select id="attendu"></select>
+            <p class="source"></p>
+            <p id="attendu-note" class="note"></p>
+          </div>
           <div class="champ" data-champ="nb_questions">
             <label for="nb_questions">Nombre de questions</label>
             <input id="nb_questions" type="number" min="3" max="15" value="5" required>
@@ -237,6 +246,10 @@
           <select id="filtre-niveau"><option value="">Toutes</option></select>
         </div>
         <div class="champ">
+          <label for="filtre-programme">Programme</label>
+          <select id="filtre-programme" disabled><option value="">Choisir matière et classe</option></select>
+        </div>
+        <div class="champ">
           <label for="filtre-statut">Statut</label>
           <select id="filtre-statut">
             <option value="">Tous</option>
@@ -275,6 +288,7 @@
         <span id="ex-statut" class="badge"></span>
       </div>
       <p id="ex-infos" class="infos"></p>
+      <p id="ex-programme" class="infos" hidden></p>
       <ul id="ex-validation" class="validation" aria-label="Contrôles automatiques"></ul>
       <div id="ex-erreurs" class="erreur" role="alert" hidden></div>
       <div id="ex-avertissements"></div>

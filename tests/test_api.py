@@ -417,3 +417,36 @@ def test_pas_de_dechargement_si_une_tache_attend(monkeypatch):
         assert not decharger_si_inactif(file, 600, maintenant=10_000.0)
     finally:
         porte.set()
+
+
+# --- le programme officiel (E2) ----------------------------------------------------------------------
+
+def test_programmes_pour_le_formulaire(client):
+    maths = client.get("/api/programmes", params={"matiere": "maths", "niveau": "6e"}).json()
+    assert maths["couvert"] and maths["source"]["bo"] == "BO n° 16 du 17 avril 2025"
+    assert any(t["theme"] == "Les fractions" for t in maths["themes"])
+    assert client.get("/api/programmes", params={"matiere": "svt", "niveau": "6e"}).json() == {
+        "couvert": False, "matiere": "svt", "niveau": "6e", "themes": []}
+
+
+def test_l_analyse_propose_un_attendu(client):
+    resultat = client.post("/api/analyser", json={"phrase": "un QCM sur les fractions pour des 6e"}).json()
+    assert resultat["requete"]["attendu"] == "maths.6e.fractions" and "attendu" in resultat["a_verifier"]
+    assert resultat["procedural"]["nom"] == "fractions"
+
+
+def test_generer_un_exercice_vise_puis_filtrer_la_banque(client):
+    for attendu, attendue in (("maths.6e.inconnu.01", "inconnu"), ("maths.5e.nombres-relatifs", "ne correspond pas")):
+        refus = client.post("/api/generations", json={"type": "qcm", "niveau": "6e", "attendu": attendu})
+        assert refus.status_code == 422 and attendue in refus.json()["detail"]
+    tache = client.post("/api/generations", json={"type": "qcm", "attendu": "maths.6e.fractions.09",
+                                                  "fournisseur": "maquette"})
+    assert tache.status_code == 202, tache.text
+    ident = client.file.attendre(tache.json()["id"], 10)["exercice"]
+    exercice = client.get(f"/api/exercices/{ident}").json()["exercice"]
+    assert exercice["matiere"] == "maths" and exercice["niveau"] == "6e"
+    assert exercice["meta"]["demande"]["notion"] == "Comparer et encadrer des fractions"  # le libellé, faute de notion
+    assert exercice["meta"]["programme"]["attendus"] == ["maths.6e.fractions.09"]
+    trouves = lambda attendu: [x["id"] for x in client.get("/api/exercices", params={"attendu": attendu}).json()["exercices"]]
+    assert trouves("maths.6e.fractions") == [ident] == trouves("maths.6e.fractions.09")  # le thème trouve son attendu
+    assert trouves("maths.6e.fractions.08") == [] == trouves("maths.5e.nombres-relatifs")
