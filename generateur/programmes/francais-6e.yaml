@@ -1,0 +1,389 @@
+# Référentiel des attendus — francais, 6e (évolution E2). Libellés recopiés MOT POUR MOT des
+# « Objectifs d’apprentissage » du programme officiel (source ci-dessous) ; seuls les identifiants, les
+# sous-thèmes de maths 6e et le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du
+# programme) sont ajoutés. Méthode et corrections : docs/etapes/etape-E2-programmes.md.
+matiere: francais
+niveau: 6e
+cycle: 3
+source:
+  texte: Programmes d’enseignement de français et de mathématiques du cycle de consolidation (cycle 3)
+  arrete: Arrêté du 10 avril 2025 (JO du 16 avril 2025)
+  nor: MENE2504620A
+  bo: BO n° 16 du 17 avril 2025
+  url: https://www.education.gouv.fr/bo/2025/Hebdo16/MENE2504620A
+  en_vigueur: en 6e depuis la rentrée 2025-2026 (article 3 de l’arrêté)
+  extrait: Programme de français pour le cycle 3 (annexe), « Sixième »
+  releve: '2026-10-21'
+themes:
+- id: francais.6e.lire-fluidite
+  domaine: Lecture
+  theme: Lire avec fluidité
+  attendus:
+  - id: francais.6e.lire-fluidite.01
+    libelle: Poursuivre l’entraînement à la lecture silencieuse et à la lecture à voix haute en renforçant l’acquisition d’un
+      phrasé et d’une prosodie adaptés au texte
+    qcm: false
+  - id: francais.6e.lire-fluidite.02
+    libelle: Prendre en compte les groupes syntaxiques (groupes de mots avec unité de sens), les marques de ponctuation, les
+      liaisons dans sa lecture
+    qcm: false
+  - id: francais.6e.lire-fluidite.03
+    libelle: Parvenir à lire correctement en ciblant 130 mots par minute en moyenne
+    qcm: false
+- id: francais.6e.lire-voix-haute
+  domaine: Lecture
+  theme: Lire à voix haute avec expressivité
+  attendus:
+  - id: francais.6e.lire-voix-haute.01
+    libelle: Lire à voix haute, avec aisance et expressivité, un texte de 10 à 20 lignes en regardant l’auditoire
+    qcm: false
+  - id: francais.6e.lire-voix-haute.02
+    libelle: Poursuivre le travail de mise en voix du texte
+    qcm: false
+  - id: francais.6e.lire-voix-haute.03
+    libelle: Rendre compte des émotions et sentiments des personnages, et des intentions de l’auteur
+    qcm: false
+  - id: francais.6e.lire-voix-haute.04
+    libelle: Parvenir à rendre l’intonation, le rythme et la caractérisation des personnages dans le dialogue de récit
+    qcm: false
+  - id: francais.6e.lire-voix-haute.05
+    libelle: Prendre du plaisir à lire et à partager sa lecture
+    qcm: false
+- id: francais.6e.comprendre-textes
+  domaine: Lecture
+  theme: Lire et comprendre seul des textes, des documents et des images
+  attendus:
+  - id: francais.6e.comprendre-textes.01
+    libelle: Dégager le sens global d’un texte, affiner sa compréhension et devenir un lecteur autonome
+    qcm: false
+  - id: francais.6e.comprendre-textes.02
+    libelle: Dégager les principales caractéristiques d’un texte et le rattacher à un genre
+    qcm: false
+  - id: francais.6e.comprendre-textes.03
+    libelle: Dégager le sens global de textes de genres différents, savoir repérer une information plus ou moins saillante,
+      effectuer des inférences sur de larges extraits
+    qcm: false
+  - id: francais.6e.comprendre-textes.04
+    libelle: Repérer les informations explicites et implicites, les liens logiques, les reprises nominales
+    qcm: false
+  - id: francais.6e.comprendre-textes.05
+    libelle: Justifier ses interprétations ou ses réponses en prenant appui sur le texte ou sur ses connaissances
+    qcm: false
+- id: francais.6e.comprendre-documents
+  domaine: Lecture
+  theme: Lire et comprendre des textes, des documents et des images pour apprendre dans toutes les disciplines
+  attendus:
+  - id: francais.6e.comprendre-documents.01
+    libelle: Identifier la nature et la source des documents
+    qcm: false
+  - id: francais.6e.comprendre-documents.02
+    libelle: Rencontrer des textes, des œuvres et des documents variés (image, tableau, schéma, articles de presse, etc.)
+    qcm: false
+  - id: francais.6e.comprendre-documents.03
+    libelle: Comparer des documents de genres différents et repérer ce qui les rapproche et ce qui les différencie
+    qcm: false
+  - id: francais.6e.comprendre-documents.04
+    libelle: Apprendre à mettre en relation des informations dans le cas de documents composites
+    qcm: false
+  - id: francais.6e.comprendre-documents.05
+    libelle: Prendre appui sur les éléments essentiels d’une image fixe et les interpréter
+    qcm: false
+- id: francais.6e.lire-oeuvre
+  domaine: Lecture
+  theme: Lire une œuvre et se l’approprier
+  attendus:
+  - id: francais.6e.lire-oeuvre.01
+    libelle: Lire et étudier en classe trois œuvres du patrimoine en lecture intégrale et trois œuvres complètes en lecture
+      cursive
+    qcm: false
+  - id: francais.6e.lire-oeuvre.02
+    libelle: Développer sa culture littéraire et artistique
+    qcm: false
+  - id: francais.6e.lire-oeuvre.03
+    libelle: 'Mettre en relation le texte lu avec d’autres références : expérience vécue, connaissances culturelles, enjeux
+      contemporains, etc.'
+    qcm: false
+  - id: francais.6e.lire-oeuvre.04
+    libelle: Pouvoir proposer une évocation spontanée de sa lecture
+    qcm: false
+  - id: francais.6e.lire-oeuvre.05
+    libelle: Prendre appui sur des éléments précis pour fonder sa compréhension fine d’une œuvre et engager son interprétation
+    qcm: false
+  - id: francais.6e.lire-oeuvre.06
+    libelle: Partager ses impressions de lecture et en débattre, confronter ses jugements
+    qcm: false
+  - id: francais.6e.lire-oeuvre.07
+    libelle: Développer le plaisir de lire et de partager ses lectures
+    qcm: false
+  - id: francais.6e.lire-oeuvre.08
+    libelle: S’engager, persévérer dans sa lecture
+    qcm: false
+- id: francais.6e.ecrire-main
+  domaine: Écriture
+  theme: Écrire à la main de manière fluide et efficace
+  attendus:
+  - id: francais.6e.ecrire-main.01
+    libelle: Copier des textes de façon lisible, régulière, soignée et sans erreur d’orthographe ou de ponctuation
+    qcm: false
+  - id: francais.6e.ecrire-main.02
+    libelle: Produire des textes en veillant à leur lisibilité et à leur mise en forme
+    qcm: false
+- id: francais.6e.ecrire-reflechir
+  domaine: Écriture
+  theme: Écrire pour réfléchir, apprendre et mémoriser
+  attendus:
+  - id: francais.6e.ecrire-reflechir.01
+    libelle: Écrire pour résumer et/ou synthétiser
+    qcm: false
+  - id: francais.6e.ecrire-reflechir.02
+    libelle: Produire des écrits réflexifs courts pour argumenter et justifier ses choix
+    qcm: false
+  - id: francais.6e.ecrire-reflechir.03
+    libelle: S’approprier individuellement l’essentiel d’une leçon, avec l’aide ponctuelle du professeur et de ses pairs
+    qcm: false
+  - id: francais.6e.ecrire-reflechir.04
+    libelle: Hiérarchiser des idées
+    qcm: false
+  - id: francais.6e.ecrire-reflechir.05
+    libelle: Produire des écrits courts pour appliquer une règle de grammaire ou employer et mémoriser le lexique appris
+    qcm: false
+- id: francais.6e.ecrits-varies
+  domaine: Écriture
+  theme: Produire des écrits variés
+  attendus:
+  - id: francais.6e.ecrits-varies.01
+    libelle: 'Découvrir et expérimenter des situations variées d’écriture : résumer, synthétiser'
+    qcm: false
+  - id: francais.6e.ecrits-varies.02
+    libelle: Écrire très fréquemment des textes personnels (donner un avis personnel en le justifiant, produire un écrit narratif,
+      expliquer une démarche, etc.)
+    qcm: false
+  - id: francais.6e.ecrits-varies.03
+    libelle: Utiliser le brouillon pour préparer son texte
+    qcm: false
+  - id: francais.6e.ecrits-varies.04
+    libelle: Respecter les codes de l’écrit
+    qcm: false
+  - id: francais.6e.ecrits-varies.05
+    libelle: Veiller à la cohérence textuelle
+    qcm: false
+  - id: francais.6e.ecrits-varies.06
+    libelle: Améliorer tout ou partie de son texte à partir de son autoévaluation et/ou de pistes données par l’enseignant
+      et ses pairs
+    qcm: false
+  - id: francais.6e.ecrits-varies.07
+    libelle: Prendre en compte les normes de l’écrit pour réviser un texte
+    qcm: false
+- id: francais.6e.ecouter
+  domaine: Oral
+  theme: Écouter pour comprendre
+  attendus:
+  - id: francais.6e.ecouter.01
+    libelle: Construire sa posture d’auditeur en maintenant une écoute active orientée en fonction du but
+    qcm: false
+  - id: francais.6e.ecouter.02
+    libelle: Comprendre un message oral provenant d’un tiers ou d’un média (interview, reportage)
+    qcm: false
+  - id: francais.6e.ecouter.03
+    libelle: Montrer sa compréhension notamment en reformulant avec ses mots des informations explicites et implicites d’un
+      texte entendu
+    qcm: false
+  - id: francais.6e.ecouter.04
+    libelle: Identifier les caractéristiques des différents genres de discours
+    qcm: false
+  - id: francais.6e.ecouter.05
+    libelle: Exprimer son ressenti à l’écoute d’un texte
+    qcm: false
+- id: francais.6e.dire
+  domaine: Oral
+  theme: Dire pour être compris dans toutes les disciplines
+  attendus:
+  - id: francais.6e.dire.01
+    libelle: Réaliser une production orale, individuelle ou collective, claire et organisée pour raconter, expliquer, argumenter,
+      justifier ou partager des connaissances
+    qcm: false
+  - id: francais.6e.dire.02
+    libelle: Lire, devant un public, de manière claire et expressive, un texte littéraire ou documentaire
+    qcm: false
+  - id: francais.6e.dire.03
+    libelle: Utiliser l’oral comme outil réflexif
+    qcm: false
+- id: francais.6e.echanges
+  domaine: Oral
+  theme: Participer à des échanges verbaux
+  attendus:
+  - id: francais.6e.echanges.01
+    libelle: Prendre la parole en respectant les codes de la communication
+    qcm: false
+  - id: francais.6e.echanges.02
+    libelle: Construire et ajuster son propos pour présenter de façon claire et ordonnée des explications, des informations,
+      un point de vue, une réponse à une question
+    qcm: false
+  - id: francais.6e.echanges.03
+    libelle: Adapter son discours en fonction de la situation de communication
+    qcm: false
+  - id: francais.6e.echanges.04
+    libelle: Porter un regard critique sur l’oral produit
+    qcm: false
+  - id: francais.6e.echanges.05
+    libelle: Intervenir en tenant compte de ce qui a précédemment été dit par autrui
+    qcm: false
+- id: francais.6e.vocabulaire
+  domaine: Vocabulaire
+  theme: Enrichir son vocabulaire dans toutes les disciplines
+  attendus:
+  - id: francais.6e.vocabulaire.01
+    libelle: Développer un vocabulaire spécifique dans différents univers de référence
+    qcm: true
+  - id: francais.6e.vocabulaire.02
+    libelle: Choisir, de manière autonome, les stratégies les plus efficaces pour comprendre un mot inconnu en prenant l’initiative
+      de déduire, de vérifier ou de rechercher le sens d’un mot
+    qcm: false
+- id: francais.6e.relations-mots
+  domaine: Vocabulaire
+  theme: Établir des relations entre les mots
+  attendus:
+  - id: francais.6e.relations-mots.01
+    libelle: Composer et décomposer des mots pour les analyser et en créer de nouveaux en s’appuyant sur les relations morphologiques
+      et sémantiques
+    qcm: true
+  - id: francais.6e.relations-mots.02
+    libelle: Différencier les mots simples, dérivés et composés
+    qcm: true
+  - id: francais.6e.relations-mots.03
+    libelle: Donner des exemples de synonymes et d’antonymes qui respectent la classe grammaticale du mot cible
+    qcm: true
+  - id: francais.6e.relations-mots.04
+    libelle: Se sensibiliser à l’étymologie et à l’évolution du sens des mots
+    qcm: true
+- id: francais.6e.reemployer
+  domaine: Vocabulaire
+  theme: Réemployer le vocabulaire étudié
+  attendus:
+  - id: francais.6e.reemployer.01
+    libelle: À l’oral et à l’écrit, utiliser à bon escient le vocabulaire spécifique issus de différents univers de référence
+      et se l’approprier durablement, en respectant le registre de langue
+    qcm: false
+  - id: francais.6e.reemployer.02
+    libelle: À l’oral et à l’écrit, utiliser à bon escient les mots polysémiques dans différents contextes disciplinaires
+      et se les approprier durablement
+    qcm: true
+- id: francais.6e.orthographe-lexicale
+  domaine: Vocabulaire
+  theme: Mémoriser l’orthographe des mots
+  attendus:
+  - id: francais.6e.orthographe-lexicale.01
+    libelle: Écrire correctement les mots fréquents en situation autonome
+    qcm: true
+- id: francais.6e.phrase-simple
+  domaine: Grammaire et orthographe grammaticale
+  theme: Analyser une phrase simple
+  attendus:
+  - id: francais.6e.phrase-simple.01
+    libelle: Consolider les compétences antérieures dans des phrases se complexifiant
+    qcm: false
+  - id: francais.6e.phrase-simple.02
+    libelle: Identifier tous les constituants syntaxiques de la phrase simple étudiés précédemment
+    qcm: true
+  - id: francais.6e.phrase-simple.03
+    libelle: Opposer et distinguer attribut du sujet et complément d’objet direct (COD)
+    qcm: true
+  - id: francais.6e.phrase-simple.04
+    libelle: Utiliser les manipulations syntaxiques et étudier la construction du verbe au service de la reconnaissance des
+      constituants d’une phrase
+    qcm: false
+- id: francais.6e.nature-mots
+  domaine: Grammaire et orthographe grammaticale
+  theme: Identifier les mots, un groupe de mots selon leur nature
+  attendus:
+  - id: francais.6e.nature-mots.01
+    libelle: Identifier aisément les pronoms personnels et préciser leur fonction
+    qcm: true
+  - id: francais.6e.nature-mots.02
+    libelle: Mettre en relation un pronom personnel avec son antécédent
+    qcm: true
+  - id: francais.6e.nature-mots.03
+    libelle: Identifier le groupe nominal, quelle que soit sa fonction dans la phrase
+    qcm: true
+- id: francais.6e.groupe-nominal
+  domaine: Grammaire et orthographe grammaticale
+  theme: Analyser le groupe nominal
+  attendus:
+  - id: francais.6e.groupe-nominal.01
+    libelle: Identifier et différencier sans ambigüité adjectif/groupe adjectival de fonction épithète et groupe nominal prépositionnel
+      de fonction complément du nom
+    qcm: true
+- id: francais.6e.phrase-complexe
+  domaine: Grammaire et orthographe grammaticale
+  theme: Différencier phrase simple et phrase complexe à partir de la notion de proposition
+  attendus:
+  - id: francais.6e.phrase-complexe.01
+    libelle: Comprendre la notion de proposition
+    qcm: true
+  - id: francais.6e.phrase-complexe.02
+    libelle: Distinguer phrase simple et phrase complexe à partir du repérage des propositions
+    qcm: true
+- id: francais.6e.propositions
+  domaine: Grammaire et orthographe grammaticale
+  theme: Repérer les différents modes d’articulation des propositions au sein de la phrase complexe
+  attendus:
+  - id: francais.6e.propositions.01
+    libelle: Approfondir les notions de juxtaposition, de coordination, de subordination
+    qcm: true
+  - id: francais.6e.propositions.02
+    libelle: Distinguer le rôle de la conjonction de coordination et celui de la conjonction de subordination
+    qcm: true
+- id: francais.6e.classes-variables
+  domaine: Grammaire et orthographe grammaticale
+  theme: Identifier les classes de mots subissant des variations
+  attendus:
+  - id: francais.6e.classes-variables.01
+    libelle: Améliorer son orthographe grammaticale dans le cadre de la production d’écrits ou d’exercices d’entraînement
+    qcm: false
+- id: francais.6e.accords-gn
+  domaine: Grammaire et orthographe grammaticale
+  theme: Réaliser la chaîne d’accords au sein du groupe nominal
+  attendus:
+  - id: francais.6e.accords-gn.01
+    libelle: Maîtriser la chaîne d’accords dans le groupe nominal, en lien avec l’analyse grammaticale
+    qcm: true
+- id: francais.6e.accord-sujet-verbe
+  domaine: Grammaire et orthographe grammaticale
+  theme: Accorder le sujet et le verbe
+  attendus:
+  - id: francais.6e.accord-sujet-verbe.01
+    libelle: Identifier le groupe sujet et raisonner sur l’accord sujet/verbe
+    qcm: true
+- id: francais.6e.conjugaison
+  domaine: Grammaire et orthographe grammaticale
+  theme: Approfondir sa maîtrise de la conjugaison
+  attendus:
+  - id: francais.6e.conjugaison.01
+    libelle: Consolider la maîtrise de la conjugaison des temps composés (passé composé et plus-que-parfait). Connaître leur
+      composition en deux parties (auxiliaire + participe passé)
+    qcm: true
+  - id: francais.6e.conjugaison.02
+    libelle: 'Conjugaisons à mémoriser et à maîtriser : impératif présent, conditionnel présent des verbes être et avoir,
+      des verbes des premier et deuxième groupes, des verbes irréguliers du troisième groupe : faire, aller, dire, venir,
+      pouvoir, voir, vouloir, prendre'
+    qcm: true
+  - id: francais.6e.conjugaison.03
+    libelle: Maîtriser l’accord du participe passé employé avec l’auxiliaire être
+    qcm: true
+  - id: francais.6e.conjugaison.04
+    libelle: Accorder le participe passé avec le complément d’objet direct (COD) pour les verbes étudiés et conjugués avec
+      l’auxiliaire avoir (pronom personnel antéposé)
+    qcm: true
+  - id: francais.6e.conjugaison.05
+    libelle: Connaître les marques des temps étudiés au CM1 et CM2
+    qcm: true
+  - id: francais.6e.conjugaison.06
+    libelle: Identifier les marques de temps pour le conditionnel présent et l’impératif présent
+    qcm: true
+  - id: francais.6e.conjugaison.07
+    libelle: Maîtriser les variations du radical pour certains verbes du 1er groupe
+    qcm: true
+  - id: francais.6e.conjugaison.08
+    libelle: 'Initier à la notion de valeurs des temps par observation, comparaison, opposition de phrases et textes rencontrés
+      : des temps du discours, puis des temps du récit. Quelques valeurs temporelles des temps seront identifiées'
+    qcm: true

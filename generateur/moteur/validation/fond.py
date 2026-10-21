@@ -1,4 +1,5 @@
-"""Le fond d'un exercice : N3 (cohérence pédagogique) puis N4 (calculs).
+"""Le fond d'un exercice : N3 (cohérence pédagogique) puis N4 (calculs). N3 avertit aussi quand l'exercice cite une
+notion d'une classe supérieure (programme.py, évolution E2.6) : jamais un rejet.
 
 Utilisé à trois moments :
 - à la génération, pour refuser (`valider_le_fond`) ;
@@ -10,7 +11,7 @@ Utilisé à trois moments :
 
 from collections.abc import Callable
 
-from generateur.moteur.validation import ErreurValidation, n3_pedagogie, n4_calcul, numero_de_question
+from generateur.moteur.validation import ErreurValidation, n3_pedagogie, n4_calcul, numero_de_question, programme
 
 
 def valider_le_fond(instance: dict) -> tuple[list[str], dict]:
@@ -24,7 +25,7 @@ def valider_le_fond(instance: dict) -> tuple[list[str], dict]:
     rejets: list[ErreurValidation] = []
     avertissements, bilan_n4 = [], {}
     try:
-        avertissements = n3_pedagogie.valider(instance)
+        avertissements = n3_pedagogie.valider(instance) + programme.avertissements(instance)
     except ErreurValidation as e:
         rejets.append(e)
     try:
@@ -52,7 +53,8 @@ def controler(instance: dict) -> dict:
     try:
         avertissements, _ = valider_le_fond(exercice)
     except ErreurValidation as e:
-        avertissements = [c.message for c in n3_pedagogie.verifier(exercice) if not c.bloquant]
+        avertissements = ([c.message for c in n3_pedagogie.verifier(exercice) if not c.bloquant]
+                          + programme.avertissements(exercice))
         return {"erreurs": list(e.erreurs), "questions": list(e.questions), "niveau": e.niveau,
                 "avertissements": avertissements, "n4_questions": n4_questions}
     return {"erreurs": [], "questions": [], "niveau": None, "avertissements": avertissements,

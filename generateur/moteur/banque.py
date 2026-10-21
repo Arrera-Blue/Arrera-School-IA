@@ -24,6 +24,7 @@ import unicodedata
 from datetime import datetime
 from pathlib import Path
 
+from generateur import programmes
 from generateur.moteur import config, registre, rendu
 from generateur.moteur.validation import ErreurValidation, numero_de_question
 from generateur.moteur.validation.fond import controler, tolerant
@@ -213,13 +214,15 @@ def resume(instance: dict, fond: dict | None = None) -> dict:
         "a_relire": relecture(instance, fond)["a_relire"],
         "a_corriger": len(fond["questions"]) or (1 if fond["erreurs"] else 0),
         "avertissements": len(fond["avertissements"]),
+        "attendus": list((meta.get("programme") or {}).get("attendus") or []),  # programme officiel (E2.5)
     }
 
 
 def lister(matiere: str | None = None, niveau: str | None = None, statut_voulu: str | None = None,
-           recherche: str | None = None) -> list[dict]:
+           recherche: str | None = None, attendu: str | None = None) -> list[dict]:
     """Les exercices de la banque, du plus récent au plus ancien, éventuellement filtrés (`recherche` : voir
-    `correspond`)."""
+    `correspond` ; `attendu` : un attendu ou un thème du programme, qui trouve aussi les exercices rattachés au
+    thème ou à l'un de ses attendus)."""
     dossier = config.chemin("banque")
     lignes = []
     for fichier in dossier.glob("*.json") if dossier.is_dir() else []:
@@ -236,6 +239,8 @@ def lister(matiere: str | None = None, niveau: str | None = None, statut_voulu: 
         ligne["id"] = ligne["id"] or fichier.stem
         if (matiere and ligne["matiere"] != matiere) or (niveau and ligne["niveau"] != niveau) or \
                 (statut_voulu and ligne["statut"] != statut_voulu):
+            continue
+        if attendu and not any(programmes.couvre(attendu, a) for a in ligne["attendus"]):
             continue
         lignes.append(ligne)
     return sorted(lignes, key=lambda l: l["date"] or "", reverse=True)

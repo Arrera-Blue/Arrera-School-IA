@@ -26,7 +26,8 @@
   // donnees : la dernière réponse de /api/exercices/{id}, pour remplir le formulaire de modification
   // generation : l'identifiant de la génération suivie, pour pouvoir l'annuler
   // compte : le compte connecté (null : écran de connexion)
-  const etat = { compte: null, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
+  // programmes : les attendus du programme officiel déjà chargés, par « matière|classe » (E2)
+  const etat = { compte: null, programmes: {}, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
     statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null };
   const $ = (selecteur) => document.querySelector(selecteur);
 
@@ -86,6 +87,8 @@
     if (secondes < 60) return `${Math.round(secondes)} s`;
     return `${Math.floor(secondes / 60)} min ${String(Math.round(secondes % 60)).padStart(2, "0")} s`;
   }
+
+  const sansAccents = (texte) => (texte || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
   function remplirSelect(select, valeurs, libelles = {}, vide = null) {
     select.replaceChildren();
@@ -414,13 +417,16 @@
     $("#nb_questions").value = r.nb_questions || 5;
     $("#difficulte").value = r.difficulte || "";
     $("#precisions").value = r.demande_enseignant || "";
+    $("#filtre-attendu").value = "";
+    remplirAttendus(r.attendu || "");
     for (const champ of document.querySelectorAll("#form-requete .champ")) {
       const nom = champ.dataset.champ;
       const source = champ.querySelector(".source");
       const aVerifier = (resultat.a_verifier || []).includes(nom);
       champ.classList.toggle("a-verifier", aVerifier);
       const manque = nom === "notion" ? "à écrire" : "à choisir";
-      if (source) source.textContent = aVerifier ? (SOURCES[resultat.sources[nom]] || manque) : "";
+      const texte = nom === "attendu" ? "proposé d'après la notion : à vérifier" : SOURCES[resultat.sources[nom]];
+      if (source) source.textContent = aVerifier ? (texte || manque) : "";
     }
     const remarques = $("#remarques");
     remarques.replaceChildren(...(resultat.remarques || []).map((t) => el("li", { texte: t })));
@@ -465,6 +471,91 @@
     $("#nb_questions").max = type.questions_max;
   }
 
+  // --- le programme officiel (E2) : la liste des attendus pour la matière et la classe ------------------
+
+  async function chargerProgramme(matiere, niveau) {
+    if (!matiere || !niveau) return null;
+    const cle = `${matiere}|${niveau}`;
+    if (!etat.programmes[cle]) {
+      etat.programmes[cle] = await api(`/api/programmes?${new URLSearchParams({ matiere, niveau })}`);
+    }
+    return etat.programmes[cle];
+  }
+
+  // des groupes par thème : « Tout le thème », puis ses attendus ; `vide` : la première option
+  function optionsDuProgramme(select, programme, vide) {
+    select.replaceChildren(el("option", { value: "", texte: vide }));
+    for (const t of programme.themes) {
+      select.append(el("optgroup", { label: t.theme },
+        el("option", { value: t.id, texte: `Tout le thème : ${t.theme}`, "data-cherche": sansAccents(t.theme) }),
+        ...t.attendus.map((a) => el("option", { value: a.id, texte: a.libelle,
+          "data-cherche": sansAccents(`${t.theme} ${a.sous_theme || ""} ${a.libelle}`) }))));
+    }
+  }
+
+  async function remplirAttendus(choisi = "") {
+    const select = $("#attendu");
+    const matiere = $("#matiere").value;
+    const niveau = $("#niveau").value;
+    let programme = null;
+    try {
+      programme = await chargerProgramme(matiere, niveau);
+    } catch (e) {
+      $("#attendu-note").textContent = `Programme illisible : ${e.message}`;
+    }
+    // la matière ou la classe a changé pendant le chargement : une autre liste est en route
+    if ($("#matiere").value !== matiere || $("#niveau").value !== niveau) return;
+    const couvert = Boolean(programme && programme.couvert);
+    if (couvert) optionsDuProgramme(select, programme, "Hors référentiel (notion libre)");
+    else select.replaceChildren(el("option", { value: "", texte: "Hors référentiel (notion libre)" }));
+    select.disabled = !couvert;
+    $("#filtre-attendu").disabled = !couvert;
+    select.value = [...select.options].some((o) => o.value === choisi) ? choisi : "";
+    filtrerAttendus();
+    noterAttendu(programme);
+  }
+
+  function filtrerAttendus() {
+    const filtre = sansAccents($("#filtre-attendu").value.trim());
+    const select = $("#attendu");
+    for (const groupe of select.querySelectorAll("optgroup")) {
+      let visibles = 0;
+      for (const option of groupe.querySelectorAll("option")) {
+        // l'attendu choisi reste toujours visible
+        option.hidden = Boolean(filtre) && !option.dataset.cherche.includes(filtre) && option.value !== select.value;
+        if (!option.hidden) visibles += 1;
+      }
+      groupe.hidden = visibles === 0;
+    }
+  }
+
+  function noterAttendu(programme = etat.programmes[`${$("#matiere").value}|${$("#niveau").value}`]) {
+    const note = $("#attendu-note");
+    const select = $("#attendu");
+    if (!$("#matiere").value || !$("#niveau").value) {
+      note.textContent = "Choisissez la matière et la classe pour voir les attendus du programme.";
+    } else if (!programme || !programme.couvert) {
+      note.textContent = "Pas encore de référentiel pour cette matière à cette classe : la notion reste libre.";
+    } else if (select.value) {
+      note.textContent = `${select.selectedOptions[0].textContent} — ${programme.source.bo}.`;
+    } else {
+      note.textContent = `Hors référentiel : l'exercice ne sera rattaché à aucun attendu du programme (${programme.source.bo}).`;
+    }
+  }
+
+  function choisirAttendu() {
+    const select = $("#attendu");
+    // sans notion écrite, le libellé de l'attendu en tient lieu
+    if (select.value && !$("#notion").value.trim()) {
+      const texte = select.selectedOptions[0].textContent.replace(/^Tout le thème : /, "");
+      $("#notion").value = texte.length <= 120 ? texte : `${texte.slice(0, 117).replace(/\s+\S*$/, "")}…`;
+    }
+    const champ = select.closest(".champ");
+    champ.classList.remove("a-verifier");
+    champ.querySelector(".source").textContent = "";
+    noterAttendu();
+  }
+
   // --- 2. générer -------------------------------------------------------------------------------
 
   async function generer(evenement) {
@@ -489,6 +580,7 @@
       nb_questions: Number.isNaN(nombre) ? null : nombre,
       difficulte: $("#difficulte").value || null,
       demande_enseignant: $("#precisions").value.trim() || null,
+      attendu: $("#attendu").value || null,
     };
     $("#btn-generer").disabled = true;
     try {
@@ -605,7 +697,7 @@
   async function chargerBanque() {
     const parametres = new URLSearchParams();
     for (const [cle, id] of [["matiere", "#filtre-matiere"], ["niveau", "#filtre-niveau"], ["statut", "#filtre-statut"],
-      ["recherche", "#filtre-recherche"]]) {
+      ["recherche", "#filtre-recherche"], ["attendu", "#filtre-programme"]]) {
       if ($(id).value.trim()) parametres.set(cle, $(id).value.trim());
     }
     const message = $("#banque-etat");
@@ -628,6 +720,25 @@
       etat.annonce = null;
     } catch (e) {
       message.textContent = `Banque illisible : ${e.message}`;
+    }
+  }
+
+  async function remplirFiltreProgramme() {
+    const select = $("#filtre-programme");
+    const matiere = $("#filtre-matiere").value;
+    const niveau = $("#filtre-niveau").value;
+    select.replaceChildren(el("option", { value: "", texte: matiere && niveau ? "Tous" : "Choisir matière et classe" }));
+    select.disabled = true;
+    let programme = null;
+    try {
+      programme = await chargerProgramme(matiere, niveau);
+    } catch (_) { /* filtre indisponible : la banque reste lisible */ }
+    if ($("#filtre-matiere").value !== matiere || $("#filtre-niveau").value !== niveau) return;
+    if (programme && programme.couvert) {
+      optionsDuProgramme(select, programme, "Tous");
+      select.disabled = false;
+    } else if (matiere && niveau) {
+      select.replaceChildren(el("option", { value: "", texte: "Pas de référentiel" }));
     }
   }
 
@@ -670,6 +781,13 @@
     $("#ex-infos").textContent = [MATIERES[x.matiere] || x.matiere, x.niveau, x.notion,
       `${x.questions.length} questions`, origine, meta.duree_s !== undefined ? `généré en ${duree(meta.duree_s)}` : null,
       meta.tentatives > 1 ? `${meta.tentatives} tentatives` : null, date(meta.date)].filter(Boolean).join(" · ");
+    const programme = meta.programme;
+    $("#ex-programme").hidden = !programme;
+    if (programme) {
+      const libelles = programme.libelles || programme.attendus;
+      $("#ex-programme").textContent = `Programme officiel (${programme.source}) : ` +
+        libelles.map((l) => `« ${l} »`).join(" ; ") + (programme.choisi ? "" : " (rattaché par le générateur)");
+    }
     afficherValidation(x, relecture);
     afficherQuestions(x, relecture);
     $("#ex-apercu").src = `/api/exercices/${ident}/apercu?v=${Date.now()}`;
@@ -688,6 +806,7 @@
     etat.exercice = null;
     etat.donnees = null;
     for (const id of ["#ex-infos", "#ex-validation", "#ex-avertissements", "#ex-questions"]) $(id).replaceChildren();
+    $("#ex-programme").hidden = true;
     $("#ex-erreurs").hidden = true;
     $("#ex-actions").hidden = true;
     $("#ex-regeneration").hidden = true;
@@ -1026,7 +1145,14 @@
     $("#btn-a-la-main").addEventListener("click", remplirALaMain);
     $("#form-requete").addEventListener("submit", generer);
     $("#type").addEventListener("change", choisirType);
-    for (const id of ["#notion", "#matiere", "#precisions"]) {
+    for (const id of ["#matiere", "#niveau"]) {
+      // une autre matière ou une autre classe : un autre programme, l'attendu choisi ne vaut plus
+      $(id).addEventListener("change", () => { $("#filtre-attendu").value = ""; remplirAttendus(""); });
+    }
+    $("#filtre-attendu").addEventListener("input", filtrerAttendus);
+    $("#attendu").addEventListener("change", choisirAttendu);
+    for (const id of ["#filtre-matiere", "#filtre-niveau"]) $(id).addEventListener("change", remplirFiltreProgramme);
+    for (const id of ["#notion", "#matiere", "#precisions", "#attendu"]) {
       // le chemin annoncé (programme ou modèle) dépend de la demande : il n'est plus sûr si elle change
       $(id).addEventListener("input", () => { $("#chemin").hidden = true; });
     }

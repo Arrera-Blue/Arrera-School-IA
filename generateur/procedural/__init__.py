@@ -13,6 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from fractions import Fraction
 
+from generateur import programmes
 from generateur.moteur.validation.n3_pedagogie import cle_de_comparaison, normaliser, valeur
 
 
@@ -94,15 +95,42 @@ def notions() -> dict:
     return {m.NOM: m for m in (calcul_mental, fractions, pourcentages, pythagore)}
 
 
+# --- programmes officiels (évolution E2.5) ----------------------------------------------------------
+# Chaque générateur déclare, genre par genre et classe par classe, les attendus du programme qu'il travaille
+# (ATTENDUS = {genre: {classe: (identifiants…)}}) : un genre sans attendu (le calcul mental de tables, un
+# automatisme ; la « partie d'un tout », vue au cours moyen) n'est rattaché à rien.
+
+def attendus_du_genre(module, genre: str, niveau: str | None) -> tuple[str, ...]:
+    return tuple(getattr(module, "ATTENDUS", {}).get(genre, {}).get(niveau, ()))
+
+
+def genres_pour(module, cible: str, niveau: str | None) -> list[Genre]:
+    """Les genres du module qui travaillent l'attendu, ou un attendu du thème, `cible`, à cette classe."""
+    return [g for g in module.GENRES
+            if any(programmes.couvre(cible, a) for a in attendus_du_genre(module, g.__name__, niveau))]
+
+
 def aiguiller(demande: dict) -> str | None:
     """Le générateur qui couvre la demande, ou None pour la chaîne habituelle (modèle → N1…N4 → reprise).
 
-    Une seule notion couverte, et aucune autre notion de maths citée : « les pourcentages », « l'addition de
-    fractions » → oui ; « fractions et pourcentages », « les nombres décimaux » → non. Un générateur peut
-    déclarer des mots qui l'excluent (EXCLUS) : « addition » désigne le calcul mental, sauf s'il s'agit de
+    Avec un attendu du programme (E2) : le générateur qui en travaille le plus d'attendus distincts (« Les
+    fractions » de 6e : les fractions plutôt que les pourcentages, rangés dans le même thème) ; aucun → le modèle.
+
+    Sans attendu : une seule notion couverte, et aucune autre notion de maths citée : « les pourcentages »,
+    « l'addition de fractions » → oui ; « fractions et pourcentages », « les nombres décimaux » → non. Un générateur
+    peut déclarer des mots qui l'excluent (EXCLUS) : « addition » désigne le calcul mental, sauf s'il s'agit de
     fractions."""
     if demande.get("matiere") not in (None, "maths"):
         return None
+    if cible := demande.get("attendu"):
+        niveau = demande.get("niveau")
+        scores = []
+        for nom, module in notions().items():
+            genres = genres_pour(module, cible, niveau)
+            distincts = {a for g in genres for a in attendus_du_genre(module, g.__name__, niveau)}
+            scores.append((len(distincts), len(genres), nom))
+        meilleur = max(scores)
+        return meilleur[2] if meilleur[1] else None
     texte = sans_accents(" ".join(str(demande.get(c) or "") for c in ("notion", "demande_enseignant")))
     couvertes = [nom for nom, module in notions().items()
                  if any(m in texte for m in module.MOTS_CLES) and not any(x in texte for x in getattr(module, "EXCLUS", ()))]
@@ -129,10 +157,10 @@ def tirer_une(genre: Genre, rng: random.Random, deja: set) -> Squelette:
     raise RuntimeError("le générateur ne trouve plus de question nouvelle : demander moins de questions")
 
 
-def tirer(notion: str, nombre: int, rng: random.Random) -> list[Squelette]:
+def tirer(notion: str, nombre: int, rng: random.Random, genres: list[Genre] | None = None) -> list[Squelette]:
     """`nombre` questions de la notion, de genres variés : chaque genre une fois, dans un ordre tiré au sort,
-    avant qu'un genre revienne."""
-    genres = list(notions()[notion].GENRES)
+    avant qu'un genre revienne. `genres` : seulement ceux-là (ceux d'un attendu du programme)."""
+    genres = list(genres or notions()[notion].GENRES)
     ordre: list[Genre] = []
     while len(ordre) < nombre:
         ordre += rng.sample(genres, len(genres))

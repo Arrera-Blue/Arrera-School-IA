@@ -1,0 +1,369 @@
+# Référentiel des attendus — francais, 5e (évolution E2). Libellés recopiés MOT POUR MOT des
+# « Objectifs d’apprentissage » du programme officiel (source ci-dessous) ; seuls les identifiants, les
+# sous-thèmes de maths 6e et le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du
+# programme) sont ajoutés. Méthode et corrections : docs/etapes/etape-E2-programmes.md.
+matiere: francais
+niveau: 5e
+cycle: 4
+source:
+  texte: Programmes d’enseignement de français et de mathématiques du cycle des approfondissements (cycle 4)
+  arrete: Arrêté du 18 février 2026 (JO du 4 mars 2026)
+  nor: MENE2602912A
+  bo: BO n° 10 du 5 mars 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo10/MENE2602912A
+  en_vigueur: en 5e à la rentrée 2026-2027 (article 3 de l’arrêté)
+  extrait: Annexe 1 – Programme de français pour le cycle 4, « Cinquième »
+  releve: '2026-10-21'
+themes:
+- id: francais.5e.comprendre-interpreter
+  domaine: Lecture
+  theme: Comprendre, interpréter, apprécier
+  attendus:
+  - id: francais.5e.comprendre-interpreter.01
+    libelle: Rédiger un texte personnel pour rendre compte de sa réception et s’approprier sa lecture.
+    qcm: false
+  - id: francais.5e.comprendre-interpreter.02
+    libelle: Travailler la lecture silencieuse et développer les différentes stratégies de compréhension.
+    qcm: false
+  - id: francais.5e.comprendre-interpreter.03
+    libelle: Poursuivre son apprentissage de lecteur autonome, contrôler sa compréhension.
+    qcm: false
+  - id: francais.5e.comprendre-interpreter.04
+    libelle: Formuler un jugement fondé sur des émotions, sur des critères esthétiques, sur des idées et des valeurs.
+    qcm: false
+  - id: francais.5e.comprendre-interpreter.05
+    libelle: Justifier son point de vue de lecteur.
+    qcm: false
+  - id: francais.5e.comprendre-interpreter.06
+    libelle: Apprendre à recourir à quelques outils d’analyse pertinents pour lire les textes rencontrés.
+    qcm: false
+- id: francais.5e.lire-voix-haute
+  domaine: Lecture
+  theme: Lire à voix haute, seul ou à plusieurs
+  attendus:
+  - id: francais.5e.lire-voix-haute.01
+    libelle: Lire un texte d’une vingtaine de lignes avec aisance devant un auditoire.
+    qcm: false
+  - id: francais.5e.lire-voix-haute.02
+    libelle: Lire un texte de manière expressive en utilisant les ressources de la voix, du rythme, du regard et éventuellement
+      de la gestuelle.
+    qcm: false
+  - id: francais.5e.lire-voix-haute.03
+    libelle: Réciter un court texte en vers ou en prose.
+    qcm: false
+  - id: francais.5e.lire-voix-haute.04
+    libelle: Repérer des éléments à améliorer dans sa lecture oralisée ou celle des autres.
+    qcm: false
+- id: francais.5e.oeuvre-contextes
+  domaine: Lecture
+  theme: Appréhender une œuvre dans des contextes artistiques variés
+  attendus:
+  - id: francais.5e.oeuvre-contextes.01
+    libelle: Rendre compte de sa lecture personnelle d’une œuvre.
+    qcm: false
+  - id: francais.5e.oeuvre-contextes.02
+    libelle: Comprendre et interpréter le parcours d’un ou de plusieurs personnages afin d’appréhender les enjeux de l’œuvre
+      et la situer dans son contexte.
+    qcm: false
+  - id: francais.5e.oeuvre-contextes.03
+    libelle: Comparer les langages différents d’une œuvre littéraire et d’une œuvre artistique.
+    qcm: false
+  - id: francais.5e.oeuvre-contextes.04
+    libelle: Tirer parti des informations sur le contexte de production d’une œuvre pour la comprendre et l’interpréter.
+    qcm: false
+- id: francais.5e.connaissances-litteraires
+  domaine: Lecture
+  theme: Acquérir, structurer et mobiliser des connaissances littéraires et culturelles
+  attendus:
+  - id: francais.5e.connaissances-litteraires.01
+    libelle: S’approprier les mots importants de l’univers de l’œuvre étudiée.
+    qcm: false
+  - id: francais.5e.connaissances-litteraires.02
+    libelle: Mémoriser pour une œuvre intégrale étudiée un passage choisi d’une dizaine de lignes ou vers.
+    qcm: false
+  - id: francais.5e.connaissances-litteraires.03
+    libelle: Se constituer des repères dans l’histoire littéraire.
+    qcm: false
+  - id: francais.5e.connaissances-litteraires.04
+    libelle: Mettre en relation les textes nouveaux avec ceux de lus ou étudiés précédemment.
+    qcm: false
+- id: francais.5e.ecrire-reflechir
+  domaine: Écriture
+  theme: Écrire pour réfléchir, apprendre et mémoriser
+  attendus:
+  - id: francais.5e.ecrire-reflechir.01
+    libelle: Utiliser différents supports pour écrire, apprendre et mémoriser.
+    qcm: false
+  - id: francais.5e.ecrire-reflechir.02
+    libelle: Repérer l’idée principale d’un message écrit ou oral.
+    qcm: false
+  - id: francais.5e.ecrire-reflechir.03
+    libelle: 'Produire des écrits de travail : listes, synthèses, brouillons d’oral, etc.'
+    qcm: false
+- id: francais.5e.ecrire-invention
+  domaine: Écriture
+  theme: Écrire des textes d’invention et de réflexion pour soi et pour autrui
+  attendus:
+  - id: francais.5e.ecrire-invention.01
+    libelle: Planifier un écrit en étant accompagné dans sa démarche.
+    qcm: false
+  - id: francais.5e.ecrire-invention.02
+    libelle: S’initier à une pratique artistique et créative de l’écriture, seul ou avec ses pairs.
+    qcm: false
+  - id: francais.5e.ecrire-invention.03
+    libelle: Écrire des textes narratifs et descriptifs.
+    qcm: false
+  - id: francais.5e.ecrire-invention.04
+    libelle: Écrire un texte à visée argumentative à partir de consignes simples et explicitées.
+    qcm: false
+- id: francais.5e.evaluer-ecrit
+  domaine: Écriture
+  theme: Évaluer son écrit et savoir le faire évoluer
+  attendus:
+  - id: francais.5e.evaluer-ecrit.01
+    libelle: Savoir utiliser le brouillon comme un écrit pour retravailler son texte.
+    qcm: false
+  - id: francais.5e.evaluer-ecrit.02
+    libelle: Réviser un écrit en suivant les consignes des professeurs.
+    qcm: false
+  - id: francais.5e.evaluer-ecrit.03
+    libelle: Faire évoluer un écrit en fonction de nouvelles consignes.
+    qcm: false
+- id: francais.5e.prendre-parole
+  domaine: Oral
+  theme: Prendre la parole, communiquer et interagir
+  attendus:
+  - id: francais.5e.prendre-parole.01
+    libelle: Pratiquer un oral adapté à la situation de communication.
+    qcm: false
+  - id: francais.5e.prendre-parole.02
+    libelle: Prendre la parole seul et s’exprimer de façon fluide.
+    qcm: false
+  - id: francais.5e.prendre-parole.03
+    libelle: Entrer dans un dialogue.
+    qcm: false
+  - id: francais.5e.prendre-parole.04
+    libelle: Intervenir dans un débat en respectant les règles d’un échange argumentatif.
+    qcm: false
+- id: francais.5e.ecouter
+  domaine: Oral
+  theme: Écouter, comprendre et interpréter
+  attendus:
+  - id: francais.5e.ecouter.01
+    libelle: Écouter une production orale et en mémoriser les principaux éléments.
+    qcm: false
+  - id: francais.5e.ecouter.02
+    libelle: Comprendre les visées d’une production orale spécifique.
+    qcm: false
+- id: francais.5e.dire-jouer
+  domaine: Oral
+  theme: Dire, lire, jouer un texte
+  attendus:
+  - id: francais.5e.dire-jouer.01
+    libelle: Lire et réciter avec fluidité.
+    qcm: false
+  - id: francais.5e.dire-jouer.02
+    libelle: Utiliser les ressources de la voix et du corps pour faire vivre un texte.
+    qcm: false
+  - id: francais.5e.dire-jouer.03
+    libelle: S’exercer à la pratique théâtrale.
+    qcm: false
+- id: francais.5e.vocabulaire
+  domaine: Vocabulaire et orthographe lexicale
+  theme: Enrichir son vocabulaire
+  attendus:
+  - id: francais.5e.vocabulaire.01
+    libelle: Savoir déduire, vérifier ou rechercher le sens d’un mot.
+    qcm: true
+  - id: francais.5e.vocabulaire.02
+    libelle: Mobiliser le vocabulaire nouveau pour améliorer ses productions écrites et orales.
+    qcm: false
+  - id: francais.5e.vocabulaire.03
+    libelle: Organiser les savoirs lexicaux (collections, familles de mots, portfolios, etc.).
+    qcm: false
+  - id: francais.5e.vocabulaire.04
+    libelle: Maitriser l’usage du dictionnaire de langue en version papier et numérique.
+    qcm: false
+- id: francais.5e.relations-mots
+  domaine: Vocabulaire et orthographe lexicale
+  theme: Identifier les types de relations entre les mots
+  attendus:
+  - id: francais.5e.relations-mots.01
+    libelle: Reconnaitre et savoir nommer les relations de sens entre les mots.
+    qcm: true
+  - id: francais.5e.relations-mots.02
+    libelle: Reconnaitre et savoir nommer les relations de forme (morphologie) entre les mots.
+    qcm: true
+  - id: francais.5e.relations-mots.03
+    libelle: S’appuyer sur la composition d’un mot (préfixe, radical, suffixe) pour en déduire le sens.
+    qcm: true
+- id: francais.5e.reemployer
+  domaine: Vocabulaire et orthographe lexicale
+  theme: Réemployer son lexique et jouer avec les mots
+  attendus:
+  - id: francais.5e.reemployer.01
+    libelle: Utiliser les mots en exploitant les variations de sens.
+    qcm: true
+  - id: francais.5e.reemployer.02
+    libelle: Distinguer les registres de langue et les utiliser en s’ajustant au contexte, à l’écrit comme à l’oral.
+    qcm: true
+  - id: francais.5e.reemployer.03
+    libelle: Comprendre le fonctionnement du néologisme (de forme et de sens).
+    qcm: true
+  - id: francais.5e.reemployer.04
+    libelle: Jouer avec les mots comme matériau sonore.
+    qcm: false
+- id: francais.5e.formation-mots
+  domaine: Vocabulaire et orthographe lexicale
+  theme: Comprendre la formation des mots
+  attendus:
+  - id: francais.5e.formation-mots.01
+    libelle: Consolider la connaissance de la formation des mots, repérer les analogies, les régularités entre eux.
+    qcm: true
+  - id: francais.5e.formation-mots.02
+    libelle: Connaitre le sens des préfixes et suffixes les plus fréquents.
+    qcm: true
+  - id: francais.5e.formation-mots.03
+    libelle: Appréhender la dimension historique des mots (étymologie) en maitrisant quelques éléments latins, grecs ou empruntés
+      aux langues étrangères.
+    qcm: true
+  - id: francais.5e.formation-mots.04
+    libelle: Comprendre le principe de la dérivation des mots et son incidence sur l’orthographe.
+    qcm: true
+- id: francais.5e.orthographe-lexicale
+  domaine: Vocabulaire et orthographe lexicale
+  theme: Écrire avec justesse (orthographe)
+  attendus:
+  - id: francais.5e.orthographe-lexicale.01
+    libelle: Mémoriser l’orthographe du vocabulaire rencontré.
+    qcm: true
+  - id: francais.5e.orthographe-lexicale.02
+    libelle: Utiliser sa connaissance de l’étymologie pour orthographier des mots ayant le même radical.
+    qcm: true
+  - id: francais.5e.orthographe-lexicale.03
+    libelle: Construire des réflexes d’écriture en s’appuyant sur les régularités orthographiques.
+    qcm: false
+- id: francais.5e.phrase
+  domaine: Grammaire et orthographe grammaticale
+  theme: Comprendre ce qu’est une phrase pour mieux lire et mieux écrire
+  attendus:
+  - id: francais.5e.phrase.01
+    libelle: Identifier et réinvestir le rôle des différents signes de ponctuation en lien avec les constituants de la phrase.
+    qcm: true
+  - id: francais.5e.phrase.02
+    libelle: Identifier trois types de phrases et analyser leurs effets dans un texte.
+    qcm: true
+  - id: francais.5e.phrase.03
+    libelle: Reconnaitre trois formes de phrases et leurs caractéristiques (exclamative et négative).
+    qcm: true
+  - id: francais.5e.phrase.04
+    libelle: Comprendre et expliciter la différence entre phrase simple, phrase complexe, phrase non verbale.
+    qcm: true
+  - id: francais.5e.phrase.05
+    libelle: Comprendre, identifier et employer les relations entre les propositions.
+    qcm: true
+  - id: francais.5e.phrase.06
+    libelle: Comprendre les effets de sens produits par les relations de juxtaposition et coordination.
+    qcm: true
+  - id: francais.5e.phrase.07
+    libelle: Organiser la progression d’un texte et assurer sa cohérence par l’enchainement des phrases.
+    qcm: false
+- id: francais.5e.constituants
+  domaine: Grammaire et orthographe grammaticale
+  theme: Connaitre les différents constituants d’une phrase
+  attendus:
+  - id: francais.5e.constituants.01
+    libelle: Analyser les constituants du groupe sujet, du groupe verbal et du groupe circonstanciel.
+    qcm: true
+  - id: francais.5e.constituants.02
+    libelle: Identifier le sujet, les compléments d’objet direct et indirect, l’attribut du sujet, les compléments circonstanciels
+      de lieu, de cause, de temps et de manière, en utilisant des manipulations syntaxiques et en verbalisant son raisonnement
+      pour s’assurer de sa compréhension.
+    qcm: true
+  - id: francais.5e.constituants.03
+    libelle: Comprendre la structure du groupe nominal minimal et du groupe nominal étendu ; les identifier dans une phrase
+      ou un court passage.
+    qcm: true
+  - id: francais.5e.constituants.04
+    libelle: Identifier les prépositions, les adverbes et les mots subordonnants.
+    qcm: true
+  - id: francais.5e.constituants.05
+    libelle: Distinguer les déterminants et les pronoms.
+    qcm: true
+  - id: francais.5e.constituants.06
+    libelle: Identifier les pronoms personnels, démonstratifs et indéfinis, sans chercher l’exhaustivité.
+    qcm: true
+  - id: francais.5e.constituants.07
+    libelle: Identifier les mots coordonnants et comprendre leurs rôles syntaxique et sémantique dans la phrase.
+    qcm: true
+- id: francais.5e.registres
+  domaine: Grammaire et orthographe grammaticale
+  theme: Observer et distinguer les registres de langue et ajuster ses choix au contexte
+  attendus:
+  - id: francais.5e.registres.01
+    libelle: Découvrir et comprendre les différences entre grammaire de l’écrit et grammaire de l’oral (registre de langue,
+      syntaxe, langue écrite ou parlée plus ou moins normée, contexte d’énonciation).
+    qcm: true
+- id: francais.5e.paroles-rapportees
+  domaine: Grammaire et orthographe grammaticale
+  theme: Analyser et employer des paroles rapportées
+  attendus:
+  - id: francais.5e.paroles-rapportees.01
+    libelle: Identifier des paroles rapportées aux discours direct et indirect.
+    qcm: true
+  - id: francais.5e.paroles-rapportees.02
+    libelle: Insérer des paroles au discours direct dans un texte.
+    qcm: false
+- id: francais.5e.formes-verbales
+  domaine: Grammaire et orthographe grammaticale
+  theme: Maitriser la composition des formes verbales pour identifier un temps et le conjuguer
+  attendus:
+  - id: francais.5e.formes-verbales.01
+    libelle: 'Découvrir, comprendre et mémoriser les éléments qui constituent une forme verbale : radical verbal et terminaison
+      (marques de temps et de personne).'
+    qcm: true
+  - id: francais.5e.formes-verbales.02
+    libelle: Comprendre la morphologie des temps simples (présent, futur simple, imparfait, passé simple de l’indicatif, conditionnel
+      et présent de l’impératif) et des temps composés (passé composé et plus-que-parfait de l’indicatif).
+    qcm: true
+  - id: francais.5e.formes-verbales.03
+    libelle: Conjuguer un verbe par imitation, au passé antérieur et au futur antérieur de l’indicatif.
+    qcm: true
+  - id: francais.5e.formes-verbales.04
+    libelle: Consolider la conjugaison des verbes réguliers et des principaux verbes irréguliers en fonction de la variation
+      de leur radical.
+    qcm: true
+- id: francais.5e.temps-modes
+  domaine: Grammaire et orthographe grammaticale
+  theme: Maitriser l’emploi des temps et des modes
+  attendus:
+  - id: francais.5e.temps-modes.01
+    libelle: Approfondir sa maitrise des valeurs temporelles et aspectuelles des temps simples et composés.
+    qcm: true
+  - id: francais.5e.temps-modes.02
+    libelle: Approfondir sa maitrise des modes indicatif et impératif.
+    qcm: true
+- id: francais.5e.accords
+  domaine: Grammaire et orthographe grammaticale
+  theme: Savoir accorder les mots dans la phrase et expliquer ses choix
+  attendus:
+  - id: francais.5e.accords.01
+    libelle: Maitriser les chaines d’accord du groupe nominal en développant son raisonnement.
+    qcm: true
+  - id: francais.5e.accords.02
+    libelle: Maitriser les chaines d’accord de l’attribut du sujet en développant son raisonnement.
+    qcm: true
+  - id: francais.5e.accords.03
+    libelle: Maitriser les cas complexes de l’accord sujet-verbe (sujet séparé du verbe par un complément, sujet comportant
+      plusieurs noms).
+    qcm: true
+  - id: francais.5e.accords.04
+    libelle: Justifier à l'oral ou à l'écrit l'accord du participe passé employé avec l'auxiliaire être et avec l'auxiliaire
+      avoir (COD antéposé dont pronom personnel COD, à distinguer du COI).
+    qcm: true
+  - id: francais.5e.accords.05
+    libelle: Identifier les verbes attributifs en repérant l’emploi occasionnellement attributif de certains verbes.
+    qcm: true
+  - id: francais.5e.accords.06
+    libelle: Identifier et comprendre les caractéristiques spécifiques de l’attribut du sujet.
+    qcm: true

@@ -1,0 +1,407 @@
+# Référentiel des attendus — maths, 5e (évolution E2). Libellés recopiés MOT POUR MOT des
+# « Objectifs d’apprentissage » du programme officiel (source ci-dessous) ; seuls les identifiants, les
+# sous-thèmes de maths 6e et le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du
+# programme) sont ajoutés. Méthode et corrections : docs/etapes/etape-E2-programmes.md.
+matiere: maths
+niveau: 5e
+cycle: 4
+source:
+  texte: Programmes d’enseignement de français et de mathématiques du cycle des approfondissements (cycle 4)
+  arrete: Arrêté du 18 février 2026 (JO du 4 mars 2026)
+  nor: MENE2602912A
+  bo: BO n° 10 du 5 mars 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo10/MENE2602912A
+  en_vigueur: en 5e à la rentrée 2026-2027 (article 3 de l’arrêté)
+  extrait: Annexe 2 – Programme de mathématiques pour le cycle 4, « Cinquième »
+  releve: '2026-10-21'
+themes:
+- id: maths.5e.operations
+  domaine: Nombres et calculs
+  theme: Opérations
+  attendus:
+  - id: maths.5e.operations.01
+    libelle: Additionner, soustraire, multiplier et diviser pour résoudre des problèmes et contrôler la vraisemblance de son
+      résultat.
+    qcm: true
+  - id: maths.5e.operations.02
+    libelle: Connaitre le sens et les situations d’emploi de ces opérations.
+    qcm: true
+  - id: maths.5e.operations.03
+    libelle: Diviser par un nombre décimal.
+    qcm: true
+  - id: maths.5e.operations.04
+    libelle: Enchainer des opérations.
+    qcm: true
+  - id: maths.5e.operations.05
+    libelle: Traduire un problème, une succession donnée d’opérations, un programme de calcul, en une seule expression, en
+      faisant appel ou non à des parenthèses.
+    qcm: true
+  - id: maths.5e.operations.06
+    libelle: Nommer un calcul, distinguer sommes et produits, termes et facteurs.
+    qcm: true
+  - id: maths.5e.operations.07
+    libelle: Connaitre et utiliser les priorités opératoires.
+    qcm: true
+  - id: maths.5e.operations.08
+    libelle: Connaitre et utiliser la distributivité simple sur des exemples numériques.
+    qcm: true
+  - id: maths.5e.operations.09
+    libelle: Utiliser les notions de multiples et diviseurs.
+    qcm: true
+  - id: maths.5e.operations.10
+    libelle: Connaitre les critères de divisibilité par 3 et par 9.
+    qcm: true
+  - id: maths.5e.operations.11
+    libelle: Mobiliser un algorithme dans le cadre du calcul numérique.
+    qcm: false
+- id: maths.5e.nombres-relatifs
+  domaine: Nombres et calculs
+  theme: Nombres relatifs
+  attendus:
+  - id: maths.5e.nombres-relatifs.01
+    libelle: Définir les nombres relatifs.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.02
+    libelle: Définir l’opposé et la valeur absolue d’un nombre.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.03
+    libelle: Définir la notion de nombre positif, strictement positif, négatif, strictement négatif.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.04
+    libelle: Utiliser les nombres relatifs pour représenter des grandeurs observables qui peuvent prendre des valeurs inférieures
+      à zéro (température, temps, altitude, etc.), en particulier dans le cadre de la résolution de problèmes.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.05
+    libelle: Lire l’abscisse d’un nombre relatif sur une droite graduée et placer un nombre relatif d’abscisse donnée.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.06
+    libelle: Comparer et ranger dans l’ordre croissant et décroissant des nombres décimaux relatifs.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.07
+    libelle: Additionner deux nombres décimaux relatifs.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.08
+    libelle: Additionner plusieurs nombres décimaux relatifs.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.09
+    libelle: Soustraire deux nombres décimaux relatifs.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.10
+    libelle: Connaitre et justifier les situations dans lesquelles des parenthèses sont indispensables au sens des écritures.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.11
+    libelle: Simplifier l’écriture de sommes comportant des parenthèses.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.12
+    libelle: Enchainer additions et soustractions de décimaux relatifs.
+    qcm: true
+  - id: maths.5e.nombres-relatifs.13
+    libelle: Résoudre des problèmes mobilisant addition et soustraction de nombres décimaux relatifs.
+    qcm: true
+- id: maths.5e.nombres-rationnels
+  domaine: Nombres et calculs
+  theme: Nombres rationnels
+  attendus:
+  - id: maths.5e.nombres-rationnels.01
+    libelle: Comparer des fractions.
+    qcm: true
+  - id: maths.5e.nombres-rationnels.02
+    libelle: Additionner et soustraire des fractions de dénominateurs quelconques.
+    qcm: true
+  - id: maths.5e.nombres-rationnels.03
+    libelle: Résoudre des problèmes avec des additions et soustractions de fractions.
+    qcm: true
+- id: maths.5e.puissances
+  domaine: Nombres et calculs
+  theme: Puissances
+  attendus:
+  - id: maths.5e.puissances.01
+    libelle: Découvrir la notion de puissance d’un nombre et sa notation dans le cas du carré et du cube.
+    qcm: true
+  - id: maths.5e.puissances.02
+    libelle: Connaitre les carrés des entiers de 0 à 12.
+    qcm: true
+  - id: maths.5e.puissances.03
+    libelle: Connaitre le cube de 10.
+    qcm: true
+  - id: maths.5e.puissances.04
+    libelle: Savoir écrire un nombre sous la forme d’une puissance 2 ou 3.
+    qcm: true
+  - id: maths.5e.puissances.05
+    libelle: Calculer la valeur numérique d’expressions contenant des puissances simples, additions, soustractions et produits.
+    qcm: true
+  - id: maths.5e.puissances.06
+    libelle: Calculer la valeur d’une expression littérale contenant une puissance simple.
+    qcm: true
+- id: maths.5e.calcul-litteral
+  domaine: Nombres et calculs
+  theme: Calcul littéral et algébrique
+  attendus:
+  - id: maths.5e.calcul-litteral.01
+    libelle: Produire des formules (double, triple, carré, successeur, prédécesseur, aire, périmètre, etc.).
+    qcm: true
+  - id: maths.5e.calcul-litteral.02
+    libelle: Calculer la valeur d’une expression littérale par substitution.
+    qcm: true
+  - id: maths.5e.calcul-litteral.03
+    libelle: Tester si une égalité entre expressions algébriques comportant une variable est vraie ou fausse.
+    qcm: true
+  - id: maths.5e.calcul-litteral.04
+    libelle: Déterminer si une expression littérale est une somme ou un produit.
+    qcm: true
+  - id: maths.5e.calcul-litteral.05
+    libelle: Exploiter les relations k(a + b) = ka + kb ou k(a – b) = ka – kb pour factoriser, ou développer une expression
+      littérale.
+    qcm: true
+  - id: maths.5e.calcul-litteral.06
+    libelle: Réduire une expression littérale de la forme ax + b, où a et b sont des nombres décimaux.
+    qcm: true
+  - id: maths.5e.calcul-litteral.07
+    libelle: Démontrer une propriété générale par le calcul littéral.
+    qcm: false
+  - id: maths.5e.calcul-litteral.08
+    libelle: Utiliser un contre-exemple pour démontrer qu’une assertion est fausse.
+    qcm: true
+  - id: maths.5e.calcul-litteral.09
+    libelle: Formuler des conjectures en s’appuyant sur un langage algorithmique ou un tableur.
+    qcm: false
+  - id: maths.5e.calcul-litteral.10
+    libelle: Donner à la lettre le statut d’inconnue.
+    qcm: true
+  - id: maths.5e.calcul-litteral.11
+    libelle: Modéliser des problèmes relevant des opérations à trous par des équations du type ax = c ou x + b = c.
+    qcm: true
+  - id: maths.5e.calcul-litteral.12
+    libelle: Résoudre des équations du type ax = c ou x + b = c par des méthodes arithmétiques s'appuyant sur les opérations
+      inverses.
+    qcm: true
+- id: maths.5e.reperage
+  domaine: Espace et géométrie
+  theme: Repérage sur une droite et dans le plan
+  attendus:
+  - id: maths.5e.reperage.01
+    libelle: 'Sur une droite graduée : lire l’abscisse d’un point donné ; placer un point d’abscisse donnée.'
+    qcm: true
+  - id: maths.5e.reperage.02
+    libelle: 'Dans le plan muni d’un repère orthogonal : lire les coordonnées d’un point donné ; placer un point de coordonnées
+      données.'
+    qcm: true
+- id: maths.5e.espace
+  domaine: Espace et géométrie
+  theme: Représentation de l’espace
+  attendus:
+  - id: maths.5e.espace.01
+    libelle: 'Construire et mettre en relation différentes représentations en perspectives cavalières des solides suivants
+      : pavé droit, cube, cylindre de révolution, prisme droit.'
+    qcm: false
+  - id: maths.5e.espace.02
+    libelle: Savoir mettre en relation une représentation en perspective cavalière et un patron d’un pavé, d’un prisme droit
+      ou d’un cylindre de révolution.
+    qcm: true
+  - id: maths.5e.espace.03
+    libelle: Calculer le volume du cube, du pavé droit, du prisme droit.
+    qcm: true
+  - id: maths.5e.espace.04
+    libelle: Connaitre et convertir des unités usuelles (volume et capacité).
+    qcm: true
+  - id: maths.5e.espace.05
+    libelle: Calculer l’aire du disque, le volume du cylindre de révolution.
+    qcm: true
+- id: maths.5e.transformations
+  domaine: Espace et géométrie
+  theme: Transformations
+  attendus:
+  - id: maths.5e.transformations.01
+    libelle: Définir le demi-tour, ou symétrie centrale.
+    qcm: true
+  - id: maths.5e.transformations.02
+    libelle: Connaitre les propriétés du demi-tour.
+    qcm: true
+- id: maths.5e.angles
+  domaine: Espace et géométrie
+  theme: Angles
+  attendus:
+  - id: maths.5e.angles.01
+    libelle: 'Caractériser le parallélisme par les angles : angles alternes internes, angles correspondants.'
+    qcm: true
+- id: maths.5e.triangles
+  domaine: Espace et géométrie
+  theme: Triangles
+  attendus:
+  - id: maths.5e.triangles.01
+    libelle: Connaitre la somme des angles d’un triangle et savoir la démontrer.
+    qcm: true
+  - id: maths.5e.triangles.02
+    libelle: Construire des triangles à partir de données partielles.
+    qcm: false
+  - id: maths.5e.triangles.03
+    libelle: Connaitre les propriétés des médiatrices et du cercle circonscrit dans le cas de triangles particuliers.
+    qcm: true
+  - id: maths.5e.triangles.04
+    libelle: Calculer l’aire d’un triangle.
+    qcm: true
+  - id: maths.5e.triangles.05
+    libelle: Définir et tracer les hauteurs dans un triangle.
+    qcm: true
+  - id: maths.5e.triangles.06
+    libelle: Savoir que les hauteurs d’un triangle sont concourantes.
+    qcm: true
+  - id: maths.5e.triangles.07
+    libelle: Définir et tracer les médianes dans un triangle.
+    qcm: true
+  - id: maths.5e.triangles.08
+    libelle: Démontrer qu’une médiane partage un triangle en deux triangles d’aires égales.
+    qcm: false
+  - id: maths.5e.triangles.09
+    libelle: Utiliser ces propriétés dans le cas de triangles particuliers.
+    qcm: true
+- id: maths.5e.parallelogrammes
+  domaine: Espace et géométrie
+  theme: Parallélogrammes
+  attendus:
+  - id: maths.5e.parallelogrammes.01
+    libelle: Définir le parallélogramme.
+    qcm: true
+  - id: maths.5e.parallelogrammes.02
+    libelle: Construire des parallélogrammes.
+    qcm: false
+  - id: maths.5e.parallelogrammes.03
+    libelle: Connaitre les propriétés caractéristiques des côtés opposés et des diagonales.
+    qcm: true
+  - id: maths.5e.parallelogrammes.04
+    libelle: Utiliser une propriété caractéristique sur les diagonales ou les côtés pour les construire ou donner la nature
+      du quadrilatère.
+    qcm: true
+  - id: maths.5e.parallelogrammes.05
+    libelle: Définir les parallélogrammes particuliers (rectangle, losange, carré).
+    qcm: true
+  - id: maths.5e.parallelogrammes.06
+    libelle: Connaitre les propriétés caractéristiques.
+    qcm: true
+  - id: maths.5e.parallelogrammes.07
+    libelle: Savoir calculer l’aire d’un parallélogramme et de figures complexes.
+    qcm: true
+  - id: maths.5e.parallelogrammes.08
+    libelle: Résoudre des problèmes faisant appel à des conversions d’unités de longueur et d’unités d’aires.
+    qcm: true
+- id: maths.5e.statistiques
+  domaine: Organisation et gestion de données et probabilités
+  theme: Statistiques
+  attendus:
+  - id: maths.5e.statistiques.01
+    libelle: Recueillir et organiser des données.
+    qcm: false
+  - id: maths.5e.statistiques.02
+    libelle: Calculer des effectifs et des fréquences (exprimées sous forme décimale, fractionnaire ou de pourcentage).
+    qcm: true
+  - id: maths.5e.statistiques.03
+    libelle: Lire et interpréter des informations présentées sous forme de tableaux, de diagrammes et de graphiques.
+    qcm: true
+  - id: maths.5e.statistiques.04
+    libelle: Représenter, sur papier ou à l’aide d’un tableur-grapheur, des données sous la forme d’un tableau, d’un diagramme
+      (diagramme en barres, diagramme circulaire) ou d’un graphique cartésien.
+    qcm: false
+  - id: maths.5e.statistiques.05
+    libelle: Choisir une représentation adaptée à ce qu’il convient de mettre en avant.
+    qcm: false
+  - id: maths.5e.statistiques.06
+    libelle: Calculer et interpréter la moyenne simple d’une série de données.
+    qcm: true
+- id: maths.5e.probabilites
+  domaine: Organisation et gestion de données et probabilités
+  theme: Probabilités
+  attendus:
+  - id: maths.5e.probabilites.01
+    libelle: Aborder les questions relatives au hasard à partir de problèmes simples.
+    qcm: true
+  - id: maths.5e.probabilites.02
+    libelle: 'Utiliser le vocabulaire des probabilités dans des contextes concrets : expérience aléatoire, issue, évènement.'
+    qcm: true
+  - id: maths.5e.probabilites.03
+    libelle: Attribuer des probabilités dans des cas simples (équiprobabilité).
+    qcm: true
+  - id: maths.5e.probabilites.04
+    libelle: Répéter matériellement une expérience aléatoire simple. Enregistrer les résultats observés dans un tableau d’effectifs
+      et de fréquences.
+    qcm: false
+- id: maths.5e.proportionnalite
+  domaine: Proportionnalité, fonctions
+  theme: Proportionnalité
+  attendus:
+  - id: maths.5e.proportionnalite.01
+    libelle: Utiliser des proportions, des pourcentages.
+    qcm: true
+  - id: maths.5e.proportionnalite.02
+    libelle: Calculer, appliquer des proportions, des pourcentages.
+    qcm: true
+  - id: maths.5e.proportionnalite.03
+    libelle: Identifier des situations de proportionnalité dans des contextes concrets (prix, recettes, distances, échelles).
+    qcm: true
+  - id: maths.5e.proportionnalite.04
+    libelle: Utiliser un coefficient de proportionnalité dans des contextes concrets (prix unitaire, vitesse moyenne, échelle,
+      etc.).
+    qcm: true
+  - id: maths.5e.proportionnalite.05
+    libelle: Représenter une situation de proportionnalité par un tableau ou un graphique.
+    qcm: true
+  - id: maths.5e.proportionnalite.06
+    libelle: Reconnaitre une situation de proportionnalité à partir d’un tableau ou d’un graphique.
+    qcm: true
+  - id: maths.5e.proportionnalite.07
+    libelle: Reconnaitre graphiquement qu’un nuage de points est ou n’est pas associé à une situation de proportionnalité
+      entre données discrètes.
+    qcm: true
+- id: maths.5e.fonctions
+  domaine: Proportionnalité, fonctions
+  theme: Fonctions
+  attendus:
+  - id: maths.5e.fonctions.01
+    libelle: 'Introduire l’expression : « en fonction de » dans des contextes concrets ou mathématiques.'
+    qcm: false
+  - id: maths.5e.fonctions.02
+    libelle: Produire un tableau de valeurs.
+    qcm: false
+  - id: maths.5e.fonctions.03
+    libelle: Lire et interpréter un tableau de valeurs.
+    qcm: true
+  - id: maths.5e.fonctions.04
+    libelle: Placer dans un repère orthogonal donné des points correspondant à un tableau de valeurs.
+    qcm: false
+  - id: maths.5e.fonctions.05
+    libelle: Lire et interpréter un graphique cartésien donné par une courbe ou un nuage de points.
+    qcm: true
+  - id: maths.5e.fonctions.06
+    libelle: Traduire la relation de dépendance entre deux grandeurs par un tableau de valeurs à partir d’une formule.
+    qcm: true
+  - id: maths.5e.fonctions.07
+    libelle: Produire une formule simple représentant la dépendance de deux grandeurs.
+    qcm: true
+  - id: maths.5e.fonctions.08
+    libelle: Caractériser graphiquement la proportionnalité.
+    qcm: true
+- id: maths.5e.pensee-informatique
+  domaine: La pensée informatique
+  theme: La pensée informatique
+  attendus:
+  - id: maths.5e.pensee-informatique.01
+    libelle: Manipuler des instructions simples et les séquencer.
+    qcm: false
+  - id: maths.5e.pensee-informatique.02
+    libelle: Identifier les entrées et sorties d’un programme.
+    qcm: true
+  - id: maths.5e.pensee-informatique.03
+    libelle: Représenter des formules sous la forme d’une expression informatique dans un langage de programmation par blocs.
+    qcm: true
+  - id: maths.5e.pensee-informatique.04
+    libelle: Calculer la valeur de formules à l’aide d’une suite d’instruction dans un langage de programmation par blocs.
+    qcm: true
+  - id: maths.5e.pensee-informatique.05
+    libelle: Prévoir la valeur d’une expression informatique avant son exécution.
+    qcm: true
+  - id: maths.5e.pensee-informatique.06
+    libelle: Analyser un programme simple donné et modifier ses paramètres.
+    qcm: true
+  - id: maths.5e.pensee-informatique.07
+    libelle: Effectuer une boucle inconditionnelle simple permettant de répéter une séquence linéaire d’instructions un nombre
+      précis de fois.
+    qcm: false

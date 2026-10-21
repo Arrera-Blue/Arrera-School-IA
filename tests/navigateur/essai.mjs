@@ -5,7 +5,8 @@
 //
 // Lance l'interface sur une copie de la banque (serveur_copie.py), puis Chrome sans fenêtre, et refait le
 // parcours de l'enseignant : se connecter (E1), analyser une demande, générer (calcul mental : le programme
-// seul, sans le modèle), relire, modifier une question, accepter, rechercher, supprimer, créer un compte,
+// seul, sans le modèle), relire, modifier une question, accepter, rechercher, supprimer, viser un attendu du
+// programme officiel et filtrer la banque par thème (E2), créer un compte,
 // se déconnecter, changer un mot de passe provisoire, affichage sur téléphone ; aucune erreur JavaScript ni
 // violation de CSP. Captures d'écran et copie de la banque : dans le dossier affiché à la fin.
 // Code de sortie : 0 si tous les contrôles passent, 1 sinon.
@@ -191,6 +192,52 @@ try {
   verifier("comptes : compte créé, mot de passe provisoire affiché", /^[a-z2-9]{4}(-[a-z2-9]{4}){3}$/.test(provisoire));
   verifier("comptes : le journal des accès le note", await js(`document.querySelector("#table-journal").textContent.includes("Compte créé")`));
   await capture("4-comptes");
+
+  // 5 ter. programme officiel (E2) : viser un attendu, l'exercice y est rattaché ; la banque se filtre par thème
+  const choisir = (selecteur, valeur) => js(`(() => { const e = document.querySelector(${JSON.stringify(selecteur)});
+    e.value = ${JSON.stringify(valeur)}; e.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+  await aller("#/generer");
+  await jusqua(`document.querySelector("#type").options.length > 0`);
+  await cliquer("#btn-a-la-main");
+  await choisir("#matiere", "maths");
+  await choisir("#niveau", "6e");
+  await jusqua(`!document.querySelector("#attendu").disabled && document.querySelector("#attendu").options.length > 50`);
+  verifier("programme : attendus de maths 6e proposés, groupés par thème", await js(`[...document.querySelectorAll("#attendu optgroup")]
+    .some((g) => g.label === "Les fractions") && document.querySelector("#attendu-note").textContent.includes("BO n° 16 du 17 avril 2025")`));
+  await saisir("#filtre-attendu", "comparer");
+  verifier("programme : la liste se filtre", await js(`(() => { const v = [...document.querySelectorAll("#attendu option")]
+    .filter((o) => !o.hidden && o.value); return v.length > 0 && v.length < 10 && v.some((o) => o.value === "maths.6e.fractions.09"); })()`));
+  await choisir("#attendu", "maths.6e.fractions.09");
+  verifier("programme : sans notion écrite, le libellé de l'attendu en tient lieu",
+    await js(`document.querySelector("#notion").value === "Comparer et encadrer des fractions"`));
+  await js(`document.querySelector("#btn-generer").click()`);
+  await jusqua(`location.hash.startsWith("#/exercice/") && location.hash !== "#/exercice/${ident}" &&
+    document.querySelectorAll("#ex-questions .question").length === 5`, 60000);
+  const visee = await js(`location.hash.slice("#/exercice/".length)`);
+  verifier("programme : l'exercice est rattaché à l'attendu visé", await js(`!document.querySelector("#ex-programme").hidden &&
+    document.querySelector("#ex-programme").textContent.includes("« Comparer et encadrer des fractions »")`));
+  verifier("programme : seules des comparaisons de fractions (générateur limité à l'attendu)",
+    await js(`[...document.querySelectorAll("#ex-questions .enonce")].every((e) => /plus (grande|petite)/.test(e.textContent))`));
+  await capture("5-programme");
+  await aller("#/generer");
+  await saisir("#phrase", "un QCM sur les fractions pour des 6e");
+  await cliquer("#btn-analyser");
+  await jusqua(`document.querySelector("#attendu").value === "maths.6e.fractions"`);
+  verifier("programme : l'analyse propose le thème, à vérifier", await js(`document.querySelector('[data-champ="attendu"]')
+    .classList.contains("a-verifier")`));
+  await aller("#/banque");
+  await choisir("#filtre-matiere", "maths");
+  await choisir("#filtre-niveau", "6e");
+  await jusqua(`!document.querySelector("#filtre-programme").disabled`);
+  await choisir("#filtre-programme", "maths.6e.fractions");
+  await jusqua(`!document.querySelector("#banque-etat").textContent.startsWith("Chargement")`);
+  await attendre(400);
+  verifier("programme : la banque filtrée par le thème trouve l'exercice de son attendu", await js(`(() => {
+    const liens = [...document.querySelectorAll("#table-banque tbody tr a")].map((a) => a.getAttribute("href"));
+    return liens.includes("#/exercice/${visee}") && !liens.includes("#/exercice/${ident}"); })()`));
+  await choisir("#filtre-programme", "");
+  await choisir("#filtre-niveau", "");
+  await choisir("#filtre-matiere", "");
 
   // 6. (option) annuler une vraie génération par le modèle, pendant qu'il écrit
   if (AVEC_MODELE) {

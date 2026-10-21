@@ -148,3 +148,12 @@ def addition(rng: random.Random) -> Squelette:
 
 
 GENRES = (irreductible, egale, comparaison, partie, addition)
+# les attendus du programme que chaque genre travaille (E2.5) ; « partie d'un tout » : sens vu au cours moyen
+ATTENDUS = {
+    "irreductible": {"6e": ("maths.6e.fractions.08",)},             # Établir des égalités de fractions
+    "egale": {"6e": ("maths.6e.fractions.08",)},
+    "comparaison": {"6e": ("maths.6e.fractions.09",),               # Comparer et encadrer des fractions
+                    "5e": ("maths.5e.nombres-rationnels.01",)},     # Comparer des fractions.
+    "addition": {"6e": ("maths.6e.fractions.11",),                  # Additionner et soustraire des fractions
+                 "5e": ("maths.5e.nombres-rationnels.02",)},        # … de dénominateurs quelconques.
+}

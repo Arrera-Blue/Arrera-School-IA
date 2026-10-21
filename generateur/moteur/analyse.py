@@ -18,6 +18,7 @@ import time
 import unicodedata
 from dataclasses import dataclass, field
 
+from generateur import programmes
 from generateur.moteur import registre
 from generateur.moteur.fournisseurs import ErreurFournisseur, Fournisseur
 from generateur.moteur.validation import ErreurValidation
@@ -247,9 +248,11 @@ class Analyse:
 
     @property
     def a_verifier(self) -> list[str]:
-        """Les champs que l'enseignant doit regarder : absents, devinés ou proposés par le modèle."""
-        return [c for c in ("matiere", "niveau", "notion")
-                if self.requete.get(c) is None or self.sources.get(c) in ("devine", "modele")]
+        """Les champs que l'enseignant doit regarder : absents, devinés ou proposés par le modèle ; l'attendu du
+        programme, seulement s'il a été proposé."""
+        champs = [c for c in ("matiere", "niveau", "notion")
+                  if self.requete.get(c) is None or self.sources.get(c) in ("devine", "modele")]
+        return champs + (["attendu"] if self.sources.get("attendu") == "devine" else [])
 
     def en_dict(self) -> dict:
         return {"requete": self.requete, "sources": self.sources, "a_verifier": self.a_verifier,
@@ -325,4 +328,12 @@ def analyser(phrase: str, fournisseur: Fournisseur | None = None) -> Analyse:
         remarques.append("notion non reconnue : à écrire")
     requete = {"type": type_, "matiere": matiere, "niveau": niveau, "notion": notion, "nb_questions": nombre,
                "difficulte": difficulte, "demande_enseignant": phrase or None}
+    # l'attendu du programme le plus proche de la notion (évolution E2.3) : proposé, jamais imposé
+    if programmes.couvert(matiere, niveau):
+        attendu, egaux = programmes.proposer(notion or phrase, matiere, niveau)
+        if attendu:
+            requete["attendu"], sources["attendu"] = attendu, "devine"
+        elif egaux:
+            remarques.append(f"{len(egaux)} attendus du programme correspondent à la notion : choisir le bon dans "
+                             "la liste")
     return Analyse(requete, sources, remarques, duree)

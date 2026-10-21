@@ -1,0 +1,400 @@
+# Référentiel des attendus — maths, 6e (évolution E2). Libellés recopiés MOT POUR MOT des
+# « Objectifs d’apprentissage » du programme officiel (source ci-dessous) ; seuls les identifiants, les
+# sous-thèmes de maths 6e et le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du
+# programme) sont ajoutés. Méthode et corrections : docs/etapes/etape-E2-programmes.md.
+matiere: maths
+niveau: 6e
+cycle: 3
+source:
+  texte: Programmes d’enseignement de français et de mathématiques du cycle de consolidation (cycle 3)
+  arrete: Arrêté du 10 avril 2025 (JO du 16 avril 2025)
+  nor: MENE2504620A
+  bo: BO n° 16 du 17 avril 2025
+  url: https://www.education.gouv.fr/bo/2025/Hebdo16/MENE2504620A
+  en_vigueur: en 6e depuis la rentrée 2025-2026 (article 3 de l’arrêté)
+  extrait: Programme de mathématiques pour le cycle 3 (annexe), « Sixième »
+  releve: '2026-10-21'
+themes:
+- id: maths.6e.nombres-decimaux
+  domaine: Nombres, calcul et résolution de problèmes
+  theme: Les nombres entiers et décimaux
+  attendus:
+  - id: maths.6e.nombres-decimaux.01
+    libelle: Connaître et utiliser la valeur des chiffres selon leur rang dans l’écriture d’un nombre
+    qcm: true
+  - id: maths.6e.nombres-decimaux.02
+    libelle: Connaître les liens entre les unités de numération unité, dizaine, centaine, millier, dixième, centième, millième
+    qcm: true
+  - id: maths.6e.nombres-decimaux.03
+    libelle: Connaître des grands nombres entiers
+    qcm: true
+  - id: maths.6e.nombres-decimaux.04
+    libelle: Reconnaître un nombre décimal
+    qcm: true
+  - id: maths.6e.nombres-decimaux.05
+    libelle: Connaître la définition d’un pourcentage
+    qcm: true
+  - id: maths.6e.nombres-decimaux.06
+    libelle: 'Associer et utiliser différentes écritures d’un nombre décimal : écriture à virgule, fraction, nombre mixte,
+      pourcentage'
+    qcm: true
+  - id: maths.6e.nombres-decimaux.07
+    libelle: Placer sur une demi-droite graduée un point dont l’abscisse est un nombre décimal
+    qcm: true
+  - id: maths.6e.nombres-decimaux.08
+    libelle: Repérer un nombre décimal sur une demi-droite graduée
+    qcm: true
+  - id: maths.6e.nombres-decimaux.09
+    libelle: Comparer deux nombres décimaux
+    qcm: true
+  - id: maths.6e.nombres-decimaux.10
+    libelle: Ordonner une liste de nombres décimaux
+    qcm: true
+  - id: maths.6e.nombres-decimaux.11
+    libelle: Donner la valeur arrondie à l’unité, au dixième ou au centième, d’un nombre décimal
+    qcm: true
+  - id: maths.6e.nombres-decimaux.12
+    libelle: Déterminer ou connaître la valeur arrondie de certains nombres non décimaux
+    qcm: true
+  - id: maths.6e.nombres-decimaux.13
+    libelle: Encadrer un nombre décimal par deux nombres décimaux, intercaler un nombre décimal entre deux nombres décimaux
+    qcm: true
+  - id: maths.6e.nombres-decimaux.14
+    libelle: Additionner et soustraire des nombres décimaux
+    qcm: true
+  - id: maths.6e.nombres-decimaux.15
+    libelle: Multiplier un nombre entier ou un nombre décimal par 0,1, par 0,01, et par 0,001
+    qcm: true
+  - id: maths.6e.nombres-decimaux.16
+    libelle: Connaître le lien avec la division par 10, 100 et par 1 000
+    qcm: true
+  - id: maths.6e.nombres-decimaux.17
+    libelle: Comprendre le sens de la multiplication de deux nombres décimaux
+    qcm: true
+  - id: maths.6e.nombres-decimaux.18
+    libelle: Calculer le produit de deux nombres décimaux
+    qcm: true
+  - id: maths.6e.nombres-decimaux.19
+    libelle: Contrôler les résultats à l’aide d’ordres de grandeur
+    qcm: true
+  - id: maths.6e.nombres-decimaux.20
+    libelle: Résoudre des problèmes mettant en jeu des multiplications entre des nombres décimaux
+    qcm: true
+  - id: maths.6e.nombres-decimaux.21
+    libelle: Diviser un nombre décimal par un nombre entier non nul inférieur à 10
+    qcm: true
+  - id: maths.6e.nombres-decimaux.22
+    libelle: Résoudre des problèmes mettant en jeu des divisions décimales
+    qcm: true
+  - id: maths.6e.nombres-decimaux.23
+    libelle: Effectuer la division euclidienne d’un nombre entier par un nombre entier inférieur à 100
+    qcm: true
+  - id: maths.6e.nombres-decimaux.24
+    libelle: Résoudre des problèmes mettant en jeu des divisions euclidiennes
+    qcm: true
+- id: maths.6e.fractions
+  domaine: Nombres, calcul et résolution de problèmes
+  theme: Les fractions
+  attendus:
+  - id: maths.6e.fractions.01
+    libelle: Relier une fraction au résultat exact de la division de son numérateur par son dénominateur
+    sous_theme: Le sens quotient d’une fraction
+    qcm: true
+  - id: maths.6e.fractions.02
+    libelle: Comprendre et connaître la définition du quotient d’un entier a par un entier b non nul
+    sous_theme: Le sens quotient d’une fraction
+    qcm: true
+  - id: maths.6e.fractions.03
+    libelle: Compléter des égalités à trous multiplicatives
+    sous_theme: Le sens quotient d’une fraction
+    qcm: true
+  - id: maths.6e.fractions.04
+    libelle: Placer une fraction sur une demi-droite graduée dans des cas simples
+    sous_theme: Le sens quotient d’une fraction
+    qcm: true
+  - id: maths.6e.fractions.05
+    libelle: Graduer un segment de longueur donnée
+    sous_theme: Le sens quotient d’une fraction
+    qcm: false
+  - id: maths.6e.fractions.06
+    libelle: Savoir que la fraction a/b peut représenter un nombre entier, un nombre décimal non entier ou un nombre non décimal
+    sous_theme: Le sens quotient d’une fraction
+    qcm: true
+  - id: maths.6e.fractions.07
+    libelle: Utiliser une multiplication pour appliquer une fraction à un nombre entier
+    sous_theme: La fraction comme opérateur multiplicatif
+    qcm: true
+  - id: maths.6e.fractions.08
+    libelle: Établir des égalités de fractions
+    sous_theme: Comparer des fractions
+    qcm: true
+  - id: maths.6e.fractions.09
+    libelle: Comparer et encadrer des fractions
+    sous_theme: Comparer des fractions
+    qcm: true
+  - id: maths.6e.fractions.10
+    libelle: Ordonner une liste de nombres écrits sous forme de fractions ou de nombres mixtes
+    sous_theme: Comparer des fractions
+    qcm: true
+  - id: maths.6e.fractions.11
+    libelle: Additionner et soustraire des fractions
+    sous_theme: Effectuer des opérations sur les fractions
+    qcm: true
+  - id: maths.6e.fractions.12
+    libelle: Multiplier une fraction par un nombre entier
+    sous_theme: Effectuer des opérations sur les fractions
+    qcm: true
+  - id: maths.6e.fractions.13
+    libelle: Résoudre des problèmes mettant en jeu des fractions
+    sous_theme: Effectuer des opérations sur les fractions
+    qcm: true
+  - id: maths.6e.fractions.14
+    libelle: Inventer des problèmes mettant en jeu des fractions
+    sous_theme: Effectuer des opérations sur les fractions
+    qcm: false
+  - id: maths.6e.fractions.15
+    libelle: Comprendre le sens d’un pourcentage
+    sous_theme: Pourcentages
+    qcm: true
+  - id: maths.6e.fractions.16
+    libelle: Calculer une proportion (rapport entre une partie et le tout) et l’exprimer sous forme de pourcentage dans des
+      cas simples
+    sous_theme: Pourcentages
+    qcm: true
+  - id: maths.6e.fractions.17
+    libelle: Appliquer un pourcentage à une grandeur ou à un nombre
+    sous_theme: Pourcentages
+    qcm: true
+- id: maths.6e.algebre
+  domaine: Nombres, calcul et résolution de problèmes
+  theme: Algèbre
+  attendus:
+  - id: maths.6e.algebre.01
+    libelle: Utiliser des modèles pré-algébriques pour résoudre des problèmes algébriques
+    sous_theme: Résoudre des problèmes mettant en jeu des nombres inconnus
+    qcm: true
+  - id: maths.6e.algebre.02
+    libelle: Identifier la structure d’un motif évolutif en repérant une régularité et en identifiant une structure
+    sous_theme: Résoudre des problèmes mettant en jeu des nombres inconnus
+    qcm: true
+- id: maths.6e.longueurs
+  domaine: Grandeurs et mesures
+  theme: Les longueurs
+  attendus:
+  - id: maths.6e.longueurs.01
+    libelle: Savoir que le périmètre du disque est proportionnel à son diamètre
+    qcm: true
+  - id: maths.6e.longueurs.02
+    libelle: Connaître la formule du périmètre d’un disque
+    qcm: true
+  - id: maths.6e.longueurs.03
+    libelle: Calculer le périmètre d’un disque
+    qcm: true
+  - id: maths.6e.longueurs.04
+    libelle: Calculer des périmètres de figures composées
+    qcm: true
+  - id: maths.6e.longueurs.05
+    libelle: Résoudre des problèmes impliquant des longueurs
+    qcm: true
+- id: maths.6e.aires
+  domaine: Grandeurs et mesures
+  theme: Les aires
+  attendus:
+  - id: maths.6e.aires.01
+    libelle: Effectuer des conversions d’aire
+    qcm: true
+  - id: maths.6e.aires.02
+    libelle: Connaître la formule de l’aire d’un carré ou d’un rectangle
+    qcm: true
+  - id: maths.6e.aires.03
+    libelle: Calculer l’aire d’un carré ou d’un rectangle
+    qcm: true
+- id: maths.6e.volumes
+  domaine: Grandeurs et mesures
+  theme: Les volumes
+  attendus:
+  - id: maths.6e.volumes.01
+    libelle: Connaître l’unité centimètre cube
+    qcm: true
+  - id: maths.6e.volumes.02
+    libelle: Comparer des volumes
+    qcm: true
+  - id: maths.6e.volumes.03
+    libelle: Déterminer un volume
+    qcm: true
+- id: maths.6e.durees
+  domaine: Grandeurs et mesures
+  theme: Le repérage dans le temps et les durées
+  attendus:
+  - id: maths.6e.durees.01
+    libelle: Effectuer des calculs sur des horaires et des durées
+    qcm: true
+  - id: maths.6e.durees.02
+    libelle: Résoudre des problèmes impliquant des horaires et des durées
+    qcm: true
+  - id: maths.6e.durees.03
+    libelle: Convertir des durées
+    qcm: true
+- id: maths.6e.geometrie-plane
+  domaine: Espace et géométrie
+  theme: Étude de configurations planes
+  attendus:
+  - id: maths.6e.geometrie-plane.01
+    libelle: Connaître et utiliser la définition de la distance entre deux points
+    sous_theme: Distances
+    qcm: true
+  - id: maths.6e.geometrie-plane.02
+    libelle: Connaître et utiliser la définition du milieu d’un segment
+    sous_theme: Distances
+    qcm: true
+  - id: maths.6e.geometrie-plane.03
+    libelle: Connaître les définitions d’un cercle, d’un disque, d’un rayon, d’un diamètre, d’une corde
+    sous_theme: Cercles et disques
+    qcm: true
+  - id: maths.6e.geometrie-plane.04
+    libelle: Comprendre la définition d’un cercle et celle d’un disque sous la forme d’ensembles de points
+    sous_theme: Cercles et disques
+    qcm: true
+  - id: maths.6e.geometrie-plane.05
+    libelle: Résoudre des problèmes mettant en jeu des distances à un point
+    sous_theme: Cercles et disques
+    qcm: true
+  - id: maths.6e.geometrie-plane.06
+    libelle: Connaître la définition de la médiatrice d’un segment
+    sous_theme: Médiatrice d’un segment
+    qcm: true
+  - id: maths.6e.geometrie-plane.07
+    libelle: Comprendre et utiliser la propriété caractéristique de la médiatrice d’un segment
+    sous_theme: Médiatrice d’un segment
+    qcm: true
+  - id: maths.6e.geometrie-plane.08
+    libelle: Résoudre des problèmes en s’appuyant sur la propriété caractéristique de la médiatrice
+    sous_theme: Médiatrice d’un segment
+    qcm: true
+  - id: maths.6e.geometrie-plane.09
+    libelle: 'Connaître et utiliser les angles ainsi que le lexique et les notations qui s’y rapportent : angle droit, angle
+      plat, angle plein, angle nul, angle aigu, angle obtus, angles opposés par le sommet, angles adjacents, angles supplémentaires'
+    sous_theme: Angles
+    qcm: true
+  - id: maths.6e.geometrie-plane.10
+    libelle: Mesurer un angle
+    sous_theme: Angles
+    qcm: false
+  - id: maths.6e.geometrie-plane.11
+    libelle: Construire un angle de mesure donnée
+    sous_theme: Angles
+    qcm: false
+  - id: maths.6e.geometrie-plane.12
+    libelle: Connaître la définition de la bissectrice d’un angle saillant
+    sous_theme: Bissectrice d’un angle saillant
+    qcm: true
+  - id: maths.6e.geometrie-plane.13
+    libelle: Utiliser la définition de la bissectrice d’un angle pour effectuer des constructions et résoudre des problèmes
+    sous_theme: Bissectrice d’un angle saillant
+    qcm: true
+  - id: maths.6e.geometrie-plane.14
+    libelle: Construire des triangles
+    sous_theme: Triangles
+    qcm: false
+  - id: maths.6e.geometrie-plane.15
+    libelle: 'Connaître et utiliser les propriétés angulaires des triangles particuliers : triangle rectangle, triangle isocèle,
+      triangle équilatéral'
+    sous_theme: Triangles
+    qcm: true
+  - id: maths.6e.geometrie-plane.16
+    libelle: Connaître la valeur de la somme des mesures des angles d’un triangle
+    sous_theme: Triangles
+    qcm: true
+  - id: maths.6e.geometrie-plane.17
+    libelle: L’utiliser pour calculer des angles, effectuer des constructions et résoudre des problèmes
+    sous_theme: Triangles
+    qcm: true
+  - id: maths.6e.geometrie-plane.18
+    libelle: Savoir que les médiatrices d’un triangle sont concourantes
+    sous_theme: Triangles
+    qcm: true
+  - id: maths.6e.geometrie-plane.19
+    libelle: Connaître et construire le cercle circonscrit à un triangle
+    sous_theme: Triangles
+    qcm: true
+  - id: maths.6e.geometrie-plane.20
+    libelle: Connaître la définition du symétrique d’un point par rapport à une droite
+    sous_theme: Symétrie axiale
+    qcm: true
+  - id: maths.6e.geometrie-plane.21
+    libelle: Connaître et utiliser les propriétés de la symétrie axiale pour effectuer des constructions
+    sous_theme: Symétrie axiale
+    qcm: true
+- id: maths.6e.vision-espace
+  domaine: Espace et géométrie
+  theme: La vision dans l’espace
+  attendus:
+  - id: maths.6e.vision-espace.01
+    libelle: Voir dans l’espace des assemblages de cubes
+    qcm: true
+- id: maths.6e.donnees
+  domaine: Organisation et gestion de données et probabilités
+  theme: Organisation et gestion de données
+  attendus:
+  - id: maths.6e.donnees.01
+    libelle: Planifier une enquête et recueillir des données
+    qcm: false
+  - id: maths.6e.donnees.02
+    libelle: Réaliser des mesures et les consigner dans un tableau
+    qcm: false
+  - id: maths.6e.donnees.03
+    libelle: Construire un tableau simple pour présenter des données (observations, caractères)
+    qcm: false
+  - id: maths.6e.donnees.04
+    libelle: Faire un choix en filtrant les données d’un tableau selon un critère
+    qcm: true
+- id: maths.6e.probabilites
+  domaine: Organisation et gestion de données et probabilités
+  theme: Les probabilités
+  attendus:
+  - id: maths.6e.probabilites.01
+    libelle: Savoir que la probabilité d’un évènement est un nombre compris entre 0 et 1
+    qcm: true
+  - id: maths.6e.probabilites.02
+    libelle: Calculer des probabilités dans des situations simples d’équiprobabilité
+    qcm: true
+  - id: maths.6e.probabilites.03
+    libelle: Comparer des résultats d’une expérience aléatoire répétée à une probabilité calculée
+    qcm: true
+- id: maths.6e.proportionnalite
+  domaine: La proportionnalité
+  theme: La proportionnalité
+  attendus:
+  - id: maths.6e.proportionnalite.01
+    libelle: Connaître la définition de la proportionnalité entre deux grandeurs et la mettre en lien avec des expressions
+      de la vie courante
+    qcm: true
+  - id: maths.6e.proportionnalite.02
+    libelle: Identifier si une situation relève du « modèle » de la proportionnalité
+    qcm: true
+  - id: maths.6e.proportionnalite.03
+    libelle: 'Résoudre un problème de proportionnalité en choisissant une procédure adaptée : propriété de linéarité pour
+      la multiplication ou l’addition, retour à l’unité'
+    qcm: true
+  - id: maths.6e.proportionnalite.04
+    libelle: Représenter une situation de proportionnalité à l’aide d’un tableau ou de notations symboliques
+    qcm: true
+  - id: maths.6e.proportionnalite.05
+    libelle: S’initier à la résolution de problèmes d’échelles
+    qcm: true
+- id: maths.6e.pensee-informatique
+  domaine: Initiation à la pensée informatique
+  theme: Initiation à la pensée informatique
+  attendus:
+  - id: maths.6e.pensee-informatique.01
+    libelle: Identifier une instruction ou une séquence d’instructions
+    qcm: true
+  - id: maths.6e.pensee-informatique.02
+    libelle: Produire et exécuter une séquence d’instructions
+    qcm: false
+  - id: maths.6e.pensee-informatique.03
+    libelle: Répéter à la main une séquence d’instructions pour accomplir une tâche imposée
+    qcm: false
+  - id: maths.6e.pensee-informatique.04
+    libelle: Programmer la construction d’un chemin simple
+    qcm: false

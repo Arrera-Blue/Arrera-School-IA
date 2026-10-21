@@ -14,7 +14,9 @@ Points d'entrée (plan-suite 3.2) :
     POST /api/generations                            requête → tâche (file d'attente, une génération à la fois)
     GET  /api/generations[/{id}]                     avancement : en attente | en cours (étape, question) | …
     POST /api/generations/{id}/annuler               arrêter une génération ou une régénération
-    GET  /api/exercices                              la banque, filtrée par matière, classe, statut, recherche
+    GET  /api/exercices                              la banque, filtrée par matière, classe, statut, recherche,
+                                                     attendu du programme
+    GET  /api/programmes?matiere=&niveau=            les attendus du programme officiel (E2), pour le formulaire
     GET  /api/exercices/{id}[/apercu|/telecharger]   l'exercice, sa relecture, son rendu HTML
     POST /api/exercices/{id}/decision                accepter | rejeter
     POST /api/exercices/{id}/questions/{n}/regenerer remplacer la question n (tâche)
@@ -49,7 +51,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from generateur import procedural
+from generateur import procedural, programmes
 from generateur.donnees import comptes, journal, sessions
 from generateur.donnees.base import Base
 from generateur.interface.taches import DejaFinie, File, FilePleine
@@ -90,6 +92,8 @@ class Demande(BaseModel):
     nb_questions: int | None = Field(None, ge=1, le=50)
     difficulte: Literal["facile", "moyen", "difficile"] | None = None
     demande_enseignant: str | None = Field(None, max_length=1000)
+    # un attendu (« maths.6e.fractions.09 ») ou un thème (« maths.6e.fractions ») du programme officiel (E2)
+    attendu: str | None = Field(None, max_length=80, pattern=r"^[a-z0-9.-]+$")
     mode: Literal["auto", "ia", "procedural"] = "auto"
     fournisseur: Literal["llamacpp", "ollama", "maquette"] | None = None
 
@@ -178,10 +182,25 @@ def _verifier(corps: Demande) -> dict:
         raise HTTPException(422, f"nombre de questions : de {minimum} à {maximum}")
     notion = (corps.notion or "").strip() or None
     phrase = (corps.demande_enseignant or "").strip() or None
+    matiere, niveau = corps.matiere or None, corps.niveau or None
+    if corps.attendu:
+        if not programmes.existe(corps.attendu):
+            raise HTTPException(422, f"attendu du programme inconnu : {corps.attendu}")
+        de_l_attendu, _, reste = corps.attendu.partition(".")
+        classe = reste.split(".")[0]
+        if (matiere and matiere != de_l_attendu) or (niveau and niveau != classe):
+            raise HTTPException(422, f"l'attendu choisi est du programme de {de_l_attendu}, {classe} : il ne "
+                                     f"correspond pas à la matière et à la classe demandées")
+        matiere, niveau = de_l_attendu, classe
+        # sans notion écrite, le libellé de l'attendu en tient lieu (coupé à la longueur permise par le schéma)
+        if not notion:
+            texte = programmes.libelle(corps.attendu).removeprefix("Tout le thème : ")
+            notion = texte if len(texte) <= 120 else texte[:117].rsplit(" ", 1)[0] + "…"
     if not (notion or phrase):
         raise HTTPException(422, "indiquer la notion, ou la demande de l'enseignant")
-    demande = {"type": corps.type, "matiere": corps.matiere or None, "niveau": corps.niveau or None, "notion": notion,
-               "nb_questions": corps.nb_questions, "difficulte": corps.difficulte, "demande_enseignant": phrase}
+    demande = {"type": corps.type, "matiere": matiere, "niveau": niveau, "notion": notion,
+               "nb_questions": corps.nb_questions, "difficulte": corps.difficulte, "demande_enseignant": phrase,
+               "attendu": corps.attendu}
     return {k: v for k, v in demande.items() if v is not None}
 
 
@@ -509,8 +528,16 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
 
     @app.get("/api/exercices")
     def exercices(matiere: str | None = None, niveau: str | None = None, statut: str | None = None,
-                  recherche: str | None = None):
-        return {"exercices": banque.lister(matiere or None, niveau or None, statut or None, (recherche or "")[:200])}
+                  recherche: str | None = None, attendu: str | None = None):
+        return {"exercices": banque.lister(matiere or None, niveau or None, statut or None, (recherche or "")[:200],
+                                           (attendu or "")[:80] or None)}
+
+    @app.get("/api/programmes")
+    def programmes_officiels(matiere: str, niveau: str, tous: bool = False):
+        """Les thèmes et attendus du programme pour cette matière à cette classe (par défaut, ceux qui se prêtent
+        à un QCM) ; `couvert: false` si le référentiel ne l'a pas (E2 : maths et français, 6e et 5e)."""
+        contenu = programmes.arbre(matiere, niveau, None if tous else True)
+        return {"couvert": contenu is not None, **(contenu or {"matiere": matiere, "niveau": niveau, "themes": []})}
 
     @app.get("/api/exercices/{ident}")
     def exercice(ident: str):
