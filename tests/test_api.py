@@ -117,7 +117,7 @@ def client(tmp_path, monkeypatch):
     app = creer_application(File(decrire_erreur=decrire_erreur))
     comptes.creer(app.state.base, "prof", "Professeur Essai", MOT_DE_PASSE, "admin")
     c = TestClient(app, base_url="http://127.0.0.1:8000")
-    c.file, c.base = app.state.file, app.state.base
+    c.file, c.base, c.app = app.state.file, app.state.base, app
     assert c.post("/api/session", json={"identifiant": "prof", "mot_de_passe": MOT_DE_PASSE}).status_code == 200
     return c
 
@@ -450,3 +450,83 @@ def test_generer_un_exercice_vise_puis_filtrer_la_banque(client):
     trouves = lambda attendu: [x["id"] for x in client.get("/api/exercices", params={"attendu": attendu}).json()["exercices"]]
     assert trouves("maths.6e.fractions") == [ident] == trouves("maths.6e.fractions.09")  # le thème trouve son attendu
     assert trouves("maths.6e.fractions.08") == [] == trouves("maths.5e.nombres-relatifs")
+
+
+# --- classes et élèves (E3) ----------------------------------------------------------------------------
+
+LISTE = "DUPONT;Marie\nLE GOFF Anne-Sophie\nMARTIN;Alice;12/03/2014"
+
+
+def creer_classe(client) -> dict:
+    lue = client.post("/api/classes/liste", json={"texte": LISTE}).json()
+    assert [e["prenom"] for e in lue["eleves"]] == ["Marie", "Anne-Sophie", "Alice"] and lue["remarques"]
+    r = client.post("/api/classes", json={"nom": "6e B", "niveau": "6e", "eleves": lue["eleves"]})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_creer_une_classe_et_ses_cartes(client):
+    cree = creer_classe(client)
+    assert cree["classe"]["eleves"] == 3 and [c["numero"] for c in cree["cartes"]] == [1, 2, 3]
+    assert all(len(c["code"]) == 4 for c in cree["cartes"])
+    liste = client.get("/api/classes").json()
+    assert liste["aipd_validee"] is False and liste["classes"][0]["nom"] == "6e B"  # « élèves fictifs uniquement »
+    detail = client.get(f"/api/classes/{cree['classe']['id']}").json()["classe"]
+    assert [e["prenom"] for e in detail["liste"]] == ["Marie", "Anne-Sophie", "Alice"]
+    assert "code" not in str(detail["liste"])  # ni code ni empreinte après la création
+    refus = client.post("/api/classes", json={"nom": "6e C", "niveau": "6e", "eleves": [{"nom": "<b>", "prenom": "x"}]})
+    assert refus.status_code == 422
+    assert client.post("/api/classes", json={"nom": "6e B", "niveau": "6e"}).status_code == 422  # déjà
+    assert client.get("/api/classes/999").status_code == 404
+
+
+def test_une_classe_d_un_autre_est_introuvable(client):
+    cree = creer_classe(client)
+    comptes.creer(client.base, "autre", "Autre", "le mot de passe d'un autre")
+    autre = TestClient(client.app, base_url="http://127.0.0.1:8000")
+    autre.post("/api/session", json={"identifiant": "autre", "mot_de_passe": "le mot de passe d'un autre"})
+    eleve = cree["cartes"][0]["eleve_id"]
+    assert autre.get("/api/classes").json()["classes"] == []
+    assert autre.get(f"/api/classes/{cree['classe']['id']}").status_code == 404
+    assert autre.post(f"/api/eleves/{eleve}/code", json={}).status_code == 404
+    assert autre.put(f"/api/eleves/{eleve}", json={"nom": "X", "prenom": "Y"}).status_code == 404
+    export = autre.post(f"/api/eleves/{eleve}/export", json={"mot_de_passe": "le mot de passe d'un autre"})
+    assert export.status_code == 404
+
+
+def test_exporter_supprimer_refaire_les_codes_redemandent_le_mot_de_passe(client):
+    cree = creer_classe(client)
+    eleve, classe = cree["cartes"][1]["eleve_id"], cree["classe"]["id"]
+    faux = {"mot_de_passe": "pas le bon"}
+    assert client.post(f"/api/eleves/{eleve}/export", json=faux).status_code == 403
+    assert client.request("DELETE", f"/api/eleves/{eleve}", json=faux).status_code == 403
+    assert client.post(f"/api/classes/{classe}/codes", json=faux).status_code == 403
+    assert client.post("/api/classes/purge", json=faux).status_code == 403
+    bon = {"mot_de_passe": MOT_DE_PASSE}
+    export = client.post(f"/api/eleves/{eleve}/export", json=bon)
+    assert export.status_code == 200 and export.headers["content-type"].startswith("text/csv")
+    assert export.headers["content-disposition"] == f'attachment; filename="eleve-{eleve}.csv"'
+    assert export.headers["cache-control"] == "no-store" and "LE GOFF" in export.content.decode("utf-8-sig")
+    assert len(client.post(f"/api/classes/{classe}/codes", json=bon).json()["cartes"]) == 3
+    assert client.request("DELETE", f"/api/eleves/{eleve}", json=bon).status_code == 200
+    assert client.get(f"/api/classes/{classe}").json()["classe"]["eleves"] == 2
+
+
+def test_corriger_desactiver_ajouter_archiver(client):
+    cree = creer_classe(client)
+    eleve, classe = cree["cartes"][0]["eleve_id"], cree["classe"]["id"]
+    assert client.put(f"/api/eleves/{eleve}", json={"nom": "DUPOND", "prenom": "Marie"}).json()["eleve"]["nom"] == "DUPOND"
+    assert client.post(f"/api/eleves/{eleve}/actif", json={"actif": False}).json()["eleve"]["actif"] is False
+    assert len(client.post(f"/api/eleves/{eleve}/code", json={}).json()["carte"]["code"]) == 4
+    ajout = client.post(f"/api/classes/{classe}/eleves", json={"eleves": [{"nom": "PETIT", "prenom": "Emma"}]}).json()
+    assert ajout["cartes"][0]["numero"] == 4
+    assert client.post(f"/api/classes/{classe}/archiver", json={"archivee": True}).json()["classe"]["archivee"]
+    assert client.get("/api/classes").json()["classes"] == []
+    assert len(client.get("/api/classes", params={"archivees": True}).json()["classes"]) == 1
+
+
+def test_purge(client):
+    creer_classe(client)
+    apercu = client.get("/api/classes/purge").json()  # pas pris pour l'identifiant d'une classe
+    assert apercu["classes"] == [] and apercu["eleves"] == 0 and apercu["annee_courante"]
+    assert client.post("/api/classes/purge", json={"mot_de_passe": MOT_DE_PASSE}).json() == {"classes": 0, "eleves": 0}

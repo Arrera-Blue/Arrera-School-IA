@@ -218,9 +218,13 @@ def debloquer(base: Base, identifiant: str, *, par: dict | None = None) -> None:
 
 def supprimer(base: Base, identifiant: str, *, par: dict | None = None) -> None:
     """Supprime le compte et ses sessions ; refusé pour le dernier administrateur (plus personne ne pourrait
-    gérer les comptes depuis l'interface)."""
+    gérer les comptes depuis l'interface), et pour un compte qui a encore des classes (E3 : leurs élèves resteraient
+    sans enseignant ; les purger, ou les archiver puis les purger à la fin de l'année)."""
     with base.ecrire() as conn:
         compte = _exiger(conn, identifiant)
+        classes = conn.execute("SELECT COUNT(*) FROM classe WHERE enseignant_id = ?", (compte["id"],)).fetchone()[0]
+        if classes:
+            raise CompteInvalide(f"ce compte a encore {classes} classe(s) : les purger avant de le supprimer")
         if compte["role"] == "admin" and conn.execute(
                 "SELECT COUNT(*) FROM enseignant WHERE role = 'admin'").fetchone()[0] <= 1:
             raise CompteInvalide("c'est le dernier compte administrateur : créez-en un autre avant de le supprimer")

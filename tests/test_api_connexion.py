@@ -51,7 +51,7 @@ def routes_api(app) -> list[tuple[str, str]]:
         chemin = getattr(route, "path", "")
         if chemin.startswith("/api/"):
             exemple = chemin.replace("{ident}", "qcm-x-6e-20261020-100000").replace("{numero}", "1")
-            exemple = exemple.replace("{identifiant}", "prof")
+            exemple = exemple.replace("{identifiant}", "prof").replace("{classe_id}", "1").replace("{eleve_id}", "1")
             trouvees += [(methode, exemple) for methode in getattr(route, "methods", {"GET"}) if methode != "HEAD"]
     return trouvees
 

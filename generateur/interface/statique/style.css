@@ -141,6 +141,34 @@ pre { overflow-x: auto; background: var(--fond); border: 1px solid var(--bordure
 .provisoire code { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em; user-select: all; }
 .titre-journal { margin-top: 2rem; }
 
+/* --- classes et cartes de connexion (E3) -------------------------------------------------------- */
+
+.case { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 500; margin: 0; }
+.case input { width: auto; }
+.eleve-inactif td { color: var(--texte-doux); }
+.edition-eleve input { min-width: 8rem; }
+
+.cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1rem; margin-top: 1rem; }
+.carte-eleve {
+  background: #fff; color: #1d2330; border: 2px dashed #9aa3b2; border-radius: var(--rayon); padding: 0.8rem 1rem;
+  break-inside: avoid; page-break-inside: avoid;
+}
+.carte-eleve p { margin: 0.15rem 0; }
+.carte-classe { font-size: 0.85rem; color: #5a6475; }
+.carte-nom { font-size: 1.2rem; font-weight: 700; }
+.carte-consigne, .carte-pied { font-size: 0.85rem; }
+.carte-code { list-style: none; display: flex; gap: 0.5rem; padding: 0; margin: 0.4rem 0; counter-reset: rang; }
+.carte-code li { display: grid; justify-items: center; font-size: 0.8rem; counter-increment: rang; }
+.carte-code li::before { content: counter(rang); font-weight: 700; font-size: 0.75rem; color: #5a6475; }
+.carte-code img { width: 3rem; height: 3rem; }
+
+@media print {
+  .entete, .ecran-seulement, dialog { display: none !important; }
+  body, main { background: #fff; padding: 0; margin: 0; max-width: none; }
+  .cartes { grid-template-columns: 1fr 1fr; gap: 0.5cm; }
+  .carte-eleve { border-color: #555; }
+}
+
 /* --- progression -------------------------------------------------------------------------------- */
 
 .prog-message { font-weight: 600; }
