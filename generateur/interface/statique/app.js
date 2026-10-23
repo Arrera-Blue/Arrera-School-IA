@@ -27,7 +27,9 @@
   // generation : l'identifiant de la génération suivie, pour pouvoir l'annuler
   // compte : le compte connecté (null : écran de connexion)
   // programmes : les attendus du programme officiel déjà chargés, par « matière|classe » (E2)
-  const etat = { compte: null, programmes: {}, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
+  // classe : la classe ouverte ; listeLue : les élèves lus dans une liste collée, avant de créer la classe ;
+  // cartes : les cartes à imprimer (les codes en clair : effacées dès qu'on quitte la page des cartes) (E3)
+  const etat = { compte: null, programmes: {}, classe: null, listeLue: null, cartes: null, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
     statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null };
   const $ = (selecteur) => document.querySelector(selecteur);
 
@@ -115,8 +117,19 @@
       location.hash = "#/compte"; // le changement de hash rappelle router()
       return;
     }
+    if (location.hash !== "#/cartes") oublierCartes(); // les codes en clair ne restent pas en mémoire
     const m = location.hash.match(/^#\/exercice\/([a-z0-9_-]+)$/);
-    if (location.hash === "#/compte") {
+    const c = location.hash.match(/^#\/classe\/(\d+)$/);
+    if (location.hash === "#/classes") {
+      afficherVue("classes");
+      chargerClasses();
+    } else if (c) {
+      afficherVue("classe");
+      ouvrirClasse(parseInt(c[1], 10));
+    } else if (location.hash === "#/cartes") {
+      afficherVue("cartes");
+      afficherCartes();
+    } else if (location.hash === "#/compte") {
       afficherVue("compte");
       afficherCompte();
     } else if (location.hash === "#/comptes" && etat.compte.role === "admin") {
@@ -151,7 +164,9 @@
   // ce que la page montre d'une session finie ne doit pas rester sous les yeux du suivant
   function viderVues() {
     clearTimeout(etat.suivi);
-    for (const id of ["#table-banque tbody", "#ex-questions", "#table-comptes tbody", "#table-journal tbody"]) {
+    oublierCartes();
+    for (const id of ["#table-banque tbody", "#ex-questions", "#table-comptes tbody", "#table-journal tbody",
+      "#table-classes tbody", "#table-eleves tbody", "#table-apercu tbody"]) {
       $(id).replaceChildren();
     }
     $("#ex-apercu").removeAttribute("src");
@@ -379,6 +394,289 @@
       message.textContent = `Action refusée : ${e.message}`;
     }
     chargerComptes();
+  }
+
+  // --- classes et élèves (E3) -----------------------------------------------------------------------
+
+  async function chargerClasses() {
+    const message = $("#classes-etat");
+    message.textContent = "Chargement…";
+    let donnees;
+    try {
+      donnees = await api(`/api/classes?archivees=${$("#classes-archivees").checked}`);
+    } catch (e) {
+      message.textContent = `Classes illisibles : ${e.message}`;
+      return;
+    }
+    $("#classes-rgpd").hidden = donnees.aipd_validee;
+    $("#classe-annee").dataset.courante = donnees.annee_courante;
+    $("#table-classes tbody").replaceChildren(...donnees.classes.map((c) => el("tr", {},
+      el("td", {}, el("a", { href: `#/classe/${c.id}`, texte: c.nom })), el("td", { texte: c.niveau }),
+      el("td", { texte: c.annee }), el("td", { class: "nombre", texte: String(c.eleves) }),
+      el("td", {}, el("span", { class: `badge ${c.archivee ? "" : "statut-accepte"}`, texte: c.archivee ? "archivée" : "active" })))));
+    message.textContent = donnees.classes.length ? `${donnees.classes.length} classe(s).`
+      : "Aucune classe. Créez-en une, ou une classe de démonstration : python -m generateur.donnees.demo <identifiant>.";
+  }
+
+  function ouvrirFormulaireClasse() {
+    const formulaire = $("#form-classe");
+    formulaire.reset();
+    $("#classe-annee").value = $("#classe-annee").dataset.courante || "";
+    $("#classe-apercu").hidden = true;
+    $("#classe-erreur").hidden = true;
+    etat.listeLue = null;
+    formulaire.hidden = false;
+    $("#classe-nom").focus();
+  }
+
+  async function lireListe(texte) {
+    return api("/api/classes/liste", { texte });
+  }
+
+  async function verifierListe(evenement) {
+    evenement.preventDefault();
+    const erreur = $("#classe-erreur");
+    erreur.hidden = true;
+    try {
+      const { eleves, remarques } = await lireListe($("#classe-liste").value);
+      etat.listeLue = eleves;
+      $("#classe-remarques").replaceChildren(...remarques.map((r) => el("li", { texte: r })));
+      $("#table-apercu tbody").replaceChildren(...eleves.map((e, i) => el("tr", {},
+        el("td", { class: "nombre", texte: String(i + 1) }), el("td", { texte: e.nom }), el("td", { texte: e.prenom }))));
+      $("#btn-creer-classe").textContent = `Créer la classe (${eleves.length} élève${eleves.length > 1 ? "s" : ""}) et ses cartes`;
+      $("#classe-apercu").hidden = false;
+    } catch (e) {
+      erreur.textContent = `Liste illisible : ${e.message}`;
+      erreur.hidden = false;
+    }
+  }
+
+  async function creerClasse() {
+    const erreur = $("#classe-erreur");
+    erreur.hidden = true;
+    const corps = { nom: $("#classe-nom").value.trim(), niveau: $("#classe-niveau").value,
+      annee: $("#classe-annee").value.trim() || null, eleves: etat.listeLue || [] };
+    if (!corps.nom) {
+      erreur.textContent = "Donnez un nom à la classe (par exemple « 6e B »).";
+      erreur.hidden = false;
+      $("#classe-nom").focus();
+      return;
+    }
+    $("#btn-creer-classe").disabled = true;
+    try {
+      const { classe, cartes } = await api("/api/classes", corps);
+      $("#form-classe").hidden = true;
+      montrerCartes(`Classe « ${classe.nom} » créée : ${cartes.length} carte(s)`, cartes, `#/classe/${classe.id}`);
+    } catch (e) {
+      erreur.textContent = `Classe non créée : ${e.message}`;
+      erreur.hidden = false;
+    } finally {
+      $("#btn-creer-classe").disabled = false;
+    }
+  }
+
+  async function ouvrirClasse(id, message = "") {
+    $("#cl-message").textContent = message;
+    $("#form-ajout").hidden = true;
+    let classe;
+    try {
+      ({ classe } = await api(`/api/classes/${id}`));
+    } catch (e) {
+      $("#cl-titre").textContent = "Classe introuvable";
+      $("#cl-infos").textContent = e.message;
+      $("#table-eleves tbody").replaceChildren();
+      return;
+    }
+    if (location.hash !== `#/classe/${id}`) return; // l'enseignant est allé ailleurs pendant le chargement
+    etat.classe = classe;
+    $("#cl-titre").textContent = classe.nom;
+    $("#cl-infos").textContent = [classe.niveau, classe.annee, `${classe.eleves} élève(s)`,
+      classe.archivee ? "classe archivée" : null].filter(Boolean).join(" · ");
+    $("#btn-cl-archiver").textContent = classe.archivee ? "Désarchiver la classe" : "Archiver la classe";
+    $("#table-eleves tbody").replaceChildren(...classe.liste.map(ligneEleve));
+  }
+
+  function ligneEleve(e) {
+    const bouton = (action, texte, classeCss = "secondaire petit") =>
+      el("button", { type: "button", class: classeCss, "data-action": action, texte });
+    return el("tr", { "data-id": String(e.id), class: e.actif ? null : "eleve-inactif" },
+      el("td", { class: "nombre", texte: String(e.numero) }), el("td", { texte: e.nom }), el("td", { texte: e.prenom }),
+      el("td", {}, el("span", { class: `badge ${e.actif ? "statut-accepte" : "statut-genere"}`, texte: e.actif ? "actif" : "désactivé" })),
+      el("td", {}, el("div", { class: "question-actions" }, bouton("modifier", "Corriger"), bouton("code", "Nouveau code"),
+        bouton("actif", e.actif ? "Désactiver" : "Réactiver"), bouton("exporter", "Exporter…"),
+        bouton("supprimer", "Supprimer…", "secondaire petit danger"))));
+  }
+
+  function eleveDe(ligne) {
+    return etat.classe && etat.classe.liste.find((x) => String(x.id) === ligne.dataset.id);
+  }
+
+  async function agirSurEleve(evenement) {
+    const bouton = evenement.target.closest("button[data-action]");
+    if (!bouton) return;
+    const ligne = bouton.closest("tr");
+    const eleve = eleveDe(ligne);
+    if (!eleve) return;
+    const nom = `${eleve.prenom} ${eleve.nom}`;
+    const message = $("#cl-message");
+    try {
+      if (bouton.dataset.action === "modifier") {
+        corrigerEleve(ligne, eleve);
+      } else if (bouton.dataset.action === "enregistrer") {
+        const [nouveauNom, nouveauPrenom] = [...ligne.querySelectorAll("input")].map((i) => i.value.trim());
+        await api(`/api/eleves/${eleve.id}`, { nom: nouveauNom, prenom: nouveauPrenom }, "PUT");
+        await ouvrirClasse(etat.classe.id, "Nom corrigé.");
+      } else if (bouton.dataset.action === "annuler") {
+        ligne.replaceWith(ligneEleve(eleve));
+      } else if (bouton.dataset.action === "code") {
+        const { carte } = await api(`/api/eleves/${eleve.id}/code`, {});
+        montrerCartes(`Nouveau code de ${nom}`, [carte], `#/classe/${etat.classe.id}`);
+      } else if (bouton.dataset.action === "actif") {
+        await api(`/api/eleves/${eleve.id}/actif`, { actif: !eleve.actif });
+        await ouvrirClasse(etat.classe.id, eleve.actif ? `${nom} est désactivé : il ne pourra plus se connecter.` : `${nom} est réactivé.`);
+      } else if (bouton.dataset.action === "exporter") {
+        const motDePasse = await redemanderMotDePasse(`Exporter les données de ${nom}`,
+          "Un fichier CSV, à remettre à l'établissement pour répondre à une demande d'accès (pas par e-mail). " +
+          "Pour confirmer, saisissez votre mot de passe.", "Exporter");
+        if (motDePasse === null) return;
+        await telecharger(`/api/eleves/${eleve.id}/export`, { mot_de_passe: motDePasse });
+        message.textContent = `Données de ${nom} exportées (fichier eleve-${eleve.id}.csv). Supprimez-le du PC une fois remis.`;
+      } else if (bouton.dataset.action === "supprimer") {
+        const motDePasse = await redemanderMotDePasse(`Supprimer ${nom}`,
+          `${nom} et toutes ses réponses seront effacés, sans retour possible. Son numéro ne sera pas redonné. ` +
+          "Pour confirmer, saisissez votre mot de passe.", "Supprimer");
+        if (motDePasse === null) return;
+        await api(`/api/eleves/${eleve.id}`, { mot_de_passe: motDePasse }, "DELETE");
+        await ouvrirClasse(etat.classe.id, `${nom} est supprimé.`);
+      }
+    } catch (e) {
+      message.textContent = `Action refusée : ${e.message}`;
+    }
+  }
+
+  function corrigerEleve(ligne, eleve) {
+    const champ = (valeur, libelle) => el("input", { type: "text", value: valeur, maxlength: "60", "aria-label": libelle });
+    ligne.replaceChildren(el("td", { class: "nombre", texte: String(eleve.numero) }),
+      el("td", { class: "edition-eleve" }, champ(eleve.nom, `Nom de l'élève n° ${eleve.numero}`)),
+      el("td", { class: "edition-eleve" }, champ(eleve.prenom, `Prénom de l'élève n° ${eleve.numero}`)), el("td"),
+      el("td", {}, el("div", { class: "question-actions" },
+        el("button", { type: "button", class: "petit", "data-action": "enregistrer", texte: "Enregistrer" }),
+        el("button", { type: "button", class: "secondaire petit", "data-action": "annuler", texte: "Annuler" }))));
+    ligne.querySelector("input").focus();
+  }
+
+  // un fichier renvoyé par un POST (l'export CSV) : enregistré par le navigateur, jamais affiché dans la page
+  async function telecharger(chemin, corps) {
+    const reponse = await fetch(chemin, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corps) });
+    if (!reponse.ok) {
+      let donnees = null;
+      try { donnees = await reponse.json(); } catch (_) { /* corps vide */ }
+      if (reponse.status === 401) sessionPerdue(donnees);
+      throw new Error(messageErreur(donnees, reponse.status));
+    }
+    const nom = (reponse.headers.get("Content-Disposition") || "").match(/filename="([^"]+)"/);
+    const adresse = URL.createObjectURL(await reponse.blob());
+    const lien = el("a", { href: adresse, download: nom ? nom[1] : "export.csv" });
+    document.body.append(lien);
+    lien.click();
+    lien.remove();
+    setTimeout(() => URL.revokeObjectURL(adresse), 1000);
+  }
+
+  async function ajouterEleves(evenement) {
+    evenement.preventDefault();
+    const message = $("#cl-message");
+    try {
+      const { eleves, remarques } = await lireListe($("#ajout-liste").value);
+      if (!eleves.length) {
+        message.textContent = `Aucun élève lu dans la liste. ${remarques.join(" ; ")}`;
+        return;
+      }
+      const { cartes } = await api(`/api/classes/${etat.classe.id}/eleves`, { eleves });
+      montrerCartes(`${cartes.length} élève(s) ajouté(s) à ${etat.classe.nom}`, cartes, `#/classe/${etat.classe.id}`);
+    } catch (e) {
+      message.textContent = `Élèves non ajoutés : ${e.message}`;
+    }
+  }
+
+  async function nouveauxCodesClasse() {
+    const motDePasse = await redemanderMotDePasse(`Nouveaux codes pour ${etat.classe.nom}`,
+      "Chaque élève reçoit un nouveau code ; les cartes actuelles ne marcheront plus. Pour confirmer, saisissez votre mot de passe.",
+      "Refaire les codes");
+    if (motDePasse === null) return;
+    try {
+      const { cartes } = await api(`/api/classes/${etat.classe.id}/codes`, { mot_de_passe: motDePasse });
+      montrerCartes(`Nouvelles cartes de ${etat.classe.nom}`, cartes, `#/classe/${etat.classe.id}`);
+    } catch (e) {
+      $("#cl-message").textContent = `Codes non refaits : ${e.message}`;
+    }
+  }
+
+  async function archiverClasse() {
+    const archivee = !etat.classe.archivee;
+    try {
+      await api(`/api/classes/${etat.classe.id}/archiver`, { archivee });
+      if (archivee) location.hash = "#/classes";
+      else await ouvrirClasse(etat.classe.id, "Classe désarchivée.");
+    } catch (e) {
+      $("#cl-message").textContent = `Action refusée : ${e.message}`;
+    }
+  }
+
+  async function purgerAnnees() {
+    const message = $("#classes-etat");
+    try {
+      const apercu = await api("/api/classes/purge");
+      if (!apercu.classes.length) {
+        message.textContent = `Rien à purger : aucune classe d'une année passée (avant ${apercu.annee_courante}).`;
+        return;
+      }
+      const liste = apercu.classes.map((c) => `${c.nom} (${c.annee}, ${c.eleves} élève(s))`).join(", ");
+      const motDePasse = await redemanderMotDePasse("Purger les années passées",
+        `Seront effacés, sans retour possible : ${liste}, avec leurs élèves et leurs réponses. ` +
+        "Pour confirmer, saisissez votre mot de passe.", "Purger");
+      if (motDePasse === null) return;
+      const fait = await api("/api/classes/purge", { mot_de_passe: motDePasse });
+      await chargerClasses();
+      message.textContent = `Purge faite : ${fait.classes} classe(s), ${fait.eleves} élève(s) effacés.`;
+    } catch (e) {
+      message.textContent = `Purge refusée : ${e.message}`;
+    }
+  }
+
+  // --- les cartes de connexion -------------------------------------------------------------------------
+
+  function montrerCartes(titre, cartes, retour) {
+    etat.cartes = { titre, cartes, retour };
+    if (location.hash === "#/cartes") afficherCartes();
+    else location.hash = "#/cartes";
+  }
+
+  function oublierCartes() {
+    etat.cartes = null;
+    $("#cartes").replaceChildren();
+  }
+
+  function afficherCartes() {
+    const zone = $("#cartes");
+    if (!etat.cartes) {
+      $("#titre-cartes").textContent = "Cartes de connexion";
+      $("#btn-imprimer").hidden = true;
+      zone.replaceChildren(el("p", { class: "note", texte: "Plus de cartes à afficher : un code ne s'affiche qu'une " +
+        "fois. Pour une nouvelle carte, ouvrez la classe et choisissez « Nouveau code »." }));
+      return;
+    }
+    $("#titre-cartes").textContent = etat.cartes.titre;
+    $("#cartes-retour").href = etat.cartes.retour;
+    $("#btn-imprimer").hidden = false;
+    zone.replaceChildren(...etat.cartes.cartes.map((c) => el("article", { class: "carte-eleve" },
+      el("p", { class: "carte-classe", texte: `${c.classe} · ${c.annee} · n° ${c.numero}` }),
+      el("p", { class: "carte-nom", texte: `${c.prenom} ${c.nom}` }),
+      el("p", { class: "carte-consigne", texte: "Ton code secret, dans l'ordre :" }),
+      el("ol", { class: "carte-code" }, ...c.code.map((image) => el("li", {},
+        el("img", { src: `/statique/codes/${image.image}.svg`, alt: "" }), el("span", { texte: image.nom })))),
+      el("p", { class: "carte-pied", texte: "Garde-le pour toi : ne le montre à personne." }))));
   }
 
   // --- 1. analyser la demande -------------------------------------------------------------------
@@ -1141,6 +1439,23 @@
       $("#provisoire").hidden = true;
       $("#provisoire-valeur").textContent = "";
     });
+    $("#btn-nouvelle-classe").addEventListener("click", ouvrirFormulaireClasse);
+    $("#btn-annuler-classe").addEventListener("click", () => { $("#form-classe").hidden = true; });
+    $("#form-classe").addEventListener("submit", verifierListe);
+    $("#classe-liste").addEventListener("input", () => { $("#classe-apercu").hidden = true; etat.listeLue = null; });
+    $("#btn-creer-classe").addEventListener("click", creerClasse);
+    $("#classes-archivees").addEventListener("change", chargerClasses);
+    $("#btn-purge").addEventListener("click", purgerAnnees);
+    $("#table-eleves").addEventListener("click", agirSurEleve);
+    $("#btn-cl-ajouter").addEventListener("click", () => {
+      $("#form-ajout").hidden = false;
+      $("#ajout-liste").focus();
+    });
+    $("#btn-annuler-ajout").addEventListener("click", () => { $("#form-ajout").hidden = true; });
+    $("#form-ajout").addEventListener("submit", ajouterEleves);
+    $("#btn-cl-codes").addEventListener("click", nouveauxCodesClasse);
+    $("#btn-cl-archiver").addEventListener("click", archiverClasse);
+    $("#btn-imprimer").addEventListener("click", () => window.print());
     $("#form-phrase").addEventListener("submit", analyser);
     $("#btn-a-la-main").addEventListener("click", remplirALaMain);
     $("#form-requete").addEventListener("submit", generer);

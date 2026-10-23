@@ -15,6 +15,7 @@
       <nav id="nav-principale" aria-label="Sections" hidden>
         <a href="#/generer" data-vue="generer">Générer</a>
         <a href="#/banque" data-vue="banque">Banque</a>
+        <a href="#/classes" data-vue="classes">Classes</a>
         <a href="#/comptes" data-vue="comptes" id="lien-comptes" hidden>Comptes</a>
       </nav>
       <div id="entete-compte" class="entete-compte" hidden>
@@ -278,6 +279,115 @@
           <tbody></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- Classes (E3) : la liste, et en créer une à partir d'une liste collée -->
+    <section id="vue-classes" class="vue" aria-labelledby="titre-classes" hidden>
+      <h1 id="titre-classes">Classes</h1>
+      <p id="classes-rgpd" class="avertissement" role="note" hidden><strong>Élèves fictifs uniquement.</strong> Le dossier
+        RGPD (analyse d'impact) n'est pas encore validé par l'établissement : n'enregistrez pas de vrais noms d'élèves.</p>
+      <div class="actions">
+        <button type="button" id="btn-nouvelle-classe">Nouvelle classe…</button>
+        <label class="case"><input type="checkbox" id="classes-archivees"> Voir les classes archivées</label>
+        <button type="button" id="btn-purge" class="secondaire danger">Purger les années passées…</button>
+      </div>
+      <form id="form-classe" class="carte" novalidate hidden>
+        <h2>Nouvelle classe</h2>
+        <div class="grille">
+          <div class="champ">
+            <label for="classe-nom">Nom de la classe</label>
+            <input id="classe-nom" type="text" maxlength="30" placeholder="6e B" autocomplete="off" required>
+          </div>
+          <div class="champ">
+            <label for="classe-niveau">Niveau</label>
+            <select id="classe-niveau" required>
+              <option value="6e">6e</option><option value="5e">5e</option><option value="4e">4e</option><option value="3e">3e</option>
+            </select>
+          </div>
+          <div class="champ">
+            <label for="classe-annee">Année scolaire</label>
+            <input id="classe-annee" type="text" maxlength="9" pattern="\d{4}-\d{4}" required>
+          </div>
+        </div>
+        <label for="classe-liste">Les élèves : une ligne par élève, le nom puis le prénom
+          <span class="facultatif">(« DUPONT;Marie » ou « DUPONT Marie », copié d'un tableur ou de l'ENT ; seuls le nom
+          et le prénom sont gardés)</span></label>
+        <textarea id="classe-liste" rows="8" maxlength="10000" spellcheck="false"></textarea>
+        <div class="actions">
+          <button type="submit" id="btn-verifier-liste" class="secondaire">Vérifier la liste</button>
+          <button type="button" id="btn-annuler-classe" class="lien">Annuler</button>
+        </div>
+        <div id="classe-apercu" hidden>
+          <ul id="classe-remarques" class="remarques"></ul>
+          <div class="tableau-defilant">
+            <table id="table-apercu" class="tableau">
+              <caption class="visuellement-cache">Les élèves lus dans la liste, tels qu'ils seront enregistrés</caption>
+              <thead><tr><th scope="col">N°</th><th scope="col">Nom</th><th scope="col">Prénom</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="actions">
+            <button type="button" id="btn-creer-classe">Créer la classe et ses cartes</button>
+          </div>
+        </div>
+        <p id="classe-erreur" class="erreur" role="alert" hidden></p>
+      </form>
+      <p id="classes-etat" class="etat" role="status"></p>
+      <div class="tableau-defilant">
+        <table id="table-classes" class="tableau">
+          <caption class="visuellement-cache">Vos classes</caption>
+          <thead>
+            <tr><th scope="col">Classe</th><th scope="col">Niveau</th><th scope="col">Année</th>
+              <th scope="col">Élèves</th><th scope="col">État</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Une classe : ses élèves, corriger, nouveau code, désactiver, exporter, supprimer -->
+    <section id="vue-classe" class="vue" aria-labelledby="cl-titre" hidden>
+      <p><a href="#/classes" class="retour">← Retour aux classes</a></p>
+      <h1 id="cl-titre" tabindex="-1"></h1>
+      <p id="cl-infos" class="infos"></p>
+      <div class="actions barre-actions">
+        <button type="button" id="btn-cl-ajouter" class="secondaire">Ajouter des élèves…</button>
+        <button type="button" id="btn-cl-codes" class="secondaire">Nouveaux codes pour toute la classe…</button>
+        <button type="button" id="btn-cl-archiver" class="secondaire"></button>
+      </div>
+      <form id="form-ajout" class="carte" novalidate hidden>
+        <label for="ajout-liste">Les élèves à ajouter : une ligne par élève, le nom puis le prénom</label>
+        <textarea id="ajout-liste" rows="4" maxlength="10000" spellcheck="false"></textarea>
+        <div class="actions">
+          <button type="submit" id="btn-ajouter">Ajouter et imprimer leurs cartes</button>
+          <button type="button" id="btn-annuler-ajout" class="lien">Annuler</button>
+        </div>
+      </form>
+      <p id="cl-message" class="etat" role="status"></p>
+      <div class="tableau-defilant">
+        <table id="table-eleves" class="tableau">
+          <caption class="visuellement-cache">Les élèves de la classe, par numéro</caption>
+          <thead>
+            <tr><th scope="col">N°</th><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">État</th>
+              <th scope="col">Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Les cartes de connexion : le seul moment où les codes existent en clair -->
+    <section id="vue-cartes" class="vue" aria-labelledby="titre-cartes" hidden>
+      <div class="ecran-seulement">
+        <h1 id="titre-cartes">Cartes de connexion</h1>
+        <p class="avertissement" role="note">Ces codes ne s'afficheront plus : imprimez les cartes maintenant, puis
+          donnez à chaque élève la sienne. Un code perdu se refait depuis la classe.</p>
+        <div class="actions">
+          <button type="button" id="btn-imprimer">Imprimer les cartes</button>
+          <a id="cartes-retour" class="bouton secondaire" href="#/classes">Retour à la classe</a>
+        </div>
+      </div>
+      <div id="cartes" class="cartes"></div>
     </section>
 
     <!-- Exercice : relecture, aperçu, décision -->

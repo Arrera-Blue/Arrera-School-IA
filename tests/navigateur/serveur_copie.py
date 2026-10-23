@@ -22,7 +22,7 @@ if (RACINE / "banque").is_dir():
     shutil.copytree(RACINE / "banque", copie / "banque", dirs_exist_ok=True)
 vrai_chemin = config.chemin
 COPIES = {"banque": "banque/instances", "rejets": "banque/rejets", "supprimes": "banque/supprimes", "sortie": "sortie",
-          "base": "donnees/arrera.sqlite3", "sauvegardes": "donnees/sauvegardes"}
+          "base": "donnees/arrera.sqlite3", "sauvegardes": "donnees/sauvegardes", "cle_codes": "donnees/cle-codes"}
 config.chemin = lambda nom: copie / COPIES[nom] if nom in COPIES else vrai_chemin(nom)
 
 from generateur.donnees import comptes  # noqa: E402

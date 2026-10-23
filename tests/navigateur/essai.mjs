@@ -6,12 +6,13 @@
 // Lance l'interface sur une copie de la banque (serveur_copie.py), puis Chrome sans fenêtre, et refait le
 // parcours de l'enseignant : se connecter (E1), analyser une demande, générer (calcul mental : le programme
 // seul, sans le modèle), relire, modifier une question, accepter, rechercher, supprimer, viser un attendu du
-// programme officiel et filtrer la banque par thème (E2), créer un compte,
+// programme officiel et filtrer la banque par thème (E2), créer une classe et imprimer ses cartes, corriger,
+// désactiver, exporter, supprimer un élève, archiver (E3), créer un compte,
 // se déconnecter, changer un mot de passe provisoire, affichage sur téléphone ; aucune erreur JavaScript ni
 // violation de CSP. Captures d'écran et copie de la banque : dans le dossier affiché à la fin.
 // Code de sortie : 0 si tous les contrôles passent, 1 sinon.
 import { spawn } from "node:child_process";
-import { mkdtempSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -75,6 +76,7 @@ const saisir = (selecteur, valeur) => js(`(() => { const e = document.querySelec
   e.value = ${JSON.stringify(valeur)}; e.dispatchEvent(new Event("input", { bubbles: true })); })()`);
 
 await cdp("Runtime.enable"); await cdp("Log.enable"); await cdp("Page.enable");
+await cdp("Page.setDownloadBehavior", { behavior: "allow", downloadPath: dossier }); // l'export CSV (E3)
 const statutApi = () => js(`fetch("/api/exercices").then((r) => r.status)`); // depuis la page, avec ses cookies
 const cliquer = (selecteur) => js(`document.querySelector(${JSON.stringify(selecteur)}).click()`);
 try {
@@ -239,6 +241,73 @@ try {
   await choisir("#filtre-niveau", "");
   await choisir("#filtre-matiere", "");
 
+  // 5 quater. classes et élèves (E3) : créer une classe à partir d'une liste collée, imprimer les cartes, puis
+  // corriger, refaire un code, désactiver, exporter, supprimer un élève, archiver la classe
+  await aller("#/classes");
+  await jusqua(`!document.querySelector("#classes-etat").textContent.startsWith("Chargement")`);
+  verifier("classes : rappel « élèves fictifs uniquement » (dossier RGPD non validé)", await js(`!document.querySelector("#classes-rgpd").hidden`));
+  await cliquer("#btn-nouvelle-classe");
+  await saisir("#classe-nom", "6e Essai");
+  await saisir("#classe-liste", "DUPONT;Marie\nLE GOFF Anne-Sophie\nMARTIN;Alice;12/03/2014");
+  await cliquer("#btn-verifier-liste");
+  await jusqua(`!document.querySelector("#classe-apercu").hidden`);
+  verifier("classes : la liste collée est lue, la date de naissance écartée", await js(`document.querySelectorAll("#table-apercu tbody tr").length === 3 &&
+    document.querySelector("#table-apercu tbody tr:nth-child(2)").textContent.includes("LE GOFF") &&
+    document.querySelector("#classe-remarques").textContent.includes("colonnes en plus") && !document.body.textContent.includes("12/03/2014")`));
+  await cliquer("#btn-creer-classe");
+  await jusqua(`location.hash === "#/cartes" && document.querySelectorAll("#cartes .carte-eleve").length === 3`);
+  await jusqua(`[...document.querySelectorAll("#cartes img")].every((i) => i.complete && i.naturalWidth > 0)`);
+  verifier("cartes : 3 cartes, 4 images chacune, nom et numéro", await js(`[...document.querySelectorAll(".carte-eleve")]
+    .every((c) => c.querySelectorAll(".carte-code li").length === 4) && document.querySelector(".carte-eleve").textContent.includes("Marie DUPONT")
+    && document.querySelector(".carte-classe").textContent.includes("n° 1")`));
+  await capture("6-cartes");
+  await cdp("Emulation.setEmulatedMedia", { media: "print" });
+  verifier("cartes : à l'impression, seules les cartes", await js(`getComputedStyle(document.querySelector(".entete")).display === "none" &&
+    getComputedStyle(document.querySelector("#btn-imprimer").closest(".ecran-seulement")).display === "none" &&
+    getComputedStyle(document.querySelector(".cartes")).display === "grid"`));
+  await capture("7-cartes-impression");
+  await cdp("Emulation.setEmulatedMedia", { media: "" });
+  await cliquer("#cartes-retour");
+  await jusqua(`location.hash.startsWith("#/classe/") && document.querySelectorAll("#table-eleves tbody tr").length === 3`);
+  const classeEssai = await js(`location.hash.slice("#/classe/".length)`);
+  verifier("cartes : les codes ne restent pas dans la page après", await js(`document.querySelectorAll("#cartes .carte-eleve").length === 0`));
+  const ligne = (n, action) => `document.querySelector("#table-eleves tbody tr:nth-child(${n}) [data-action=${action}]")`;
+  await js(`${ligne(1, "modifier")}.click()`);
+  await js(`(() => { const i = document.querySelectorAll("#table-eleves tbody tr:nth-child(1) input"); i[0].value = "DUPOND"; })()`);
+  await js(`${ligne(1, "enregistrer")}.click()`);
+  await jusqua(`document.querySelector("#cl-message").textContent === "Nom corrigé." &&
+    document.querySelector("#table-eleves tbody tr:nth-child(1)").textContent.includes("DUPOND")`);
+  verifier("élève : nom corrigé (rectification)", true);
+  await js(`${ligne(2, "code")}.click()`);
+  await jusqua(`location.hash === "#/cartes" && document.querySelectorAll("#cartes .carte-eleve").length === 1`);
+  verifier("élève : nouveau code, une carte à imprimer", await js(`document.querySelector("#titre-cartes").textContent.includes("Anne-Sophie LE GOFF")`));
+  await cliquer("#cartes-retour");
+  await jusqua(`document.querySelectorAll("#table-eleves tbody tr").length === 3`);
+  await js(`${ligne(2, "actif")}.click()`);
+  await jusqua(`document.querySelector("#table-eleves tbody tr:nth-child(2)").textContent.includes("désactivé")`);
+  verifier("élève : désactivé (limitation)", true);
+  await js(`${ligne(3, "exporter")}.click()`);
+  await jusqua(`document.querySelector("#dialogue").open && !document.querySelector("#dialogue-champ-mdp").hidden`);
+  await saisir("#dialogue-mdp", ESSAI.motDePasse);
+  await cliquer("#dialogue-ok");
+  await jusqua(`document.querySelector("#cl-message").textContent.includes("exportées")`);
+  const fichier = await js(`document.querySelector("#cl-message").textContent.match(/eleve-\\d+\\.csv/)[0]`);
+  for (let t = 0; t < 50 && !existsSync(join(dossier, fichier)); t++) await attendre(100);
+  verifier("élève : export CSV téléchargé, mot de passe redemandé", existsSync(join(dossier, fichier)) &&
+    readFileSync(join(dossier, fichier), "utf-8").includes("MARTIN"), fichier);
+  await js(`${ligne(1, "supprimer")}.click()`);
+  await jusqua(`document.querySelector("#dialogue").open`);
+  await saisir("#dialogue-mdp", ESSAI.motDePasse);
+  await cliquer("#dialogue-ok");
+  await jusqua(`document.querySelectorAll("#table-eleves tbody tr").length === 2`);
+  verifier("élève : supprimé, les autres gardent leur numéro", await js(`document.querySelector("#table-eleves tbody tr").textContent.startsWith("2")`));
+  await cliquer("#btn-cl-archiver");
+  await jusqua(`location.hash === "#/classes" && !document.querySelector("#classes-etat").textContent.startsWith("Chargement")`);
+  verifier("classe : archivée, elle quitte la liste", await js(`![...document.querySelectorAll("#table-classes a")].some((a) => a.textContent === "6e Essai")`));
+  await cliquer("#btn-purge");
+  await jusqua(`document.querySelector("#classes-etat").textContent.startsWith("Rien à purger")`);
+  verifier("purge : rien d'une année passée", true, classeEssai);
+
   // 6. (option) annuler une vraie génération par le modèle, pendant qu'il écrit
   if (AVEC_MODELE) {
     await aller("#/generer");
@@ -257,7 +326,7 @@ try {
 
   // 7. téléphone : pas de défilement horizontal
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-  for (const chemin of ["#/generer", "#/banque", `#/exercice/${ident}`, "#/comptes", "#/compte"]) {
+  for (const chemin of ["#/generer", "#/banque", `#/exercice/${ident}`, "#/comptes", "#/compte", "#/classes"]) {
     await aller(chemin);
     await attendre(800);
     verifier(`téléphone ${chemin.split("/")[1]} : pas de défilement horizontal`, await js(`document.documentElement.scrollWidth <= window.innerWidth`));

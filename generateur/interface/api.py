@@ -33,6 +33,17 @@ Connexion et comptes (E1) :
     DELETE /api/comptes/{identifiant}                administrateurs : supprimer un compte
     GET  /api/journal                                administrateurs : le journal des accès
 Créer, réinitialiser et supprimer un compte redemandent le mot de passe de l'administrateur (⚖1).
+
+Classes et élèves (E3) : chacun ne voit que SES classes (celle d'un autre est « introuvable ») ; aucun nom d'élève
+dans une URL, seulement des identifiants internes (SEC-14) :
+    GET  /api/classes · POST /api/classes            ses classes · en créer une (renvoie les cartes, codes en clair)
+    POST /api/classes/liste                          lire une liste collée (« NOM;Prénom »), sans rien enregistrer
+    GET  /api/classes/purge · POST /api/classes/purge   les années passées : aperçu · purge
+    GET  /api/classes/{id}                           la classe et ses élèves (noté au journal)
+    POST /api/classes/{id}/eleves · /codes · /archiver  ajouter des élèves · nouveaux codes · archiver
+    PUT  /api/eleves/{id} · POST /api/eleves/{id}/code · /actif   corriger · nouveau code · désactiver
+    POST /api/eleves/{id}/export · DELETE /api/eleves/{id}        export CSV · suppression
+Exporter, supprimer un élève, refaire les codes d'une classe et purger redemandent le mot de passe (⚖1).
 """
 
 import argparse
@@ -52,7 +63,7 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from generateur import procedural, programmes
-from generateur.donnees import comptes, journal, sessions
+from generateur.donnees import classes, codes, comptes, journal, sessions
 from generateur.donnees.base import Base
 from generateur.interface.taches import DejaFinie, File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre
@@ -126,6 +137,34 @@ class NouveauCompte(Confirmation):
     identifiant: str = Field(max_length=100)
     nom: str = Field(max_length=100)
     role: Literal["admin", "enseignant"] = "enseignant"
+
+
+class EleveSaisi(BaseModel):
+    nom: str = Field(max_length=80)
+    prenom: str = Field(max_length=80)
+
+
+class NouvelleClasse(BaseModel):
+    nom: str = Field(max_length=40)
+    niveau: Literal["6e", "5e", "4e", "3e"]
+    annee: str | None = Field(None, pattern=r"^\d{4}-\d{4}$")
+    eleves: list[EleveSaisi] = Field(default_factory=list, max_length=classes.ELEVES_MAX)
+
+
+class NouveauxEleves(BaseModel):
+    eleves: list[EleveSaisi] = Field(min_length=1, max_length=classes.ELEVES_MAX)
+
+
+class ListeCollee(BaseModel):
+    texte: str = Field(max_length=10_000)
+
+
+class Archivage(BaseModel):
+    archivee: bool
+
+
+class EtatEleve(BaseModel):
+    actif: bool
 
 
 class Question(BaseModel):
@@ -446,6 +485,96 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
     def lire_journal(request: Request, limite: int = 100):
         admin(request)
         return {"journal": journal.lire(base, max(1, min(limite, 500)))}
+
+    # --- classes et élèves (E3) ---------------------------------------------------------------------
+
+    def cle_codes() -> bytes:
+        return codes.cle_secrete(config.chemin("cle_codes"))
+
+    def faire(action, *arguments):
+        """Les erreurs de classes.py en réponses HTTP : introuvable (ou pas à soi) → 404, saisie refusée → 422."""
+        try:
+            return action(*arguments)
+        except classes.Introuvable as e:
+            raise HTTPException(404, str(e)) from None
+        except classes.ClasseInvalide as e:
+            raise HTTPException(422, str(e)) from None
+
+    def saisis(eleves: list[EleveSaisi]) -> list[dict]:
+        return [{"nom": e.nom, "prenom": e.prenom} for e in eleves]
+
+    @app.get("/api/classes")
+    def lister_classes(request: Request, archivees: bool = False):
+        return {"classes": classes.lister(base, request.state.compte, archivees),
+                "annee_courante": classes.annee_scolaire(), "niveaux": list(classes.NIVEAUX),
+                # tant que le dossier RGPD n'est pas validé : « élèves fictifs uniquement » (docs/rgpd/)
+                "aipd_validee": bool((config.charger().get("rgpd") or {}).get("aipd_validee"))}
+
+    @app.post("/api/classes/liste")
+    def lire_liste(corps: ListeCollee):
+        eleves, remarques = classes.lire_liste(corps.texte)
+        return {"eleves": eleves, "remarques": remarques}
+
+    @app.post("/api/classes", status_code=201)
+    def creer_classe(corps: NouvelleClasse, request: Request):
+        classe, cartes = faire(classes.creer, base, request.state.compte, corps.nom, corps.niveau, corps.annee,
+                               saisis(corps.eleves), cle_codes())
+        return {"classe": classe, "cartes": cartes}
+
+    # avant /api/classes/{classe_id} : « purge » n'est pas un identifiant
+    @app.get("/api/classes/purge")
+    def apercu_purge(request: Request):
+        return classes.apercu_purge(base, request.state.compte)
+
+    @app.post("/api/classes/purge")
+    def purger(corps: Confirmation, request: Request):
+        confirmer(request.state.compte, corps.mot_de_passe)
+        return classes.purger(base, request.state.compte)
+
+    @app.get("/api/classes/{classe_id}")
+    def lire_classe(classe_id: int, request: Request):
+        return {"classe": faire(classes.lire, base, request.state.compte, classe_id)}
+
+    @app.post("/api/classes/{classe_id}/eleves")
+    def ajouter_eleves(classe_id: int, corps: NouveauxEleves, request: Request):
+        return {"cartes": faire(classes.ajouter, base, request.state.compte, classe_id, saisis(corps.eleves), cle_codes())}
+
+    @app.post("/api/classes/{classe_id}/codes")
+    def nouveaux_codes(classe_id: int, corps: Confirmation, request: Request):
+        """Toutes les cartes de la classe à refaire : les anciens codes ne marchent plus."""
+        confirmer(request.state.compte, corps.mot_de_passe)
+        return {"cartes": faire(classes.nouveaux_codes, base, request.state.compte, classe_id, cle_codes())}
+
+    @app.post("/api/classes/{classe_id}/archiver")
+    def archiver_classe(classe_id: int, corps: Archivage, request: Request):
+        return {"classe": faire(classes.archiver, base, request.state.compte, classe_id, corps.archivee)}
+
+    @app.put("/api/eleves/{eleve_id}")
+    def modifier_eleve(eleve_id: int, corps: EleveSaisi, request: Request):
+        return {"eleve": faire(classes.modifier, base, request.state.compte, eleve_id, corps.nom, corps.prenom)}
+
+    @app.post("/api/eleves/{eleve_id}/code")
+    def nouveau_code(eleve_id: int, request: Request):
+        """Un clic, en classe : la carte perdue d'un élève."""
+        return {"carte": faire(classes.nouveau_code, base, request.state.compte, eleve_id, cle_codes())}
+
+    @app.post("/api/eleves/{eleve_id}/actif")
+    def activer_eleve(eleve_id: int, corps: EtatEleve, request: Request):
+        return {"eleve": faire(classes.activer, base, request.state.compte, eleve_id, corps.actif)}
+
+    @app.post("/api/eleves/{eleve_id}/export")
+    def exporter_eleve(eleve_id: int, corps: Confirmation, request: Request):
+        """Le droit d'accès : un CSV, remis à l'établissement (docs/rgpd/procedures.md §2)."""
+        confirmer(request.state.compte, corps.mot_de_passe)
+        nom, contenu = faire(classes.exporter, base, request.state.compte, eleve_id)
+        return Response(contenu, media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+
+    @app.delete("/api/eleves/{eleve_id}")
+    def supprimer_eleve(eleve_id: int, corps: Confirmation, request: Request):
+        confirmer(request.state.compte, corps.mot_de_passe)
+        faire(classes.supprimer, base, request.state.compte, eleve_id)
+        return {"supprime": eleve_id}
 
     # --- génération et banque (phase 3) -------------------------------------------------------------
 
