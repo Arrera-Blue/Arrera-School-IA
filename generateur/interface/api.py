@@ -405,7 +405,7 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
             raise HTTPException(429, str(e)) from None
         except sessions.ConnexionRefusee as e:
             raise HTTPException(401, str(e)) from None
-        # pas de Secure : l'interface est en HTTP sur 127.0.0.1 ; le serveur de classe (E4), en HTTPS, l'aura
+        # pas de Secure : l'interface est en HTTP sur 127.0.0.1 ; le serveur de classe (E8), en HTTPS, l'aura
         response.set_cookie(COOKIE, jeton, httponly=True, samesite="strict", path="/")
         return {"compte": compte}
 
@@ -771,7 +771,7 @@ def main() -> None:
     if not args.sans_navigateur:
         threading.Timer(1.5, webbrowser.open, (url,)).start()
     # toujours 127.0.0.1 : jamais une adresse joignable depuis le réseau de la salle (seul le serveur de
-    # classe, application séparée et sans route enseignant, y sera ouvert : E4)
+    # classe, application séparée et sans route enseignant, y sera ouvert : E8)
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
 
 
