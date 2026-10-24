@@ -203,7 +203,7 @@ def creer(base: Base, compte: dict, nom: str, niveau: str, annee: str | None, el
 
 def _inserer(conn: sqlite3.Connection, classe: sqlite3.Row, tires: list) -> list[dict]:
     """Numérotés à la suite du dernier numéro donné dans la classe : un numéro n'est jamais redonné, même après
-    une suppression (le mode sans réseau, E4.9, identifie l'élève par son numéro)."""
+    une suppression (le mode sans réseau, E8.9, identifie l'élève par son numéro)."""
     cartes, numero = [], classe["dernier_numero"]
     for e, code, empreinte in tires:
         numero += 1
@@ -324,7 +324,8 @@ def exporter(base: Base, compte: dict, eleve_id: int) -> tuple[str, bytes]:
 
 
 def _reponses(conn: sqlite3.Connection, eleve_id: int) -> list[list]:
-    """Les réponses de l'élève : le serveur de classe (E4) les enregistrera ; aucune avant."""
+    """Les réponses de l'élève : les tables arrivent avec le suivi (E4), remplies par le simulateur puis par le serveur
+    de classe (E8) ; aucune avant."""
     if not conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'reponse'").fetchone():
         return []
     return []  # E4 : lecture des tentatives et des réponses
@@ -333,7 +334,7 @@ def _reponses(conn: sqlite3.Connection, eleve_id: int) -> list[list]:
 # --- archiver, purger ---------------------------------------------------------------------------------
 
 def archiver(base: Base, compte: dict, classe_id: int, archivee: bool) -> dict:
-    """Une classe archivée disparaît de la liste (et ses élèves ne se connecteront plus, E4) ; rien n'est effacé."""
+    """Une classe archivée disparaît de la liste (et ses élèves ne se connecteront plus, E8) ; rien n'est effacé."""
     with base.ecrire() as conn:
         _classe(conn, compte, classe_id)
         conn.execute("UPDATE classe SET archivee = ? WHERE id = ?", (int(archivee), classe_id))
