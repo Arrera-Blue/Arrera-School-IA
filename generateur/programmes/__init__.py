@@ -113,6 +113,16 @@ def couvre(cible: str, ident: str) -> bool:
     return ident == cible or ident.startswith(cible + ".") or cible.startswith(ident + ".")
 
 
+def suivant(ident: str) -> str | None:
+    """L'attendu qui suit `ident` dans son thème, parmi ceux qui se prêtent à un QCM (« pour aller plus loin », E4)."""
+    a = attendu(ident)
+    if a is None:
+        return None
+    du_theme = [x.id for x in lister(a.matiere, a.niveau, qcm=True) if x.theme_id == a.theme_id]
+    rang = du_theme.index(ident) if ident in du_theme else -1
+    return du_theme[rang + 1] if 0 <= rang < len(du_theme) - 1 else None
+
+
 def couvert(matiere: str | None, niveau: str | None) -> bool:
     """Le référentiel a-t-il cette matière à cette classe ?"""
     return any(d["matiere"] == matiere and d["niveau"] == niveau for d in documents())

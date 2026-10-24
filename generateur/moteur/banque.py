@@ -215,6 +215,7 @@ def resume(instance: dict, fond: dict | None = None) -> dict:
         "a_corriger": len(fond["questions"]) or (1 if fond["erreurs"] else 0),
         "avertissements": len(fond["avertissements"]),
         "attendus": list((meta.get("programme") or {}).get("attendus") or []),  # programme officiel (E2.5)
+        "difficulte": (meta.get("demande") or {}).get("difficulte"),  # demandée à la génération ; None : mélange
     }
 
 

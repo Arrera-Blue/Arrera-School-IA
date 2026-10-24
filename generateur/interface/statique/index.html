@@ -351,6 +351,7 @@
       <h1 id="cl-titre" tabindex="-1"></h1>
       <p id="cl-infos" class="infos"></p>
       <div class="actions barre-actions">
+        <a id="btn-cl-suivi" class="bouton" href="#/classes">Suivi de la classe</a>
         <button type="button" id="btn-cl-ajouter" class="secondaire">Ajouter des élèves…</button>
         <button type="button" id="btn-cl-codes" class="secondaire">Nouveaux codes pour toute la classe…</button>
         <button type="button" id="btn-cl-archiver" class="secondaire"></button>
@@ -371,6 +372,73 @@
             <tr><th scope="col">N°</th><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">État</th>
               <th scope="col">Actions</th></tr>
           </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Le suivi d'une classe (E4) : des indicateurs pour repérer les besoins ; rien n'est décidé sans l'enseignant -->
+    <section id="vue-suivi" class="vue" aria-labelledby="su-titre" hidden>
+      <p><a id="su-retour" href="#/classes" class="retour">← Retour à la classe</a></p>
+      <h1 id="su-titre" tabindex="-1">Suivi</h1>
+      <p id="su-rappel" class="note" role="note"></p>
+      <div class="actions">
+        <label class="case"><input type="checkbox" id="su-masquer"> Masquer les noms (pour projeter au tableau)</label>
+      </div>
+      <p id="su-message" class="etat" role="status"></p>
+      <div id="su-contenu">
+        <h2>Les élèves, attendu par attendu</h2>
+        <div class="tableau-defilant">
+          <table id="table-suivi" class="tableau grille-suivi">
+            <caption class="visuellement-cache">Pour chaque élève, sa réussite sur chaque attendu du programme travaillé</caption>
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <ul id="su-legende" class="legende"></ul>
+        <ol id="su-attendus" class="liste-attendus"></ol>
+
+        <h2>Qui a besoin de quoi</h2>
+        <ul id="su-besoins" class="besoins"></ul>
+
+        <h2>Groupes de besoins</h2>
+        <p class="note">L'outil propose des groupes d'après les indicateurs. Un groupe n'existe qu'une fois enregistré par
+          vous ; vous pouvez ensuite le renommer, en retirer ou y ajouter des élèves.</p>
+        <div id="su-groupes"></div>
+
+        <h2>Exercices à travailler</h2>
+        <p class="note">Pour chaque élève : à retravailler (attendus à consolider) ou pour aller plus loin (attendus en
+          réussite). Rien n'est envoyé : vous gardez ce que vous voulez, puis validez ; les élèves les verront avec le
+          serveur de classe.</p>
+        <div class="actions">
+          <button type="button" id="btn-su-proposer" class="secondaire">Préparer des propositions</button>
+        </div>
+        <div id="su-propositions"></div>
+      </div>
+    </section>
+
+    <!-- La fiche de suivi d'un élève (E4) : ses attendus, ses exercices ; annuler une tentative faite par erreur -->
+    <section id="vue-fiche" class="vue" aria-labelledby="fi-titre" hidden>
+      <p><a id="fi-retour" href="#/classes" class="retour">← Retour au suivi de la classe</a></p>
+      <h1 id="fi-titre" tabindex="-1"></h1>
+      <p id="fi-infos" class="infos"></p>
+      <p id="fi-message" class="etat" role="status"></p>
+      <h2>Attendu par attendu</h2>
+      <div class="tableau-defilant">
+        <table id="table-fiche" class="tableau">
+          <caption class="visuellement-cache">Sa réussite sur chaque attendu du programme travaillé</caption>
+          <thead><tr><th scope="col">Attendu du programme</th><th scope="col">État</th><th scope="col">Détail</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <h2>Ses exercices</h2>
+      <p class="note">Un exercice fait par erreur (un autre élève sur sa session) s'annule : il ne compte plus dans le
+        suivi, mais reste visible, et peut être rétabli.</p>
+      <div class="tableau-defilant">
+        <table id="table-tentatives" class="tableau">
+          <caption class="visuellement-cache">Les exercices faits par l'élève, du plus récent au plus ancien</caption>
+          <thead><tr><th scope="col">Date</th><th scope="col">Exercice</th><th scope="col">Réussites</th>
+            <th scope="col">Origine</th><th scope="col">Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>

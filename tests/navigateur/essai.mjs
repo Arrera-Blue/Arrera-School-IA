@@ -7,7 +7,8 @@
 // parcours de l'enseignant : se connecter (E1), analyser une demande, générer (calcul mental : le programme
 // seul, sans le modèle), relire, modifier une question, accepter, rechercher, supprimer, viser un attendu du
 // programme officiel et filtrer la banque par thème (E2), créer une classe et imprimer ses cartes, corriger,
-// désactiver, exporter, supprimer un élève, archiver (E3), créer un compte,
+// désactiver, exporter, supprimer un élève, archiver (E3), suivre la classe de démonstration aux réponses simulées
+// (grille, noms masqués, groupes, exercices à travailler, fiche d'un élève, tentative annulée : E4), créer un compte,
 // se déconnecter, changer un mot de passe provisoire, affichage sur téléphone ; aucune erreur JavaScript ni
 // violation de CSP. Captures d'écran et copie de la banque : dans le dossier affiché à la fin.
 // Code de sortie : 0 si tous les contrôles passent, 1 sinon.
@@ -214,8 +215,9 @@ try {
     await js(`document.querySelector("#notion").value === "Comparer et encadrer des fractions"`));
   await js(`document.querySelector("#btn-generer").click()`);
   await jusqua(`location.hash.startsWith("#/exercice/") && location.hash !== "#/exercice/${ident}" &&
-    document.querySelectorAll("#ex-questions .question").length === 5`, 60000);
-  const visee = await js(`location.hash.slice("#/exercice/".length)`);
+    document.querySelectorAll("#ex-questions .question").length === 5 &&
+    document.querySelector("#btn-telecharger").getAttribute("download") === location.hash.slice("#/exercice/".length) + ".html"`, 60000);
+  const visee = await js(`location.hash.slice("#/exercice/".length)`); // (le téléchargement : l'exercice affiché est bien le nouveau)
   verifier("programme : l'exercice est rattaché à l'attendu visé", await js(`!document.querySelector("#ex-programme").hidden &&
     document.querySelector("#ex-programme").textContent.includes("« Comparer et encadrer des fractions »")`));
   verifier("programme : seules des comparaisons de fractions (générateur limité à l'attendu)",
@@ -308,6 +310,79 @@ try {
   await jusqua(`document.querySelector("#classes-etat").textContent.startsWith("Rien à purger")`);
   verifier("purge : rien d'une année passée", true, classeEssai);
 
+  // 5 quinquies. suivi des élèves (E4), sur la classe de démonstration aux réponses simulées : la grille retrouve les
+  // profils, masquer les noms, groupes proposés puis enregistrés et ajustés, exercices à travailler validés,
+  // « Générer un exercice » pré-rempli, fiche d'un élève, annuler une tentative
+  await aller("#/classes");
+  await jusqua(`[...document.querySelectorAll("#table-classes a")].some((a) => a.textContent === "6e Démo")`);
+  await js(`[...document.querySelectorAll("#table-classes a")].find((a) => a.textContent === "6e Démo").click()`);
+  await jusqua(`location.hash.startsWith("#/classe/") && document.querySelectorAll("#table-eleves tbody tr").length === 24`);
+  const classeDemo = await js(`location.hash.slice("#/classe/".length)`);
+  await cliquer("#btn-cl-suivi");
+  await jusqua(`location.hash === "#/suivi/${classeDemo}" && document.querySelectorAll("#table-suivi tbody tr").length === 24
+    && document.querySelectorAll("#su-groupes .groupe").length > 0 && document.querySelector("#su-propositions").children.length > 0`);
+  verifier("suivi : la grille retrouve les profils simulés (24 élèves, 7 attendus)", await js(`(() => {
+    const lignes = [...document.querySelectorAll("#table-suivi tbody tr")];
+    const n = (l, e) => l.querySelectorAll(".etat-" + e).length;
+    return document.querySelectorAll("#table-suivi thead th").length === 9
+      && lignes.slice(0, 6).every((l) => n(l, "a_consolider") === 3 && n(l, "en_cours") === 4)
+      && lignes.slice(6, 10).every((l) => n(l, "a_consolider") === 3)
+      && lignes.slice(10, 14).every((l) => n(l, "en_reussite") === 7)
+      && lignes.slice(14).every((l) => n(l, "en_cours") === 7); })()`));
+  verifier("suivi : chaque case dit pourquoi, sans compter sur la couleur seule", await js(`(() => {
+    const c = document.querySelector("#table-suivi tbody tr td.etat-a_consolider");
+    return c.title === "à consolider : 2 réussites sur 8 questions" && c.textContent.includes("!")
+      && c.textContent.includes("25 %"); })()`));
+  verifier("suivi : rappel « un indicateur ne juge pas l'élève »", await js(`document.querySelector("#su-rappel").textContent.includes("ne juge pas")`));
+  await cliquer("#su-masquer");
+  verifier("suivi : masquer les noms (pour projeter)", await js(`document.querySelector("#table-suivi tbody th").textContent === "Élève n° 1"
+    && !document.querySelector("#vue-suivi").textContent.includes("ARNAUD")`));
+  await capture("8-suivi-noms-masques");
+  await cliquer("#su-masquer");
+  verifier("suivi : qui a besoin de quoi, par attendu", await js(`document.querySelectorAll("#su-besoins > li").length === 7`));
+  verifier("groupes : 7 proposés, aucun enregistré", await js(`document.querySelectorAll("#su-groupes .groupe-propose").length === 7
+    && document.querySelectorAll("#su-groupes .groupe:not(.groupe-propose)").length === 0`));
+  await js(`document.querySelector("#su-groupes [data-action=enregistrer-groupe]").click()`);
+  await jusqua(`document.querySelectorAll("#su-groupes .groupe:not(.groupe-propose)").length === 1`);
+  verifier("groupes : un groupe proposé, enregistré par l'enseignant", await js(`document.querySelectorAll("#su-groupes .groupe-propose").length === 6`));
+  await js(`document.querySelector("#su-groupes [data-action=modifier-groupe]").click()`);
+  await js(`(() => { const a = document.querySelector("#su-groupes article"); a.querySelector("input[type=text]").value = "Mardi";
+    a.querySelector("input[type=checkbox]:checked").click(); a.querySelector("[data-action=enregistrer-modif]").click(); })()`);
+  await jusqua(`document.querySelector("#su-groupes .groupe h3").textContent === "Mardi"`);
+  verifier("groupes : renommé et ajusté à la main", await js(`document.querySelector("#su-groupes .groupe").textContent.includes("3 élève(s)")`));
+  await cliquer("#btn-su-proposer");
+  await jusqua(`document.querySelectorAll("#su-propositions input[type=checkbox]").length > 0`);
+  const proposees = await js(`document.querySelectorAll("#su-propositions input[type=checkbox]").length`);
+  await js(`document.querySelector("#su-propositions input[type=checkbox]").click()`);
+  verifier("exercices : proposés pour chaque élève à consolider ou en réussite, à décocher", proposees === 58 &&
+    await js(`document.querySelector("#su-propositions [data-action=valider]").textContent.includes("(57)")`), String(proposees));
+  await js(`document.querySelector("#su-propositions [data-action=valider]").click()`);
+  await jusqua(`document.querySelector("#dialogue").open`);
+  await cliquer("#dialogue-ok");
+  await jusqua(`document.querySelectorAll("#su-propositions tr[data-proposition]").length === 57`);
+  verifier("exercices : validés par l'enseignant, rien avant", await js(`document.querySelector("#su-message").textContent === "57 exercice(s) validé(s)."`));
+  await js(`document.querySelector("#su-besoins button[data-generer]").click()`);
+  await jusqua(`location.hash === "#/generer" && document.querySelector("#attendu").value === document.querySelector("#attendu").value
+    && !document.querySelector("#form-requete").hidden && document.querySelector("#attendu").options.length > 1`);
+  verifier("suivi : « Générer un exercice » pré-remplit la demande (attendu, facile)", await js(`document.querySelector("#attendu").value.startsWith("maths.6e.")
+    && document.querySelector("#difficulte").value === "facile" && document.querySelector("#niveau").value === "6e"
+    && document.querySelector("#remarques").textContent.includes("Préparé depuis le suivi de 6e Démo")`));
+  await aller(`#/suivi/${classeDemo}`);
+  await jusqua(`document.querySelectorAll("#table-suivi tbody tr").length === 24`);
+  await js(`document.querySelector("#table-suivi tbody th a").click()`);
+  await jusqua(`location.hash.startsWith("#/suivi-eleve/") && document.querySelectorAll("#table-tentatives tbody tr").length === 7`);
+  verifier("fiche : ses attendus et ses 7 exercices", await js(`document.querySelectorAll("#table-fiche tbody tr").length === 7
+    && document.querySelector("#fi-titre").textContent === "Léa ARNAUD"`));
+  await js(`document.querySelector("#table-tentatives button[data-annulee='1']").click()`);
+  await jusqua(`document.querySelector("#dialogue").open`);
+  await cliquer("#dialogue-ok");
+  await jusqua(`document.querySelector("#fi-message").textContent.startsWith("Exercice annulé")`);
+  verifier("fiche : une tentative annulée ne compte plus, mais reste visible", await js(`document.querySelectorAll("#table-fiche tbody tr").length === 6
+    && document.querySelector("#table-tentatives").textContent.includes("annulée")`));
+  await js(`document.querySelector("#table-tentatives button[data-annulee='0']").click()`);
+  await jusqua(`document.querySelector("#fi-message").textContent === "Exercice rétabli."`);
+  await capture("9-fiche-eleve");
+
   // 6. (option) annuler une vraie génération par le modèle, pendant qu'il écrit
   if (AVEC_MODELE) {
     await aller("#/generer");
@@ -326,7 +401,7 @@ try {
 
   // 7. téléphone : pas de défilement horizontal
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-  for (const chemin of ["#/generer", "#/banque", `#/exercice/${ident}`, "#/comptes", "#/compte", "#/classes"]) {
+  for (const chemin of ["#/generer", "#/banque", `#/exercice/${ident}`, "#/comptes", "#/compte", "#/classes", `#/suivi/${classeDemo}`]) {
     await aller(chemin);
     await attendre(800);
     verifier(`téléphone ${chemin.split("/")[1]} : pas de défilement horizontal`, await js(`document.documentElement.scrollWidth <= window.innerWidth`));
