@@ -281,6 +281,15 @@ def test_enonce_flou():
     assert any("« généralement »" in m for m in avertissements(qcm(q)))
 
 
+@pytest.mark.parametrize("enonce", ["Dans la phrase « Nous mangeons souvent des pommes. », quel est le sujet ?",
+                                    'Dans la phrase "Il pleut parfois.", quel est le verbe ?',
+                                    "Dans « Tu joues souvent dehors », quelle est la personne du verbe ?"])
+def test_mot_flou_dans_une_phrase_citee(enonce):
+    """Recette 1.6 : le mot appartient à la phrase étudiée, pas à la consigne."""
+    q = question(["Nous", "mangeons", "pommes"], enonce=enonce)
+    assert not any("défendables" in m for m in avertissements(qcm(q)))
+
+
 def test_les_avertissements_ne_bloquent_pas():
     q = question(["4", "5", "6"], enonce="Combien font généralement deux plus deux ?")
     assert valider(qcm(q)) == avertissements(qcm(q))
@@ -299,3 +308,70 @@ def test_reponse_hors_sujet(enonce, propositions, index_correct, rejet):
     q = question(propositions, index_correct, enonce=enonce,
                  explication="Explication de test, assez longue pour les règles de N3.")
     assert any("demande un dénominateur" in m or "demande un numérateur" in m for m in bloquants(qcm(q))) is rejet
+
+
+# --- l'explication aboutit-elle à la réponse désignée ? (banc du prompt, 26/10) ------------------------------
+
+def avec_explication(propositions, index_correct, explication, enonce="Combien font deux plus deux ?"):
+    return {**question(propositions, index_correct, enonce), "explication": explication}
+
+
+@pytest.mark.parametrize("propositions, index_correct, explication, enonce, autre", [
+    # cas réels du banc (Gemma 4 E4B) : l'explication juste, la réponse cochée fausse
+    (["10%", "25%", "40%", "50%"], 0, "Le pourcentage est (10/25) × 100 = 0,4 × 100 = 40%. Il y a une erreur dans les "
+     "propositions, mais 10% serait la valeur si on confond, la réponse attendue est 40%.",
+     "Dans une classe de 25 élèves, 10 sont en 5e. Quel pourcentage cela représente-t-il ?", "40%"),
+    (["10 €", "30 €", "4 €", "5 €"], 0, "Pour trouver 10 % de 40 €, on calcule 40 × 0,10 = 4 €. Attention, il faut "
+     "calculer 10 % de 40, pas 10 % de 40 €.", "Un article coûte 40 €. Quel est le montant de la réduction de 10 % ?",
+     "4 €"),
+    (["8 €", "10 €", "12 €", "16 €"], 1, "20 % de 40 € : 0,20 × 40, ce qui donne 8 €. Attention, la bonne réponse est 8 €.",
+     "Un article coûte 40 € ; quel est le montant d'une réduction de 20 % ?", "8 €"),
+    (["4", "6", "8", "10"], 1, "Pour trouver 2/3 de 12, on simplifie 12 par 3 pour obtenir 4, puis 2 × 4 = 8.",
+     "Tu as 12 billes et 2/3 sont rouges. Combien y a-t-il de billes rouges ?", "8"),
+    (["Prendu", "Pris", "Prenu", "Prendre"], 0, "Le participe passé du verbe 'prendre' est 'pris'.",
+     "Quel est le participe passé du verbe 'prendre' ?", "Pris"),
+    (["Un nom", "Un adverbe", "Un verbe", "Un adjectif"], 2, "Le mot « beau » qualifie le nom « paysage » : c'est un "
+     "adjectif qualificatif.", "Dans « Un beau paysage s'offre à nos yeux », quelle est la nature du mot « beau » ?",
+     "Un adjectif"),
+])
+def test_l_explication_aboutit_a_une_autre_proposition(propositions, index_correct, explication, enonce, autre):
+    messages = bloquants(qcm(avec_explication(propositions, index_correct, explication, enonce)))
+    assert any(f"l'explication aboutit à « {autre} »" in m for m in messages), messages
+
+
+@pytest.mark.parametrize("propositions, index_correct, explication, enonce", [
+    # un résultat intermédiaire après « = » n'est pas la conclusion
+    (["7 cm", "12 cm", "5 cm", "25 cm"], 2, "3² + 4² = 9 + 16 = 25, et 25 = 5², donc l'hypoténuse mesure 5 cm.",
+     "Les côtés de l'angle droit mesurent 3 cm et 4 cm. Quelle est la longueur de l'hypoténuse ?"),
+    (["1/6", "1/30", "5/6", "6/5"], 0, "On divise par 5 : 5 ÷ 5 = 1 et 30 ÷ 5 = 6. La forme irréductible de 5/30 est 1/6.",
+     "Écris 5/30 sous forme irréductible."),
+    (["2", "4", "8", "1/2"], 1, "Le dénominateur commun le plus petit de 4 et 2 est 4, car 4 est un multiple de 2.",
+     "Pour additionner 1/4 et 1/2, quel est le plus petit dénominateur commun ?"),
+    # « 1 partie sur 4 » ne cite pas la proposition « 4/1 »
+    (["1/2", "1/3", "1/4", "4/1"], 2, "On met le nombre de parties prises au numérateur : ici, 1 partie sur 4.",
+     "Une figure est divisée en 4 parties égales, dont 1 est coloriée. Quelle fraction est coloriée ?"),
+    # une proposition citée dans l'énoncé, ou écartée (« ni »), ne compte pas ; « nom » se trouve dans « noms »
+    (["Le ciel", "est", "bleu", "bleu est"], 2, "Le verbe être est un verbe d'état : ce qui qualifie le ciel est l'attribut.",
+     "Dans « Le ciel est bleu », quel est l'attribut du sujet ?"),
+    (["La noblesse", "Le clergé", "Les paysans et les bourgeois", "La royauté"], 2,
+     "Le Tiers État regroupait ceux qui n'appartenaient ni au clergé ni à la noblesse : paysans et bourgeois.",
+     "Quels groupes formaient le Tiers État ?"),
+    (["Un verbe", "Un adjectif", "Un nom", "Un déterminant"], 2,
+     "Le mot désigne un animal : il fait partie des noms communs, précédé de l'article « le », un déterminant.",
+     "Dans « Le chat dort », quelle est la nature du mot « chat » ?"),
+])
+def test_l_explication_coherente_ne_bloque_pas(propositions, index_correct, explication, enonce):
+    messages = bloquants(qcm(avec_explication(propositions, index_correct, explication, enonce)))
+    assert not any("l'explication aboutit" in m for m in messages), messages
+
+
+@pytest.mark.parametrize("enonce, alerte", [
+    ("Dans la phrase « Elle est gentille », quel est le rôle du mot « gentille » ?", True),
+    ("Quel est le rôle grammatical de « très » ?", True),
+    ("Dans la phrase « Elle est gentille », quelle est la fonction du mot « gentille » ?", False),
+    ("Quel rôle Robespierre a-t-il joué pendant la Terreur ?", False),  # l'histoire n'est pas concernée
+])
+def test_role_du_mot(enonce, alerte):
+    q = question(["Sujet", "COD", "Attribut du sujet"], 2, enonce,
+                 explication="Le verbe être est un verbe d'état : ce qui qualifie le sujet est son attribut.")
+    assert any("demander la nature" in m for m in avertissements(qcm(q))) is alerte

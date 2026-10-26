@@ -15,6 +15,8 @@ Pour chaque énoncé, dans le même ordre, tu écris un nouvel énoncé qui :
 - choisit un objet qui a vraiment la forme dont parle l'énoncé : un triangle doit être un objet
   triangulaire (une voile, une équerre, une rampe, un toit…), jamais un cadre ou une table, qui sont
   rectangulaires ;
+- choisit un objet dont la taille réelle va avec les nombres et l'unité : en cm, un petit objet (une
+  équerre, une part de pizza, une étiquette) ; en m, un grand (un toit, une voile, une rampe, un jardin) ;
 - garde EXACTEMENT les mêmes nombres, écrits en chiffres, avec les mêmes unités (€, %, cm, m) ;
 - n'ajoute AUCUN autre nombre : ni âge, ni date, ni quantité, ni nombre écrit en lettres
   (« deux », « trois », « la moitié »…) ;

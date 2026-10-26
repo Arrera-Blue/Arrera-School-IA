@@ -44,6 +44,16 @@ dans une URL, seulement des identifiants internes (SEC-14) :
     PUT  /api/eleves/{id} · POST /api/eleves/{id}/code · /actif   corriger · nouveau code · désactiver
     POST /api/eleves/{id}/export · DELETE /api/eleves/{id}        export CSV · suppression
 Exporter, supprimer un élève, refaire les codes d'une classe et purger redemandent le mot de passe (⚖1).
+
+Suivi des élèves (E4) : des indicateurs, jamais une décision ; groupes et exercices proposés n'existent qu'une fois
+enregistrés par l'enseignant :
+    GET  /api/classes/{id}/suivi                     la grille élèves × attendus, et qui a besoin de quoi
+    GET  /api/eleves/{id}/suivi                      la fiche d'un élève : ses attendus, ses tentatives
+    POST /api/tentatives/{id}/annuler                une tentative faite par erreur ne compte plus (ou de nouveau)
+    GET  /api/classes/{id}/groupes · POST            les groupes enregistrés et ceux proposés · en enregistrer un
+    PUT  /api/groupes/{id} · DELETE /api/groupes/{id}   l'ajuster · le supprimer
+    GET  /api/classes/{id}/propositions · POST       les exercices validés et ceux proposés · valider
+    DELETE /api/propositions/{id}                    retirer un exercice validé
 """
 
 import argparse
@@ -63,7 +73,7 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from generateur import procedural, programmes
-from generateur.donnees import classes, codes, comptes, journal, sessions
+from generateur.donnees import classes, codes, comptes, journal, sessions, suivi
 from generateur.donnees.base import Base
 from generateur.interface.taches import DejaFinie, File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre
@@ -165,6 +175,36 @@ class Archivage(BaseModel):
 
 class EtatEleve(BaseModel):
     actif: bool
+
+
+IDENT_ATTENDU = r"^[a-z0-9.-]+$"
+
+
+class NouveauGroupe(BaseModel):
+    nom: str = Field(max_length=120)
+    attendu: str | None = Field(None, max_length=80, pattern=IDENT_ATTENDU)
+    nature: Literal["consolider", "approfondir"]
+    eleves: list[int] = Field(default_factory=list, max_length=classes.ELEVES_MAX)
+
+
+class GroupeModifie(BaseModel):
+    nom: str = Field(max_length=120)
+    eleves: list[int] = Field(default_factory=list, max_length=classes.ELEVES_MAX)
+
+
+class PropositionValidee(BaseModel):
+    eleve_id: int
+    nature: Literal["retravailler", "plus_loin"]
+    attendu: str = Field(max_length=80, pattern=IDENT_ATTENDU)
+    exercice: str | None = Field(None, max_length=120, pattern=r"^[A-Za-z0-9._-]+$")
+
+
+class Propositions(BaseModel):
+    propositions: list[PropositionValidee] = Field(max_length=classes.ELEVES_MAX * 50)
+
+
+class Annulation(BaseModel):
+    annulee: bool = True
 
 
 class Question(BaseModel):
@@ -575,6 +615,58 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
         confirmer(request.state.compte, corps.mot_de_passe)
         faire(classes.supprimer, base, request.state.compte, eleve_id)
         return {"supprime": eleve_id}
+
+    # --- suivi des élèves (E4) ----------------------------------------------------------------------
+
+    @app.get("/api/classes/{classe_id}/suivi")
+    def suivi_classe(classe_id: int, request: Request):
+        return faire(suivi.indicateurs, base, request.state.compte, classe_id)
+
+    @app.get("/api/eleves/{eleve_id}/suivi")
+    def suivi_eleve(eleve_id: int, request: Request):
+        return faire(suivi.fiche, base, request.state.compte, eleve_id)
+
+    @app.post("/api/tentatives/{tentative_id}/annuler")
+    def annuler_tentative(tentative_id: int, corps: Annulation, request: Request):
+        faire(suivi.annuler_tentative, base, request.state.compte, tentative_id, corps.annulee)
+        return {"tentative": tentative_id, "annulee": corps.annulee}
+
+    @app.get("/api/classes/{classe_id}/groupes")
+    def groupes(classe_id: int, request: Request):
+        compte = request.state.compte
+        return {"groupes": faire(suivi.lister_groupes, base, compte, classe_id),
+                "proposes": faire(suivi.proposer_groupes, base, compte, classe_id)}
+
+    @app.post("/api/classes/{classe_id}/groupes", status_code=201)
+    def creer_groupe(classe_id: int, corps: NouveauGroupe, request: Request):
+        return {"groupe": faire(suivi.creer_groupe, base, request.state.compte, classe_id, corps.nom, corps.attendu,
+                                corps.nature, corps.eleves)}
+
+    @app.put("/api/groupes/{groupe_id}")
+    def modifier_groupe(groupe_id: int, corps: GroupeModifie, request: Request):
+        return {"groupe": faire(suivi.modifier_groupe, base, request.state.compte, groupe_id, corps.nom, corps.eleves)}
+
+    @app.delete("/api/groupes/{groupe_id}")
+    def supprimer_groupe(groupe_id: int, request: Request):
+        faire(suivi.supprimer_groupe, base, request.state.compte, groupe_id)
+        return {"supprime": groupe_id}
+
+    @app.get("/api/classes/{classe_id}/propositions")
+    def propositions(classe_id: int, request: Request):
+        compte = request.state.compte
+        return {"validees": faire(suivi.lister_propositions, base, compte, classe_id),
+                "proposees": faire(suivi.proposer_exercices, base, compte, classe_id)}
+
+    @app.post("/api/classes/{classe_id}/propositions")
+    def valider_propositions(classe_id: int, corps: Propositions, request: Request):
+        nombre = faire(suivi.valider_propositions, base, request.state.compte, classe_id,
+                       [p.model_dump() for p in corps.propositions])
+        return {"validees": nombre}
+
+    @app.delete("/api/propositions/{proposition_id}")
+    def supprimer_proposition(proposition_id: int, request: Request):
+        faire(suivi.supprimer_proposition, base, request.state.compte, proposition_id)
+        return {"supprime": proposition_id}
 
     # --- génération et banque (phase 3) -------------------------------------------------------------
 

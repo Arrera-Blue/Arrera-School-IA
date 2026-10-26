@@ -52,6 +52,22 @@ def test_tirages_en_masse(genre):
     assert tires > TIRAGES * 0.8  # les tirages refusés (Retirer) restent rares
 
 
+def test_fractions_sans_distracteur_entier():
+    """Recette 1.6 : « 9/1 » et « 4/4 », des entiers écrits en fractions, s'écartaient trop facilement."""
+    from generateur.procedural import fractions
+    for genre in (g for g in fractions.GENRES if g is not fractions.comparaison):  # là : les fractions de l'énoncé
+        rng = random.Random(f"entier-{genre.__name__}")
+        for _ in range(TIRAGES):
+            try:
+                s = genre(rng)
+            except procedural.Retirer:
+                continue
+            for proposition in s.distracteurs:
+                if "/" in proposition:
+                    n, d = proposition.split("/")
+                    assert d != "1" and n != d, (s.enonce, proposition)
+
+
 def test_reproductible_avec_la_meme_graine():
     for notion in procedural.notions():
         assert procedural.tirer(notion, 8, random.Random(42)) == procedural.tirer(notion, 8, random.Random(42))
@@ -147,6 +163,13 @@ def test_controle_de_l_habillage_pythagore():
     assert "sens modifié" in controler(hyp, piege)
     echelle = f"Une échelle de {b} {u} est posée à {a} {u} d'un mur, à angle droit. À quelle hauteur arrive-t-elle ?"
     assert "question modifiée" in controler(hyp, echelle)
+    # « les deux côtés de l'angle droit » ne change aucun calcul (recette 1.6) ; « deux » ailleurs, si
+    deux_cotes = (f"Une voile a la forme d'un triangle rectangle ; les deux côtés de l'angle droit mesurent {a} {u} et "
+                  f"{b} {u}. Quelle est la longueur de l'hypoténuse ?")
+    assert controler(hyp, deux_cotes) is None
+    deux_voiles = (f"Deux voiles ont la forme d'un triangle rectangle dont les côtés de l'angle droit mesurent {a} {u} "
+                   f"et {b} {u}. Quelle est la longueur de l'hypoténuse ?")
+    assert "nombre écrit en lettres" in controler(hyp, deux_voiles)
 
 
 # --- habillage par un modèle (faux fournisseur) --------------------------------------------------

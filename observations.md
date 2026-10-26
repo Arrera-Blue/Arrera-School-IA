@@ -47,14 +47,15 @@ l'attend (architecture §9.5), à rendre facile dans l'interface (phase 3).
 | # | Où | Correction | Exercices |
 |---|---|---|---|
 | ✅ | `generation.py` | nombre de questions et classe lus dans la phrase de l'enseignant (corrigé pendant la recette) | 7 |
-| 1 | prompt principal | niveau réellement adapté à la classe ; variété (verbes des trois groupes et irréguliers, toutes les classes de mots) ; jamais de forme inventée comme distracteur ; distinguer nature et fonction ; aucune proposition qui seule correspond au type demandé ; pas de règle générale fausse dans les explications | 3, 4, 5, 8 |
-| 2 | habillage | admettre « les deux côtés » (refus pour « deux ») ; objet réaliste pour l'unité tirée (pas de toit de 40 cm) | 2 |
-| 3 | générateur procédural | distracteurs faibles : « 4/4 », « 9/1 » | 1 |
-| 4 | N3 | « souvent » : faux positif quand le mot appartient à la phrase étudiée | 3 |
+| ✅ 1 | prompt principal | niveau réellement adapté à la classe ; variété (verbes des trois groupes et irréguliers, toutes les classes de mots) ; jamais de forme inventée comme distracteur ; distinguer nature et fonction ; aucune proposition qui seule correspond au type demandé ; pas de règle générale fausse dans les explications — **26/10** : prompt repris, explication écrite avant `index_correct`, contrôle N3 explication ↔ réponse ; formes verbales inventées encore présentes (`docs/etapes/etape-prompt-principal.md`) | 3, 4, 5, 8 |
+| ✅ 2 | habillage | admettre « les deux côtés » (refus pour « deux ») ; objet réaliste pour l'unité tirée (pas de toit de 40 cm) — **26/10** | 2 |
+| ✅ 3 | générateur procédural | distracteurs faibles : « 4/4 », « 9/1 » — **26/10** : plus d'entier écrit en fraction | 1 |
+| ✅ 4 | N3 | « souvent » : faux positif quand le mot appartient à la phrase étudiée — **26/10** : phrases citées ignorées | 3 |
 | 5 | N4 | demandes mixtes : « ce qui reste », « quelle fraction représente 40 % », « le montant de la réduction » | 6 |
 
 La correction n° 1 rejoint la tâche « raccourcir le prompt principal » : à faire ensemble, puis à remesurer
-sur les mêmes demandes (n° 3, 4, 5, 8).
+sur les mêmes demandes (n° 3, 4, 5, 8). **Faite le 26/10** sur un banc de 6 demandes × 2 tirages : 0 réponse cochée
+fausse sur 60 questions (3 avant) ; le prompt n'est pas plus court (lu en 7 s sur le Mac).
 
 
 ## Détail

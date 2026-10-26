@@ -291,6 +291,10 @@ def supprimer(base: Base, compte: dict, eleve_id: int) -> None:
 
 # --- l'export d'un élève (droit d'accès) --------------------------------------------------------------
 
+ORIGINES = {"simulation": "simulée (élève fictif)", "classe": "en classe", "import": "importée"}
+NATURES = {"retravailler": "À retravailler", "plus_loin": "Pour aller plus loin"}
+
+
 def cellule(valeur) -> str:
     """Une cellule de CSV qui ne s'exécute pas : « =… », « +… », « -… », « @… » sont précédés d'une apostrophe."""
     texte = "" if valeur is None else str(valeur)
@@ -302,6 +306,10 @@ def exporter(base: Base, compte: dict, eleve_id: int) -> tuple[str, bytes]:
     with base.ecrire() as conn:
         eleve = _eleve(conn, compte, eleve_id)
         reponses = _reponses(conn, eleve_id)
+        groupes = [r[0] for r in conn.execute("SELECT g.nom FROM groupe g JOIN groupe_eleve ge ON ge.groupe_id = g.id "
+                                              "WHERE ge.eleve_id = ? ORDER BY g.id", (eleve_id,))]
+        propositions = conn.execute("SELECT nature, attendu, exercice, cree FROM proposition WHERE eleve_id = ? "
+                                    "ORDER BY id", (eleve_id,)).fetchall()
         journal.noter(conn, "eleve_exporte", compte, cible=f"classe:{eleve['classe_id']}/eleve:{eleve_id}")
     tampon = io.StringIO()
     ecrire = csv.writer(tampon, delimiter=";", lineterminator="\r\n").writerow
@@ -312,23 +320,38 @@ def exporter(base: Base, compte: dict, eleve_id: int) -> tuple[str, bytes]:
                   ["Enregistré le", eleve["cree"]],
                   ["Code de connexion", "non exporté : seule son empreinte est gardée"], [],
                   ["Réponses aux exercices"],
-                  ["Date", "Exercice", "Question", "Réponse choisie", "Juste", "Temps (s)", "Attendu du programme"]):
+                  ["Date", "Exercice", "Question", "Réponse choisie", "Juste", "Temps (s)", "Attendu du programme",
+                   "Origine", "Compte dans le suivi"]):
         ecrire([cellule(v) for v in ligne])
     for r in reponses:
         ecrire([cellule(v) for v in r])
     if not reponses:
         ecrire(["aucune réponse enregistrée"])
     ecrire([])
+    ecrire(["Groupes de besoins"])
+    for nom in groupes or ["aucun groupe"]:
+        ecrire([cellule(nom)])
+    ecrire([])
+    ecrire(["Exercices à travailler, validés par l'enseignant"])
+    ecrire(["Pour", "Attendu du programme", "Exercice", "Validé le"])
+    for p in propositions:
+        ecrire([cellule(v) for v in (NATURES.get(p["nature"], p["nature"]), p["attendu"], p["exercice"] or "à générer",
+                                      p["cree"])])
+    if not propositions:
+        ecrire(["aucun exercice validé"])
+    ecrire([])
     ecrire([cellule(f"Exporté le {datetime.now().isoformat(timespec='seconds')} par {compte['identifiant']}")])
     return f"eleve-{eleve_id}.csv", ("﻿" + tampon.getvalue()).encode("utf-8")
 
 
 def _reponses(conn: sqlite3.Connection, eleve_id: int) -> list[list]:
-    """Les réponses de l'élève : les tables arrivent avec le suivi (E4), remplies par le simulateur puis par le serveur
-    de classe (E8) ; aucune avant."""
-    if not conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'reponse'").fetchone():
-        return []
-    return []  # E4 : lecture des tentatives et des réponses
+    """Les réponses de l'élève (tables du suivi, E4), annulées comprises : l'export montre tout ce qui est gardé."""
+    lignes = conn.execute("SELECT t.date, COALESCE(t.titre, t.exercice) AS exercice, t.origine, t.annulee, r.question, "
+                          "r.choix, r.juste, r.temps_s, r.attendu FROM reponse r JOIN tentative t ON t.id = r.tentative_id "
+                          "WHERE t.eleve_id = ? ORDER BY t.date, t.id, r.question", (eleve_id,)).fetchall()
+    return [[r["date"], r["exercice"], r["question"], "ABCDEFGH"[r["choix"]] if r["choix"] < 8 else r["choix"],
+             "oui" if r["juste"] else "non", r["temps_s"], r["attendu"] or "", ORIGINES.get(r["origine"], r["origine"]),
+             "non (annulée)" if r["annulee"] else "oui"] for r in lignes]
 
 
 # --- archiver, purger ---------------------------------------------------------------------------------

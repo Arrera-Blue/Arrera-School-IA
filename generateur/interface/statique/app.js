@@ -17,6 +17,10 @@
     echec_confirmation: "Mot de passe redemandé : erreur", verrouillage: "Compte verrouillé (15 min)",
     compte_cree: "Compte créé", compte_supprime: "Compte supprimé", compte_debloque: "Compte débloqué",
     mot_de_passe_change: "Mot de passe changé", mot_de_passe_reinitialise: "Mot de passe réinitialisé",
+    suivi_consulte: "Suivi consulté", eleve_consulte: "Fiche de suivi consultée", simulation: "Réponses simulées",
+    tentative_annulee: "Exercice d'un élève annulé", tentative_retablie: "Exercice d'un élève rétabli",
+    groupe_cree: "Groupe créé", groupe_modifie: "Groupe modifié", groupe_supprime: "Groupe supprimé",
+    propositions_validees: "Exercices à travailler validés", proposition_retiree: "Exercice à travailler retiré",
   };
   const INTERVALLE_MS = 1000;
   const ATTENTE_RECHERCHE_MS = 250;
@@ -29,7 +33,9 @@
   // programmes : les attendus du programme officiel déjà chargés, par « matière|classe » (E2)
   // classe : la classe ouverte ; listeLue : les élèves lus dans une liste collée, avant de créer la classe ;
   // cartes : les cartes à imprimer (les codes en clair : effacées dès qu'on quitte la page des cartes) (E3)
-  const etat = { compte: null, programmes: {}, classe: null, listeLue: null, cartes: null, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
+  // tableau : le suivi de la classe ouverte ; fiche : celle de l'élève ouvert ; masquer : « Masquer les noms » (E4)
+  const etat = { compte: null, programmes: {}, classe: null, listeLue: null, cartes: null, tableau: null, fiche: null,
+    masquer: false, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
     statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null };
   const $ = (selecteur) => document.querySelector(selecteur);
 
@@ -120,12 +126,20 @@
     if (location.hash !== "#/cartes") oublierCartes(); // les codes en clair ne restent pas en mémoire
     const m = location.hash.match(/^#\/exercice\/([a-z0-9_-]+)$/);
     const c = location.hash.match(/^#\/classe\/(\d+)$/);
+    const s = location.hash.match(/^#\/suivi\/(\d+)$/);
+    const f = location.hash.match(/^#\/suivi-eleve\/(\d+)$/);
     if (location.hash === "#/classes") {
       afficherVue("classes");
       chargerClasses();
     } else if (c) {
       afficherVue("classe");
       ouvrirClasse(parseInt(c[1], 10));
+    } else if (s) {
+      afficherVue("suivi");
+      ouvrirSuivi(parseInt(s[1], 10));
+    } else if (f) {
+      afficherVue("fiche");
+      ouvrirFiche(parseInt(f[1], 10));
     } else if (location.hash === "#/cartes") {
       afficherVue("cartes");
       afficherCartes();
@@ -166,9 +180,12 @@
     clearTimeout(etat.suivi);
     oublierCartes();
     for (const id of ["#table-banque tbody", "#ex-questions", "#table-comptes tbody", "#table-journal tbody",
-      "#table-classes tbody", "#table-eleves tbody", "#table-apercu tbody"]) {
+      "#table-classes tbody", "#table-eleves tbody", "#table-apercu tbody", "#table-suivi thead", "#table-suivi tbody",
+      "#su-attendus", "#su-besoins", "#su-groupes", "#su-propositions", "#table-fiche tbody", "#table-tentatives tbody"]) {
       $(id).replaceChildren();
     }
+    etat.tableau = null;
+    etat.fiche = null;
     $("#ex-apercu").removeAttribute("src");
     $("#provisoire").hidden = true;
     $("#provisoire-valeur").textContent = "";
@@ -493,6 +510,7 @@
     $("#cl-infos").textContent = [classe.niveau, classe.annee, `${classe.eleves} élève(s)`,
       classe.archivee ? "classe archivée" : null].filter(Boolean).join(" · ");
     $("#btn-cl-archiver").textContent = classe.archivee ? "Désarchiver la classe" : "Archiver la classe";
+    $("#btn-cl-suivi").href = `#/suivi/${classe.id}`;
     $("#table-eleves tbody").replaceChildren(...classe.liste.map(ligneEleve));
   }
 
@@ -642,6 +660,359 @@
       message.textContent = `Purge faite : ${fait.classes} classe(s), ${fait.eleves} élève(s) effacés.`;
     } catch (e) {
       message.textContent = `Purge refusée : ${e.message}`;
+    }
+  }
+
+  // --- suivi des élèves (E4) : des indicateurs, jamais une décision ----------------------------------------
+
+  const SYMBOLES = { a_consolider: "!", en_cours: "·", en_reussite: "✓", pas_assez: "?" };
+  const NATURES = { retravailler: "À retravailler", plus_loin: "Pour aller plus loin" };
+  const ORIGINES = { simulation: "simulée (élève fictif)", classe: "en classe", import: "importée" };
+
+  // « Masquer les noms » : le numéro dans la classe à la place du nom, pour projeter au tableau
+  const nomEleve = (e) => (!e ? "?" : etat.masquer ? `Élève n° ${e.numero}` : `${e.prenom} ${e.nom}`);
+  const pourcent = (taux) => (taux === null || taux === undefined ? "" : `${Math.round(taux * 100)} %`);
+  const tronquer = (texte, n) => (texte.length <= n ? texte : `${texte.slice(0, n - 3).replace(/\s+\S*$/, "")}…`);
+
+  function eleveDuSuivi(id) {
+    return etat.tableau && etat.tableau.eleves.find((e) => e.id === id);
+  }
+
+  function nomsDesEleves(ids) {
+    return ids.length ? ids.map((id) => nomEleve(eleveDuSuivi(id))).join(", ") : "aucun élève";
+  }
+
+  async function ouvrirSuivi(id) {
+    const message = $("#su-message");
+    message.textContent = "Chargement…";
+    $("#su-retour").href = `#/classe/${id}`;
+    let donnees;
+    try {
+      donnees = await api(`/api/classes/${id}/suivi`);
+    } catch (e) {
+      $("#su-titre").textContent = "Suivi introuvable";
+      message.textContent = e.message;
+      $("#su-contenu").hidden = true;
+      return;
+    }
+    if (location.hash !== `#/suivi/${id}`) return; // l'enseignant est allé ailleurs pendant le chargement
+    etat.tableau = { ...donnees, groupes: null, proposes: null, propositions: null, montrerProposees: false, ecartees: new Set() };
+    $("#su-titre").textContent = `Suivi de ${donnees.classe.nom}`;
+    $("#su-rappel").textContent = donnees.rappel;
+    $("#su-contenu").hidden = !donnees.attendus.length;
+    message.textContent = donnees.attendus.length ? "" : "Pas encore de réponses d'élèves pour cette classe. Pour essayer " +
+      "avec des élèves fictifs : python -m generateur.donnees.simulation <identifiant> --classe \"<nom de la classe>\".";
+    afficherSuivi();
+    if (donnees.attendus.length) await Promise.all([chargerGroupes(), chargerPropositions()]);
+  }
+
+  function afficherSuivi() {
+    const t = etat.tableau;
+    if (!t) return;
+    const p = (x) => Math.round(x * 100);
+    $("#table-suivi thead").replaceChildren(el("tr", {}, el("th", { scope: "col", texte: "N°" }),
+      el("th", { scope: "col", texte: "Élève" }),
+      ...t.attendus.map((a) => el("th", { scope: "col", class: "case-suivi" }, el("abbr", { title: a.libelle, texte: a.code })))));
+    $("#table-suivi tbody").replaceChildren(...t.eleves.map((e) => el("tr", { class: e.actif ? null : "eleve-inactif" },
+      el("td", { class: "nombre", texte: String(e.numero) }),
+      el("th", { scope: "row" }, el("a", { href: `#/suivi-eleve/${e.id}`, texte: nomEleve(e) })),
+      ...t.attendus.map((a) => caseSuivi(e.cases[a.id], t.etats)))));
+    const symbole = (etatCase) => el("span", { class: `case-suivi etat-${etatCase}`, "aria-hidden": "true", texte: SYMBOLES[etatCase] });
+    $("#su-legende").replaceChildren(
+      el("li", {}, symbole("a_consolider"), ` à consolider : moins de ${p(t.seuils.a_consolider)} % de réussite`),
+      el("li", {}, symbole("en_cours"), " en cours"),
+      el("li", {}, symbole("en_reussite"), ` en réussite : ${p(t.seuils.en_reussite)} % ou plus`),
+      el("li", {}, symbole("pas_assez"), ` pas assez de réponses : moins de ${t.seuils.questions_min} questions`),
+      el("li", { texte: "— aucune réponse sur cet attendu" }));
+    $("#su-attendus").replaceChildren(...t.attendus.map((a) => el("li", {}, el("strong", { texte: a.code }), ` ${a.libelle}`)));
+    afficherBesoins();
+    if (t.groupes) afficherGroupes();
+    if (t.propositions) afficherPropositions();
+  }
+
+  // la couleur n'est jamais seule : un symbole, le pourcentage, et l'état en toutes lettres pour les lecteurs d'écran
+  function caseSuivi(c, etats) {
+    if (!c) {
+      return el("td", { class: "case-suivi" }, el("span", { "aria-hidden": "true", texte: "—" }),
+        el("span", { class: "visuellement-cache", texte: "aucune réponse" }));
+    }
+    return el("td", { class: `case-suivi etat-${c.etat}`, title: `${etats[c.etat]} : ${c.explication}` },
+      el("span", { "aria-hidden": "true", texte: `${SYMBOLES[c.etat]} ${pourcent(c.taux)}` }),
+      el("span", { class: "visuellement-cache", texte: `${etats[c.etat]}, ${c.explication}` }));
+  }
+
+  function boutonGenerer(attendu, libelle, difficulte, texte, pour = "") {
+    return el("button", { type: "button", class: "secondaire petit", "data-generer": attendu || "", "data-libelle": libelle || "",
+      "data-difficulte": difficulte, "data-pour": pour, texte });
+  }
+
+  function afficherBesoins() {
+    const t = etat.tableau;
+    const items = [];
+    t.besoins.forEach((b, i) => {
+      const a = t.attendus[i];
+      if (!b.a_consolider.length && !b.en_reussite.length) return;
+      items.push(el("li", {}, el("p", {}, el("strong", { texte: `${a.code} · ` }), a.libelle),
+        b.a_consolider.length ? el("p", {}, `À consolider (${b.a_consolider.length}) : ${nomsDesEleves(b.a_consolider)} `,
+          boutonGenerer(a.id, a.libelle, "facile", "Générer un exercice pour les retravailler", `à consolider : ${a.code}`)) : null,
+        b.en_reussite.length ? el("p", {}, `En réussite (${b.en_reussite.length}) : ${nomsDesEleves(b.en_reussite)} `,
+          boutonGenerer(a.id, a.libelle, "difficile", "Générer un exercice pour aller plus loin", `en réussite : ${a.code}`)) : null));
+    });
+    $("#su-besoins").replaceChildren(...(items.length ? items
+      : [el("li", { texte: "Aucun besoin repéré : personne n'est à consolider ni en réussite pour l'instant." })]));
+  }
+
+  // « Générer un exercice » : le formulaire de génération, pré-rempli ; l'enseignant vérifie, puis génère
+  function genererDepuisSuivi(bouton) {
+    const t = etat.tableau;
+    const attendu = bouton.dataset.generer;
+    const matiere = (attendu || (t.attendus[0] || { id: "" }).id).split(".")[0];
+    location.hash = "#/generer";
+    afficherVue("generer");
+    remplirFormulaire({
+      requete: { type: "qcm", matiere, niveau: t.classe.niveau, notion: tronquer(bouton.dataset.libelle, 120), nb_questions: 5,
+        difficulte: bouton.dataset.difficulte, attendu },
+      sources: {}, a_verifier: attendu ? [] : ["notion"], procedural: null,
+      remarques: [`Préparé depuis le suivi de ${t.classe.nom}${bouton.dataset.pour ? ` (${bouton.dataset.pour})` : ""} : ` +
+        "vérifiez la demande, puis générez."],
+    });
+    $("#chemin").hidden = true;
+  }
+
+  // --- les groupes de besoins
+
+  async function chargerGroupes() {
+    const t = etat.tableau;
+    try {
+      Object.assign(t, await api(`/api/classes/${t.classe.id}/groupes`));
+      afficherGroupes();
+    } catch (e) {
+      $("#su-message").textContent = `Groupes illisibles : ${e.message}`;
+    }
+  }
+
+  function afficherGroupes() {
+    const t = etat.tableau;
+    const bouton = (action, texte, classeCss = "secondaire petit") => el("button", { type: "button", class: classeCss, "data-action": action, texte });
+    const deja = new Set(t.groupes.map((g) => `${g.nature}|${g.attendu || ""}`));
+    const enregistres = t.groupes.map((g) => el("article", { class: "carte groupe", "data-groupe": String(g.id) },
+      el("h3", { texte: g.nom }),
+      el("p", { class: "infos", texte: g.attendu ? `${g.nature === "consolider" ? "À consolider" : "Pour aller plus loin"} : ${g.libelle_attendu}`
+        : "Pour aller plus loin" }),
+      el("p", { texte: `${g.eleves.length} élève(s) : ${nomsDesEleves(g.eleves)}` }),
+      el("div", { class: "question-actions" },
+        boutonGenerer(g.attendu, g.libelle_attendu, g.nature === "consolider" ? "facile" : "difficile",
+          "Générer un exercice pour ce groupe", `groupe « ${g.nom} »`),
+        bouton("modifier-groupe", "Modifier"), bouton("supprimer-groupe", "Supprimer…", "secondaire petit danger"))));
+    const proposes = t.proposes.map((g, i) => [g, i]).filter(([g]) => !deja.has(`${g.nature}|${g.attendu || ""}`))
+      .map(([g, i]) => el("article", { class: "carte groupe groupe-propose", "data-propose": String(i) },
+        el("h3", {}, el("span", { class: "badge statut-genere", texte: "proposé" }), ` ${g.nom}`),
+        el("p", { texte: `${g.eleves.length} élève(s) : ${nomsDesEleves(g.eleves)}` }),
+        el("div", { class: "question-actions" }, bouton("enregistrer-groupe", "Enregistrer ce groupe", "petit"))));
+    $("#su-groupes").replaceChildren(...(enregistres.length || proposes.length ? [...enregistres, ...proposes]
+      : [el("p", { class: "note", texte: "Aucun groupe à proposer pour l'instant." })]));
+  }
+
+  function modifierGroupe(article, g) {
+    const t = etat.tableau;
+    article.replaceChildren(
+      el("label", { for: `groupe-nom-${g.id}`, texte: "Nom du groupe" }),
+      el("input", { id: `groupe-nom-${g.id}`, type: "text", maxlength: "120", value: g.nom }),
+      el("fieldset", { class: "choix-eleves" }, el("legend", { texte: "Élèves du groupe" }),
+        ...t.eleves.map((e) => el("label", { class: "case" },
+          el("input", { type: "checkbox", value: String(e.id), checked: g.eleves.includes(e.id) }), ` ${nomEleve(e)}`))),
+      el("div", { class: "question-actions" },
+        el("button", { type: "button", class: "petit", "data-action": "enregistrer-modif", texte: "Enregistrer" }),
+        el("button", { type: "button", class: "secondaire petit", "data-action": "annuler-modif", texte: "Annuler" })));
+    article.querySelector("input").focus();
+  }
+
+  async function agirSurGroupe(evenement) {
+    const bouton = evenement.target.closest("button");
+    if (!bouton) return;
+    if (bouton.dataset.generer !== undefined) { genererDepuisSuivi(bouton); return; }
+    const t = etat.tableau;
+    const article = bouton.closest("article");
+    const g = article && article.dataset.groupe && t.groupes.find((x) => String(x.id) === article.dataset.groupe);
+    const message = $("#su-message");
+    try {
+      if (bouton.dataset.action === "enregistrer-groupe") {
+        const propose = t.proposes[parseInt(article.dataset.propose, 10)];
+        await api(`/api/classes/${t.classe.id}/groupes`, propose);
+        message.textContent = `Groupe « ${propose.nom} » enregistré.`;
+      } else if (bouton.dataset.action === "modifier-groupe" && g) {
+        modifierGroupe(article, g);
+        return;
+      } else if (bouton.dataset.action === "annuler-modif") {
+        afficherGroupes();
+        return;
+      } else if (bouton.dataset.action === "enregistrer-modif" && g) {
+        const nom = article.querySelector("input[type=text]").value.trim();
+        const eleves = [...article.querySelectorAll("input[type=checkbox]:checked")].map((c) => parseInt(c.value, 10));
+        await api(`/api/groupes/${g.id}`, { nom, eleves }, "PUT");
+        message.textContent = `Groupe « ${nom} » modifié.`;
+      } else if (bouton.dataset.action === "supprimer-groupe" && g) {
+        const ok = await demander({ titre: `Supprimer le groupe « ${g.nom} »`, champ: false, ok: "Supprimer",
+          texte: "Le groupe est effacé ; les élèves et leurs réponses ne changent pas." });
+        if (ok === null) return;
+        await api(`/api/groupes/${g.id}`, {}, "DELETE");
+        message.textContent = `Groupe « ${g.nom} » supprimé.`;
+      } else {
+        return;
+      }
+      await chargerGroupes();
+    } catch (e) {
+      message.textContent = `Action refusée : ${e.message}`;
+    }
+  }
+
+  // --- les exercices à travailler
+
+  async function chargerPropositions() {
+    const t = etat.tableau;
+    try {
+      t.propositions = await api(`/api/classes/${t.classe.id}/propositions`);
+      afficherPropositions();
+    } catch (e) {
+      $("#su-message").textContent = `Exercices proposés illisibles : ${e.message}`;
+    }
+  }
+
+  function tableau(titre, entetes, lignes) {
+    return el("div", { class: "tableau-defilant" }, el("table", { class: "tableau" },
+      el("caption", { class: "visuellement-cache", texte: titre }),
+      el("thead", {}, el("tr", {}, ...entetes.map((h) => el("th", { scope: "col", texte: h })))), el("tbody", {}, ...lignes)));
+  }
+
+  function afficherPropositions() {
+    const t = etat.tableau;
+    const { validees, proposees } = t.propositions;
+    const exercice = (p) => (p.exercice ? el("a", { href: `#/exercice/${p.exercice}`, texte: p.titre || p.exercice })
+      : boutonGenerer(p.attendu, p.libelle_attendu, p.nature === "retravailler" ? "facile" : "difficile", "À générer…",
+        `${NATURES[p.nature].toLowerCase()} : ${nomEleve(eleveDuSuivi(p.eleve_id))}`));
+    const zone = [];
+    if (validees.length) {
+      zone.push(el("h3", { texte: `Validés (${validees.length})` }), tableau("Les exercices validés, par élève",
+        ["Élève", "Pour", "Attendu du programme", "Exercice", "Actions"], validees.map((p) => el("tr", { "data-proposition": String(p.id) },
+          el("td", { class: "sans-coupure", texte: nomEleve(eleveDuSuivi(p.eleve_id)) }), el("td", { texte: NATURES[p.nature] }),
+          el("td", { texte: p.libelle_attendu }), el("td", {}, exercice(p)),
+          el("td", {}, el("button", { type: "button", class: "secondaire petit", "data-action": "retirer", texte: "Retirer" }))))));
+    } else {
+      zone.push(el("p", { class: "note", texte: "Aucun exercice validé pour cette classe." }));
+    }
+    $("#btn-su-proposer").hidden = t.montrerProposees;
+    if (t.montrerProposees) {
+      if (!proposees.length) {
+        zone.push(el("p", { class: "note", texte: "Rien à proposer : aucun élève n'est à consolider ni en réussite." }));
+      } else {
+        const gardees = proposees.length - t.ecartees.size;
+        zone.push(el("h3", { texte: `Proposés (${proposees.length}) : décochez ceux que vous ne gardez pas` }),
+          tableau("Les exercices proposés, à garder ou non", ["Garder", "Élève", "Pour", "Attendu du programme", "Exercice"],
+            proposees.map((p, i) => el("tr", {},
+              el("td", {}, el("input", { type: "checkbox", "data-index": String(i), checked: !t.ecartees.has(i),
+                "aria-label": `Garder : ${NATURES[p.nature]}, ${nomEleve(eleveDuSuivi(p.eleve_id))}, ${p.libelle_attendu}` })),
+              el("td", { class: "sans-coupure", texte: nomEleve(eleveDuSuivi(p.eleve_id)) }), el("td", { texte: NATURES[p.nature] }),
+              el("td", { texte: p.libelle_attendu }), el("td", {}, exercice(p))))),
+          el("div", { class: "actions" },
+            el("button", { type: "button", "data-action": "valider", texte: `Valider la sélection (${gardees})` }),
+            el("button", { type: "button", class: "lien", "data-action": "fermer", texte: "Annuler" })));
+      }
+    }
+    $("#su-propositions").replaceChildren(...zone);
+  }
+
+  async function agirSurPropositions(evenement) {
+    const t = etat.tableau;
+    const caseGarder = evenement.target.closest("input[type=checkbox][data-index]");
+    if (caseGarder) {
+      const i = parseInt(caseGarder.dataset.index, 10);
+      if (caseGarder.checked) t.ecartees.delete(i); else t.ecartees.add(i);
+      const valider = $("#su-propositions button[data-action=valider]");
+      if (valider) valider.textContent = `Valider la sélection (${t.propositions.proposees.length - t.ecartees.size})`;
+      return;
+    }
+    const bouton = evenement.target.closest("button");
+    if (!bouton) return;
+    if (bouton.dataset.generer !== undefined) { genererDepuisSuivi(bouton); return; }
+    const message = $("#su-message");
+    try {
+      if (bouton.dataset.action === "retirer") {
+        await api(`/api/propositions/${bouton.closest("tr").dataset.proposition}`, {}, "DELETE");
+        message.textContent = "Exercice retiré.";
+      } else if (bouton.dataset.action === "fermer") {
+        t.montrerProposees = false;
+        afficherPropositions();
+        return;
+      } else if (bouton.dataset.action === "valider") {
+        const gardees = t.propositions.proposees.filter((_, i) => !t.ecartees.has(i));
+        const ok = await demander({ titre: "Valider les exercices à travailler", champ: false, ok: "Valider",
+          texte: `${gardees.length} exercice(s) gardé(s) ; ils remplacent ceux déjà validés pour la classe.` });
+        if (ok === null) return;
+        const fait = await api(`/api/classes/${t.classe.id}/propositions`, { propositions: gardees.map((p) =>
+          ({ eleve_id: p.eleve_id, nature: p.nature, attendu: p.attendu, exercice: p.exercice })) });
+        t.montrerProposees = false;
+        t.ecartees = new Set();
+        message.textContent = `${fait.validees} exercice(s) validé(s).`;
+      } else {
+        return;
+      }
+      await chargerPropositions();
+    } catch (e) {
+      message.textContent = `Action refusée : ${e.message}`;
+    }
+  }
+
+  // --- la fiche d'un élève
+
+  async function ouvrirFiche(id, message = "") {
+    $("#fi-message").textContent = message;
+    let fiche;
+    try {
+      fiche = await api(`/api/eleves/${id}/suivi`);
+    } catch (e) {
+      $("#fi-titre").textContent = "Élève introuvable";
+      $("#fi-infos").textContent = e.message;
+      $("#table-fiche tbody").replaceChildren();
+      $("#table-tentatives tbody").replaceChildren();
+      return;
+    }
+    if (location.hash !== `#/suivi-eleve/${id}`) return;
+    etat.fiche = fiche;
+    const e = fiche.eleve;
+    $("#fi-retour").href = `#/suivi/${e.classe_id}`;
+    $("#fi-titre").textContent = nomEleve(e);
+    $("#fi-infos").textContent = [e.classe, `n° ${e.numero}`, e.actif ? null : "désactivé"].filter(Boolean).join(" · ");
+    $("#table-fiche tbody").replaceChildren(...(fiche.attendus.length ? fiche.attendus.map((a) => el("tr", {},
+      el("td", { texte: a.libelle }),
+      el("td", { class: "sans-coupure" }, el("span", { class: `case-suivi etat-${a.etat}`, "aria-hidden": "true", texte: SYMBOLES[a.etat] }),
+        ` ${fiche.etats[a.etat]}`),
+      el("td", { texte: `${a.explication}${a.taux === null ? "" : ` (${pourcent(a.taux)})`}` })))
+      : [el("tr", {}, el("td", { colspan: "3", texte: "Pas encore de réponses." }))]));
+    $("#table-tentatives tbody").replaceChildren(...fiche.tentatives.map((x) => el("tr", { "data-tentative": String(x.id),
+      class: x.annulee ? "eleve-inactif" : null },
+      el("td", { texte: date(x.date) }), el("td", { texte: x.titre || x.exercice }),
+      el("td", { class: "nombre", texte: `${x.justes} / ${x.questions}` }),
+      el("td", { texte: `${ORIGINES[x.origine] || x.origine}${x.annulee ? " · annulée" : ""}` }),
+      el("td", {}, el("button", { type: "button", class: "secondaire petit", "data-annulee": x.annulee ? "0" : "1",
+        texte: x.annulee ? "Rétablir" : "Annuler…" })))));
+  }
+
+  async function agirSurTentative(evenement) {
+    const bouton = evenement.target.closest("button[data-annulee]");
+    if (!bouton || !etat.fiche) return;
+    const id = bouton.closest("tr").dataset.tentative;
+    const annulee = bouton.dataset.annulee === "1";
+    if (annulee) {
+      const ok = await demander({ titre: "Annuler cet exercice", champ: false, ok: "Annuler l'exercice",
+        texte: "Fait par erreur (un autre élève sur sa session, par exemple) : il ne comptera plus dans le suivi. " +
+          "Vous pourrez le rétablir." });
+      if (ok === null) return;
+    }
+    try {
+      await api(`/api/tentatives/${id}/annuler`, { annulee });
+      await ouvrirFiche(etat.fiche.eleve.id, annulee ? "Exercice annulé : il ne compte plus dans le suivi." : "Exercice rétabli.");
+    } catch (e) {
+      $("#fi-message").textContent = `Action refusée : ${e.message}`;
     }
   }
 
@@ -1421,7 +1792,8 @@
         fermer(motDePasse ? $("#dialogue-mdp").value : $("#dialogue-motif").value.trim());
       };
       $("#dialogue-annuler").onclick = () => fermer(null);
-      dialogue.onclose = () => fermer(null);
+      // l'évènement « close » arrive après coup : celui d'un dialogue précédent, déjà rouvert, est ignoré
+      dialogue.onclose = () => { if (!dialogue.open) fermer(null); };
       dialogue.showModal();
       (motDePasse ? $("#dialogue-mdp") : champ ? $("#dialogue-motif") : $("#dialogue-ok")).focus();
     });
@@ -1456,6 +1828,20 @@
     $("#btn-cl-codes").addEventListener("click", nouveauxCodesClasse);
     $("#btn-cl-archiver").addEventListener("click", archiverClasse);
     $("#btn-imprimer").addEventListener("click", () => window.print());
+    $("#su-masquer").addEventListener("change", (e) => { etat.masquer = e.target.checked; afficherSuivi(); });
+    $("#su-besoins").addEventListener("click", (e) => {
+      const bouton = e.target.closest("button[data-generer]");
+      if (bouton) genererDepuisSuivi(bouton);
+    });
+    $("#su-groupes").addEventListener("click", agirSurGroupe);
+    $("#su-propositions").addEventListener("click", agirSurPropositions);
+    $("#btn-su-proposer").addEventListener("click", () => {
+      if (!etat.tableau || !etat.tableau.propositions) return;
+      etat.tableau.montrerProposees = true;
+      etat.tableau.ecartees = new Set();
+      afficherPropositions();
+    });
+    $("#table-tentatives").addEventListener("click", agirSurTentative);
     $("#form-phrase").addEventListener("submit", analyser);
     $("#btn-a-la-main").addEventListener("click", remplirALaMain);
     $("#form-requete").addEventListener("submit", generer);

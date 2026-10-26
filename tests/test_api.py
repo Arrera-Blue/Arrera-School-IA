@@ -271,7 +271,9 @@ def test_modifier_une_question(client):
     assert vue["exercice"]["questions"][1]["propositions"][0] == "14 cm"  # espaces retirés
     assert vue["relecture"]["questions"][1]["modifiee"] is True
     faux = client.put(f"/api/exercices/{ident}/questions/2", json={**HYPOTENUSE_6_8, "index_correct": 0})
-    assert faux.status_code == 422 and faux.json()["detail"].startswith("modification refusée (N4)")
+    # réponse cochée fausse : l'explication aboutit à 10 cm (N3, 26/10), et le calcul le confirme (N4)
+    assert faux.status_code == 422 and faux.json()["detail"].startswith("modification refusée (N3, N4)")
+    assert "l'explication aboutit à « 10 cm »" in faux.json()["detail"]
     trop_peu = client.put(f"/api/exercices/{ident}/questions/2", json={**HYPOTENUSE_6_8, "propositions": ["a", "b"]})
     assert trop_peu.status_code == 422 and "au moins 3" in trop_peu.json()["detail"]
     assert client.put(f"/api/exercices/{ident}/questions/9", json=HYPOTENUSE_6_8).status_code == 422
@@ -530,3 +532,80 @@ def test_purge(client):
     apercu = client.get("/api/classes/purge").json()  # pas pris pour l'identifiant d'une classe
     assert apercu["classes"] == [] and apercu["eleves"] == 0 and apercu["annee_courante"]
     assert client.post("/api/classes/purge", json={"mot_de_passe": MOT_DE_PASSE}).json() == {"classes": 0, "eleves": 0}
+
+
+# --- suivi des élèves (E4) -----------------------------------------------------------------------------
+
+def classe_simulee(client) -> dict:
+    """La classe de démonstration (24 élèves fictifs), remplie par le simulateur, comme en ligne de commande."""
+    from generateur.donnees import demo, simulation
+
+    r = client.post("/api/classes", json={"nom": "6e Démo", "niveau": "6e",
+                                          "eleves": [{"nom": n, "prenom": p} for n, p in demo.ELEVES]})
+    classe = r.json()["classe"]
+    simulation.simuler(client.base, comptes.lire(client.base, "prof"), classe["id"])
+    return client.get(f"/api/classes/{classe['id']}").json()["classe"]
+
+
+def test_tableau_de_suivi(client):
+    classe = classe_simulee(client)
+    suivi = client.get(f"/api/classes/{classe['id']}/suivi").json()
+    assert len(suivi["attendus"]) == 7 and len(suivi["eleves"]) == 24 and suivi["rappel"]
+    assert suivi["eleves"][0]["cases"]["maths.6e.fractions.09"]["explication"] == "2 réussites sur 8 questions"
+    eleve = classe["liste"][0]["id"]
+    fiche = client.get(f"/api/eleves/{eleve}/suivi").json()
+    assert len(fiche["tentatives"]) == 7 and fiche["eleve"]["classe"] == "6e Démo"
+    tentative = fiche["tentatives"][0]["id"]
+    assert client.post(f"/api/tentatives/{tentative}/annuler", json={"annulee": True}).json()["annulee"] is True
+    assert sum(t["annulee"] for t in client.get(f"/api/eleves/{eleve}/suivi").json()["tentatives"]) == 1
+    assert client.post(f"/api/tentatives/{tentative}/annuler", json={"annulee": False}).status_code == 200
+    assert client.get("/api/classes/999/suivi").status_code == 404
+    assert client.post("/api/tentatives/99999/annuler", json={}).status_code == 404
+
+
+def test_groupes_et_propositions(client):
+    classe = classe_simulee(client)
+    ids = [e["id"] for e in classe["liste"]]
+    g = client.get(f"/api/classes/{classe['id']}/groupes").json()
+    assert g["groupes"] == [] and len(g["proposes"]) == 7                          # proposés, rien d'enregistré
+    propose = g["proposes"][0]
+    cree = client.post(f"/api/classes/{classe['id']}/groupes", json=propose)
+    assert cree.status_code == 201, cree.text
+    groupe = cree.json()["groupe"]
+    modifie = client.put(f"/api/groupes/{groupe['id']}", json={"nom": "Mardi", "eleves": ids[:2]}).json()["groupe"]
+    assert modifie["nom"] == "Mardi" and modifie["eleves"] == ids[:2]
+    assert client.post(f"/api/classes/{classe['id']}/groupes",
+                       json={"nom": "G", "nature": "trier", "eleves": []}).status_code == 422
+    assert client.put(f"/api/groupes/{groupe['id']}", json={"nom": "G", "eleves": [99999]}).status_code == 422
+    assert client.request("DELETE", f"/api/groupes/{groupe['id']}", json={}).status_code == 200
+    p = client.get(f"/api/classes/{classe['id']}/propositions").json()
+    assert p["validees"] == [] and len(p["proposees"]) == 58 and all(x["a_generer"] for x in p["proposees"])
+    garder = [{k: x[k] for k in ("eleve_id", "nature", "attendu", "exercice")} for x in p["proposees"][:3]]
+    assert client.post(f"/api/classes/{classe['id']}/propositions", json={"propositions": garder}).json() == {"validees": 3}
+    validees = client.get(f"/api/classes/{classe['id']}/propositions").json()["validees"]
+    assert len(validees) == 3
+    assert client.request("DELETE", f"/api/propositions/{validees[0]['id']}", json={}).status_code == 200
+    mal = [{**garder[0], "exercice": "../banque"}]
+    assert client.post(f"/api/classes/{classe['id']}/propositions", json={"propositions": mal}).status_code == 422
+
+
+def test_le_suivi_d_un_autre_est_introuvable(client):
+    classe = classe_simulee(client)
+    eleve = classe["liste"][0]["id"]
+    tentative = client.get(f"/api/eleves/{eleve}/suivi").json()["tentatives"][0]["id"]
+    groupe = client.post(f"/api/classes/{classe['id']}/groupes",
+                         json={"nom": "G", "nature": "approfondir", "eleves": [eleve]}).json()["groupe"]["id"]
+    comptes.creer(client.base, "autre", "Autre", "le mot de passe d'un autre")
+    autre = TestClient(client.app, base_url="http://127.0.0.1:8000")
+    autre.post("/api/session", json={"identifiant": "autre", "mot_de_passe": "le mot de passe d'un autre"})
+    for methode, url, corps in (("GET", f"/api/classes/{classe['id']}/suivi", None),
+                                ("GET", f"/api/eleves/{eleve}/suivi", None),
+                                ("POST", f"/api/tentatives/{tentative}/annuler", {}),
+                                ("GET", f"/api/classes/{classe['id']}/groupes", None),
+                                ("PUT", f"/api/groupes/{groupe}", {"nom": "X", "eleves": []}),
+                                ("DELETE", f"/api/groupes/{groupe}", {}),
+                                ("GET", f"/api/classes/{classe['id']}/propositions", None),
+                                ("POST", f"/api/classes/{classe['id']}/propositions", {"propositions": []})):
+        assert autre.request(methode, url, json=corps).status_code == 404, url
+    sans_session = TestClient(client.app, base_url="http://127.0.0.1:8000")
+    assert sans_session.get(f"/api/classes/{classe['id']}/suivi").status_code == 401

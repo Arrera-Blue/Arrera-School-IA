@@ -25,6 +25,12 @@ def ecrire(f: Fraction | tuple[int, int]) -> str:
     return f"{n}/{d}"
 
 
+def plausibles(*couples: tuple[int, int]) -> list[str]:
+    """Les candidats écrits en fractions, sans « 9/1 » ni « 4/4 » : un entier écrit en fraction se repère et s'écarte
+    trop facilement (recette 1.6, 08/10)."""
+    return [ecrire((n, d)) for n, d in couples if d != 1 and n != d]
+
+
 def _premier_avec(rng: random.Random, d: int, maxi: int | None = None) -> int:
     """Un numérateur qui rend la fraction irréductible : 3 pour 8, jamais 4 ni 8."""
     return rng.choice([x for x in range(1, (maxi or 2 * d - 1) + 1) if math.gcd(x, d) == 1 and x != d])
@@ -47,8 +53,8 @@ def irreductible(rng: random.Random) -> Squelette:
         enonce=rng.choice([f"Quelle est la forme irréductible de {n}/{d} ?",
                            f"Écris la fraction {n}/{d} sous forme irréductible."]),
         reponse=reponse,
-        distracteurs=distracteurs(reponse, [*partielle, ecrire((q, p)), ecrire((p, d)), ecrire((n, q)),
-                                            ecrire((p + 1, q))], egales_permises=True),
+        distracteurs=distracteurs(reponse, [*partielle, *plausibles((q, p), (p, d), (n, q), (p + 1, q), (p, q + 1))],
+                                  egales_permises=True),
         explication=f"On divise le numérateur et le dénominateur par leur plus grand diviseur commun, {k} : "
                     f"{n} ÷ {k} = {p} et {d} ÷ {k} = {q}. La forme irréductible de {n}/{d} est {p}/{q}.",
         cle=("irreductible", n, d),
@@ -65,8 +71,8 @@ def egale(rng: random.Random) -> Squelette:
         enonce=f"Quelle fraction est égale à {a}/{b} ?",
         reponse=reponse,
         # ajouter le même nombre en haut et en bas, ne multiplier qu'un seul terme
-        distracteurs=distracteurs(reponse, [ecrire((a + k, b + k)), ecrire((a * k, b)), ecrire((a, b * k)),
-                                            ecrire((a * k, b * k + 1))]),
+        distracteurs=distracteurs(reponse, plausibles((a + k, b + k), (a * k, b), (a, b * k), (a * k, b * k + 1),
+                                                      (a * k + 1, b * k))),
         explication=f"On multiplie le numérateur et le dénominateur de {a}/{b} par le même nombre, {k} : "
                     f"{a} × {k} = {a * k} et {b} × {k} = {b * k}, donc {a}/{b} = {a * k}/{b * k}.",
         cle=("egale", a, b, k),
@@ -112,8 +118,7 @@ def partie(rng: random.Random) -> Squelette:
                "figure est coloriée ?",
         reponse=reponse,
         # l'inverse, la partie rapportée au reste, le reste
-        distracteurs=distracteurs(reponse, [ecrire((n, k)), ecrire((k, n - k)), ecrire((n - k, n)),
-                                            ecrire((k, n + k))]),
+        distracteurs=distracteurs(reponse, plausibles((n, k), (k, n - k), (n - k, n), (k, n + k))),
         explication=f"La figure est partagée en {n} parties égales ; {k} sont coloriées : la partie coloriée "
                     f"représente {k}/{n} de la figure.",
         cle=("partie", k, n),
@@ -137,8 +142,8 @@ def addition(rng: random.Random) -> Squelette:
         enonce=f"Calcule {a}/{d} + {b}/{d * m}.",
         reponse=reponse,
         # additionner numérateurs et dénominateurs, ou garder les numérateurs sans les convertir
-        distracteurs=distracteurs(reponse, [ecrire((a + b, d + d * m)), ecrire((a + b, d * m)),
-                                            ecrire((a * b, den)), ecrire((num + 1, den))]),
+        distracteurs=distracteurs(reponse, plausibles((a + b, d + d * m), (a + b, d * m), (a * b, den),
+                                                      (num + 1, den), (num - 1, den))),
         explication=(f"Les fractions ont le même dénominateur : on additionne les numérateurs. "
                      f"{a}/{d} + {b}/{d} = {a + b}/{d}." if m == 1 else
                      f"On écrit {a}/{d} avec le dénominateur {d * m} : {a}/{d} = {a * m}/{d * m}. Puis on additionne "

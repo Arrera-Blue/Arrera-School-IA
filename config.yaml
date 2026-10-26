@@ -40,6 +40,10 @@ chemins:                          # relatifs à la racine du dépôt (/app dans 
   base: "donnees/arrera.sqlite3"  # comptes, sessions, journal des accès (E1) ; jamais versionnée ; droits 600, dossier 700
   sauvegardes: "donnees/sauvegardes"  # une copie de la base par jour, gardée 7 jours, droits 600
   cle_codes: "donnees/cle-codes"  # clé secrète des codes des élèves (E3, ⚖3) : hors de la base et des sauvegardes, 600
+suivi:                            # E4 : les règles des indicateurs, affichées telles quelles à l'enseignant
+  questions_min: 6                # en dessous : « pas assez de réponses »
+  a_consolider: 0.5               # réussite en dessous : « à consolider »
+  en_reussite: 0.85               # réussite à partir de : « en réussite »
 rgpd:
   aipd_validee: false             # tant que false : « élèves fictifs uniquement » affiché (docs/rgpd/) ; à passer à
                                   # true seulement après la validation du DPO et du chef d'établissement
