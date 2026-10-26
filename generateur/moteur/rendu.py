@@ -5,12 +5,24 @@ Usage direct, sans IA, pour tester un gabarit sur un JSON écrit à la main :
 """
 
 import argparse
+import base64
 import json
+from functools import cache
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from generateur.moteur import config, lecture, registre
+
+
+@cache
+def polices(dossier: Path) -> dict[str, str]:
+    """Les polices du type (son dossier polices/), en base64 : rangées dans la page, qui reste un seul fichier hors
+    ligne. Clé : le nom du fichier sans extension (andika-400…)."""
+    rangement = dossier / "polices"
+    if not rangement.is_dir():
+        return {}
+    return {f.stem: base64.b64encode(f.read_bytes()).decode("ascii") for f in sorted(rangement.glob("*.woff2"))}
 
 
 def rendre(instance: dict, type_: str, variante: str = "gabarit", voix: bool = True) -> str:
@@ -28,6 +40,7 @@ def rendre(instance: dict, type_: str, variante: str = "gabarit", voix: bool = T
     champs.update(instance)
     # la voix fabriquée par Piper (E5), rangée dans la page ; None : la page utilisera la voix du navigateur
     champs["audio"] = lecture.pour_la_page(instance) if voix else None
+    champs["polices"] = polices(type_exo.dossier)
     return env.get_template(f"{variante}.html").render(**champs)
 
 

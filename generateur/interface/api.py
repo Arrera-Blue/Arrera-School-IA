@@ -90,7 +90,7 @@ CSP_PAGE = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 's
             "frame-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'")
 # l'aperçu : la politique du gabarit, plus un bac à sable (origine opaque) même ouvert hors de l'iframe
 CSP_APERCU = ("sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
-              "img-src data:; media-src data:; frame-ancestors 'self'")
+              "img-src data:; media-src data:; font-src data:; frame-ancestors 'self'")
 COOKIE = "session"
 # sans session : se connecter, et rien d'autre
 PUBLIQUES = {("POST", "/api/session")}
