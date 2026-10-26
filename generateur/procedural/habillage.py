@@ -28,6 +28,9 @@ LONGUEUR_MAX = 300  # celle du schéma QCM
 NOMBRE_EN_LETTRES = re.compile(r"\b(?:deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|"
                                r"quinze|seize|vingt|trente|quarante|cinquante|soixante|cent|mille|double|triple|"
                                r"moitiés?|tiers|quarts?|dizaines?|douzaines?|centaines?)\b", re.IGNORECASE)
+# sauf « les deux côtés (de l'angle droit) », qui ne change aucun calcul (recette 1.6 : refus à tort le 08/10)
+DEUX_COTES = re.compile(r"\b(?:(?:les|ses|ces)\s+deux\s+(?:autres\s+)?côtés|deux\s+côtés\s+de\s+l['’]angle\s+droit)\b",
+                        re.IGNORECASE)
 
 
 @dataclass
@@ -58,7 +61,7 @@ def controler(squelette: Squelette, texte: str) -> str | None:
         ajoutes, manquants = trouves - attendus, attendus - trouves
         return "nombres modifiés" + (f" (en plus : {len(ajoutes)})" if ajoutes else "") + \
             (f" (manquants : {len(manquants)})" if manquants else "")
-    if m := NOMBRE_EN_LETTRES.search(texte):
+    if m := NOMBRE_EN_LETTRES.search(DEUX_COTES.sub(" ", texte)):
         return f"nombre écrit en lettres : « {m.group(0)} »"
     if m := FIGURE_ABSENTE.search(texte):
         return f"renvoi à une figure : « {m.group(0)} »"

@@ -269,11 +269,29 @@ MOTS_FLOUS = re.compile(r"\b(généralement|en général|souvent|parfois|peut-ê
                         re.IGNORECASE)
 
 
+# une phrase étudiée, entre guillemets : « Nous mangeons souvent des pommes. » (recette 1.6, faux positif du 08/10)
+CITATION = re.compile(r"«[^»]*»|“[^”]*”|\"[^\"]*\"")
+
+
 def enonce_flou(n: int, q: dict) -> list[Constat]:
-    m = MOTS_FLOUS.search(q["enonce"])
+    m = MOTS_FLOUS.search(CITATION.sub(" ", q["enonce"]))
     if m:
         return [Constat(f"question {n} : « {m.group(0)} » dans l'énoncé peut rendre plusieurs réponses "
                         "défendables", False, n)]
+    return []
+
+
+# « quel est le rôle du mot… » : en grammaire, le rôle est ambigu (la nature ? la fonction ?), confusion que la 5e
+# travaille justement (recette 1.6 ; encore 3 fois sur 60 questions au banc du 26/10, malgré la consigne)
+ROLE_DU_MOT = re.compile(r"\brôle (?:grammatical\b|du (?:mot|groupe)\b|de ce (?:mot|groupe)\b|de l'adjectif\b|du nom\b)",
+                         re.IGNORECASE)
+
+
+def role_du_mot(n: int, q: dict) -> list[Constat]:
+    m = ROLE_DU_MOT.search(q["enonce"])
+    if m:
+        return [Constat(f"question {n} : « {m.group(0)} » ; en grammaire, demander la nature (classe du mot) ou la "
+                        "fonction (sujet, COD, attribut…)", False, n)]
     return []
 
 
@@ -310,9 +328,83 @@ def reponse_hors_sujet(n: int, q: dict) -> list[Constat]:
     return []
 
 
+# --- l'explication aboutit-elle à la réponse désignée ? -----------------------------------------------
+# Banc du 26/10 (Gemma 4 E4B, 120 questions) : 5 réponses cochées fausses, et chaque fois l'explication était
+# juste (« 10/25 × 100 = 40 % » pour « 10 % » coché ; « le participe passé de prendre est pris » pour « prendu »).
+
+VALEUR_TEXTE_CITEE = r"[+\-−]?\d+(?:[.,]\d+)?(?: ?/ ?\d+(?:[.,]\d+)?)?(?: ?%)?(?![\w/]|[.,]\d)"
+VALEUR_CITEE = re.compile(rf"(?<![\w/.,]){VALEUR_TEXTE_CITEE}")
+# une conclusion explicite : « la réponse attendue est 40 % », « ce qui donne 8 € » ; pas un simple « = », qui
+# donne aussi des résultats intermédiaires (« 3² + 4² = 25, donc 5 cm »)
+CONCLUSION = re.compile(rf"(?:réponse(?: \w+){{0,2}} est|résultat(?: \w+){{0,2}} est|ce qui donne|cela donne|"
+                        rf"on obtient|on trouve)\s*:?\s*(?P<valeur>{VALEUR_TEXTE_CITEE})")
+# « Un adjectif », « C'est le COD » : l'article ne compte pas ; « adjectif » se cherche seul, au pluriel aussi
+ARTICLE = re.compile(r"^(?:c'est |ce sont )?(?:un |une |le |la |les |l'|des |du )", re.IGNORECASE)
+NEGATION_AVANT = re.compile(r"\b(?:ni|pas|non|sauf|jamais|plutôt que)\b[^.;]{0,12}$")
+LONGUEUR_MIN_CITEE = 4  # « nom », « COD », « est » se trouvent dans trop d'explications
+
+
+def _nombre_cite(texte: str) -> Fraction | None:
+    """« 4 € » → 4, « 40 % » → 2/5, « 3/4 » → 3/4 : le nombre écrit (unité ignorée, pourcentage compris)."""
+    m = VALEUR.match(SEPARATEUR_MILLIERS.sub("", normaliser(texte)))
+    if not m:
+        return None
+    try:
+        nombre = _nombre(m["num"]) / (_nombre(m["den"]) if m["den"] is not None else 1)
+    except ZeroDivisionError:
+        return None
+    return nombre / 100 if m["unite"] == "%" else nombre
+
+
+def _forme(texte: str) -> str:
+    """Fraction, pourcentage ou nombre : « 1 partie sur 4 » ne cite pas la proposition « 4/1 »."""
+    texte = normaliser(texte)
+    return "%" if "%" in texte else "/" if "/" in texte else "nombre"
+
+
+def _citee(texte: str, proposition: str, affirmee: bool = False) -> bool:
+    """La proposition (sans son article) figure dans le texte ; `affirmee` : pas juste après « ni », « pas »…"""
+    mots = ARTICLE.sub("", normaliser(proposition))
+    for m in re.finditer(rf"(?<!\w){re.escape(mots)}(?:s|x)?(?!\w)", texte):
+        if not (affirmee and NEGATION_AVANT.search(texte[:m.start()])):
+            return True
+    return False
+
+
+def explication_contredit_reponse(n: int, q: dict) -> list[Constat]:
+    """L'explication aboutit à une autre proposition que la réponse désignée : « index_correct » a été écrit sans
+    tenir compte du calcul ou de la règle. Bloquant : la question est renvoyée au modèle, qui la corrige.
+
+    Réponse numérique : la conclusion de l'explication (« la réponse est », « ce qui donne »…) est une autre
+    proposition, ou la valeur désignée n'y figure pas alors qu'une autre y figure. Réponse en mots : la réponse désignée n'y figure pas, et une seule autre
+    proposition y est affirmée (ni citée dans l'énoncé, ni écartée par « ni », « pas »…)."""
+    bonne_i, propositions = q["index_correct"], q["propositions"]
+    explication, enonce = normaliser(q["explication"].replace("$", " ")), normaliser(q["enonce"])
+    nombres = [_nombre_cite(p) for p in propositions]
+    autre = None
+    if all(x is not None for x in nombres):
+        cites = [(v, _forme(m.group(0))) for m in VALEUR_CITEE.finditer(explication)
+                 if (v := _nombre_cite(m.group(0))) is not None]
+        conclusions = [_nombre_cite(m["valeur"]) for m in CONCLUSION.finditer(explication)]
+        if conclusions and conclusions[-1] != nombres[bonne_i] and conclusions[-1] in nombres:
+            autre = nombres.index(conclusions[-1])
+        elif nombres[bonne_i] not in {v for v, _ in cites}:  # la dernière autre proposition citée, sous sa forme
+            formes = {(x, _forme(p)): i for i, (x, p) in enumerate(zip(nombres, propositions)) if i != bonne_i}
+            autre = next((formes[c] for c in reversed(cites) if c in formes), None)
+    elif not _citee(explication, propositions[bonne_i]):
+        affirmees = [i for i, p in enumerate(propositions)
+                     if i != bonne_i and len(ARTICLE.sub("", normaliser(p))) >= LONGUEUR_MIN_CITEE
+                     and not _citee(enonce, p) and _citee(explication, p, affirmee=True)]
+        autre = affirmees[0] if len(affirmees) == 1 else None
+    if autre is None:
+        return []
+    return [Constat(f"question {n} : l'explication aboutit à « {propositions[autre]} », mais la réponse désignée est "
+                    f"« {propositions[bonne_i]} » ; corriger « index_correct » ou l'explication", True, n)]
+
+
 REGLES_PAR_QUESTION = (propositions_vides, propositions_equivalentes, formules_interdites,
                        explication_recopiee, bonne_reponse_trop_longue, bonne_reponse_contenue, enonce_flou,
-                       figure_absente, reponse_hors_sujet)
+                       figure_absente, reponse_hors_sujet, explication_contredit_reponse, role_du_mot)
 
 
 def enonces_dupliques(questions: list[dict]) -> list[Constat]:

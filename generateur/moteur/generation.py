@@ -61,10 +61,20 @@ def completer_demande(demande: dict) -> dict:
     return complete
 
 
+ORDRE_DES_CHAMPS = ("enonce", "propositions", "explication", "index_correct", "difficulte")
+
+
 def schema_de_sortie(schema: dict, demande: dict) -> dict:
     """Schéma passé au modèle : sans « meta », et resserré sur ce que la demande impose déjà."""
     s = copy.deepcopy(schema)
     s["properties"].pop("meta", None)
+    # l'explication AVANT « index_correct » : le modèle écrit le calcul ou la règle, puis désigne la proposition qu'il
+    # vient de justifier (banc du 26/10 : 5 réponses cochées fausses, l'explication juste à chaque fois). La
+    # génération suit l'ordre des propriétés du schéma.
+    items = s["properties"]["questions"]["items"]
+    rang = {cle: i for i, cle in enumerate(ORDRE_DES_CHAMPS)}
+    items["properties"] = dict(sorted(items["properties"].items(), key=lambda kv: rang.get(kv[0], len(rang))))
+    items["required"] = sorted(items["required"], key=lambda cle: rang.get(cle, len(rang)))
     if demande.get("nb_questions"):
         s["properties"]["questions"]["minItems"] = s["properties"]["questions"]["maxItems"] = demande["nb_questions"]
     for champ in ("matiere", "niveau"):

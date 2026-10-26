@@ -271,7 +271,9 @@ def test_modifier_une_question(client):
     assert vue["exercice"]["questions"][1]["propositions"][0] == "14 cm"  # espaces retirés
     assert vue["relecture"]["questions"][1]["modifiee"] is True
     faux = client.put(f"/api/exercices/{ident}/questions/2", json={**HYPOTENUSE_6_8, "index_correct": 0})
-    assert faux.status_code == 422 and faux.json()["detail"].startswith("modification refusée (N4)")
+    # réponse cochée fausse : l'explication aboutit à 10 cm (N3, 26/10), et le calcul le confirme (N4)
+    assert faux.status_code == 422 and faux.json()["detail"].startswith("modification refusée (N3, N4)")
+    assert "l'explication aboutit à « 10 cm »" in faux.json()["detail"]
     trop_peu = client.put(f"/api/exercices/{ident}/questions/2", json={**HYPOTENUSE_6_8, "propositions": ["a", "b"]})
     assert trop_peu.status_code == 422 and "au moins 3" in trop_peu.json()["detail"]
     assert client.put(f"/api/exercices/{ident}/questions/9", json=HYPOTENUSE_6_8).status_code == 422
