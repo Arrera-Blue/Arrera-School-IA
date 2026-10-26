@@ -5,11 +5,13 @@
 // Rend un exercice de 4 questions avec le vrai gabarit, l'ouvre en file:// (hors de tout serveur), puis le fait de
 // bout en bout sans aucun événement de souris, avec les touches qu'envoie un Stream Deck : aide « ? », réponses par
 // lettre et par chiffre (dont le chiffre d'un clavier AZERTY), flèches, Entrée, lecture à voix haute « L »,
-// recommencer « R ». La synthèse vocale est remplacée par une fausse, qui note ce qu'on lui fait lire : on vérifie le
-// texte, et qu'une voix en ligne n'est jamais utilisée. Aucune erreur JavaScript ni violation de CSP.
+// recommencer « R ». La synthèse vocale du navigateur est remplacée par une fausse, qui note ce qu'on lui fait lire :
+// on vérifie le texte, et qu'une voix en ligne n'est jamais utilisée. Puis la même page avec la voix de Piper rangée
+// dedans (si elle est installée) : les morceaux joués dans l'ordre affiché, l'arrêt, la correction lue, et un vrai
+// morceau MP3 décodé par Chrome (CSP media-src data:). Aucune erreur JavaScript ni violation de CSP.
 // Code de sortie : 0 si tous les contrôles passent, 1 sinon.
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, existsSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -37,10 +39,15 @@ const EXERCICE = {
   ],
 };
 writeFileSync(join(dossier, "exercice.json"), JSON.stringify(EXERCICE));
-const rendu = spawnSync(python, ["-m", "generateur.moteur.rendu", join(dossier, "exercice.json"), "--sortie",
-  join(dossier, "exercice.html")], { encoding: "utf-8" });
-if (rendu.status !== 0) { console.error(rendu.stderr); process.exit(1); }
-const URL_EXERCICE = pathToFileURL(join(dossier, "exercice.html")).href;
+function rendre(nom, ...options) {
+  const rendu = spawnSync(python, ["-m", "generateur.moteur.rendu", join(dossier, "exercice.json"), "--sortie",
+    join(dossier, nom), ...options], { encoding: "utf-8" });
+  if (rendu.status !== 0) { console.error(rendu.stderr); process.exit(1); }
+  return pathToFileURL(join(dossier, nom)).href;
+}
+const URL_EXERCICE = rendre("exercice.html", "--sans-voix");      // la voix du navigateur
+const URL_VOIX_RANGEE = rendre("exercice-voix.html");             // la voix de Piper, si elle est installée
+const AVEC_PIPER = readFileSync(join(dossier, "exercice-voix.html"), "utf-8").includes('id="voix-rangee"');
 
 const chrome = spawn(CHROMES.find(existsSync), ["--headless=new", `--remote-debugging-port=${DEBOGAGE}`,
   `--user-data-dir=${join(dossier, "profil")}`, "--window-size=1280,1000", "about:blank"], { stdio: "ignore" });
@@ -93,13 +100,26 @@ async function appuyer(nom) {
   await attendre(60);
 }
 
-// la fausse synthèse vocale : une voix installée (hors ligne) et une voix en ligne, ou rien du tout
+// la fausse synthèse vocale : une voix installée (hors ligne) et une voix en ligne, ou rien du tout ;
+// avec audio « faux », un faux lecteur de sons qui note ce qu'on lui fait jouer (window.__fin : morceau terminé)
 let script = null;
-async function ouvrir(voix) {
+async function ouvrir(voix, { url = URL_EXERCICE, audio = "vrai" } = {}) {
   if (script) await cdp("Page.removeScriptToEvaluateOnNewDocument", { identifier: script });
   const r = await cdp("Page.addScriptToEvaluateOnNewDocument", { source: `(() => {
     const voix = ${JSON.stringify(voix)};
-    window.__lu = []; window.__annule = 0;
+    window.__lu = []; window.__annule = 0; window.__joue = []; window.__pauses = 0; window.__auto = true;
+    if (${JSON.stringify(audio)} === "faux") window.Audio = function () {
+      const fin = [];
+      const son = { src: "", addEventListener(type, f) { if (type === "ended") fin.push(f); },
+        play() {
+          window.__joue.push(son.src);
+          window.__fin = () => { if (!son.arrete) fin.forEach((f) => f()); };
+          if (window.__auto) setTimeout(window.__fin, 1);
+          return Promise.resolve();
+        },
+        pause() { son.arrete = true; window.__pauses++; } };
+      return son;
+    };
     if (voix === null) { Object.defineProperty(window, "speechSynthesis", { value: undefined }); return; }
     window.SpeechSynthesisUtterance = function (texte) { this.text = texte; };
     Object.defineProperty(window, "speechSynthesis", { value: {
@@ -109,7 +129,7 @@ async function ouvrir(voix) {
     } });
   })()` });
   script = r.result.identifier;
-  await cdp("Page.navigate", { url: URL_EXERCICE });
+  await cdp("Page.navigate", { url });
   for (let i = 0; i < 50 && !(await js(`document.readyState === "complete"`).catch(() => false)); i++) await attendre(100);
 }
 const VOIX = [{ name: "Google français", lang: "fr-FR", localService: false }, { name: "Thomas", lang: "fr-FR", localService: true },
@@ -122,6 +142,21 @@ const courante = () => js(`[...document.querySelectorAll(".question")].findIndex
 const choisie = (n) => js(`(() => { const q = document.querySelectorAll(".question")[${n}];
   return [...q.querySelectorAll(".prop")].findIndex((b) => b.getAttribute("aria-pressed") === "true"); })()`);
 const texte = (sel) => js(`document.querySelector(${JSON.stringify(sel)}).textContent`);
+// les morceaux attendus pour la question n, d'après la voix rangée et l'ordre affiché des propositions
+const attendus = (n, corrigee) => js(`(() => {
+  const v = JSON.parse(document.getElementById("voix-rangee").textContent), f = v.fixes, d = v.questions[${n}];
+  const q = document.querySelectorAll(".question")[${n}], b = [...q.querySelectorAll(".prop")];
+  const cles = [d.titre, d.enonce];
+  b.forEach((x, i) => cles.push(f["lettre_" + "ABCD"[i]], d.propositions[Number(x.dataset.index)]));
+  if (${corrigee}) {
+    const c = b.findIndex((x) => x.getAttribute("aria-pressed") === "true");
+    const o = b.findIndex((x) => x.dataset.index === q.dataset.correct);
+    if (c === o) cles.push(f.juste); else cles.push(f["choisie_" + "ABCD"[c]], f["bonne_" + "ABCD"[o]]);
+    cles.push(f.explication, d.explication);
+  }
+  return cles.map((k) => "data:audio/mpeg;base64," + v.clips[k]);
+})()`);
+const memes = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 await cdp("Runtime.enable"); await cdp("Log.enable"); await cdp("Page.enable");
 try {
@@ -228,7 +263,51 @@ try {
   verifier("sans synthèse vocale : boutons « Écouter » cachés, L sans erreur",
     await js(`[...document.querySelectorAll(".ecouter")].every((b) => b.hidden)`) && (await texte("#annonce")) === "");
 
-  // 10. téléphone, aide ouverte : pas de défilement horizontal
+  // 10. la voix de Piper rangée dans la page : elle passe avant celle du navigateur
+  if (!AVEC_PIPER) {
+    console.log("⚠ voix de Piper absente (config.yaml, section lecture) : contrôles de la voix rangée sautés");
+  } else {
+    await ouvrir(VOIX, { url: URL_VOIX_RANGEE, audio: "faux" });
+    await appuyer("l");
+    await attendre(300);
+    let joue = await js(`window.__joue`);
+    verifier("voix rangée, L : les 10 morceaux de la question 1 (énoncé, lettres et propositions dans l'ordre affiché)",
+      joue.length === 10 && memes(joue, await attendus(0, false)), `${joue.length} morceau(x)`);
+    verifier("voix rangée : la voix du navigateur n'est pas utilisée", (await js(`window.__lu.length`)) === 0);
+    await js(`window.__auto = false`);
+    await appuyer("ArrowRight");
+    const pauses = await js(`window.__pauses`);
+    await appuyer("l");
+    await appuyer("l");
+    await js(`window.__fin()`);
+    verifier("voix rangée, L une deuxième fois : la lecture s'arrête", (await js(`window.__joue.length`)) === 11 &&
+      (await js(`window.__pauses`)) === pauses + 1);
+    await js(`window.__auto = true`);
+    await appuyer("ArrowLeft");
+    for (let n = 0; n < 4; n++) {
+      const bon = await rangBon(n);
+      await appuyer("abcd"[n === 2 ? (bon + 1) % 4 : bon]);
+      await appuyer("ArrowRight");
+    }
+    await appuyer("Enter");
+    await appuyer("ArrowLeft");
+    const avant = (await js(`window.__joue`)).length;
+    await appuyer("l");
+    await attendre(300);
+    joue = (await js(`window.__joue`)).slice(avant);
+    verifier("voix rangée après la correction : « Ta réponse : … La bonne réponse est … », puis l'explication",
+      memes(joue, await attendus(2, true)), `${joue.length} morceau(x)`);
+    await ouvrir(VOIX, { url: URL_VOIX_RANGEE });
+    const duree = await js(`new Promise((ok) => {
+      const v = JSON.parse(document.getElementById("voix-rangee").textContent);
+      const son = new Audio("data:audio/mpeg;base64," + v.clips[v.questions[0].enonce]);
+      son.onloadedmetadata = () => ok(son.duration); son.onerror = () => ok(-1);
+    })`);
+    const poids = Math.round(statSync(join(dossier, "exercice-voix.html")).size / 1024);
+    verifier(`un vrai morceau MP3 se décode (${duree.toFixed(1)} s ; page de 4 questions : ${poids} Ko)`, duree > 0.5);
+  }
+
+  // 11. téléphone, aide ouverte : pas de défilement horizontal
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await ouvrir(VOIX);
   await appuyer("?");

@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- aucune ressource externe, aucune connexion réseau : l'exercice doit fonctionner hors ligne -->
+  <!-- aucune ressource externe, aucune connexion réseau : l'exercice doit fonctionner hors ligne ; la voix est rangée dans la page -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:">
+        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:">
   <title>{{ titre }} — {{ niveau }}</title>
   <style>
     :root {
@@ -135,6 +135,10 @@
       <p id="annonce" role="status" aria-live="polite"></p>
     </footer>
   </div>
+  {% if audio %}
+  <!-- la voix de l'exercice (Piper, fabriquée sur le PC enseignant) : des morceaux MP3 que la page enchaîne -->
+  <script type="application/json" id="voix-rangee">{{ audio|tojson }}</script>
+  {% endif %}
 
   <script>
   (function () {
@@ -147,6 +151,8 @@
     var btnTouches = document.getElementById("btn-touches");
     var touches = document.getElementById("touches");
     var synthese = window.speechSynthesis || null;
+    var rangee = voixRangee();
+    var lecteur = null;
     var LETTRES = "ABCD";
     var corrige = false;
     var courante = 0;
@@ -257,7 +263,51 @@
       allerA(0);
     }
 
-    // --- lecture à voix haute : uniquement une voix française installée sur l'ordinateur (hors ligne) ---
+    // --- lecture à voix haute : la voix rangée dans la page (Piper), sinon une voix française installée sur
+    // l'ordinateur ; jamais une voix en ligne ---
+
+    function voixRangee() {
+      var element = document.getElementById("voix-rangee");
+      if (!element) return null;
+      try { return JSON.parse(element.textContent); } catch (e) { return null; }
+    }
+
+    // les morceaux à enchaîner, dans l'ordre affiché des propositions
+    function morceauxALire(q) {
+      var voix = rangee.questions[questions.indexOf(q)];
+      var fixes = rangee.fixes;
+      var liste = boutons(q);
+      var morceaux = [voix.titre, voix.enonce];
+      liste.forEach(function (b, i) {
+        morceaux.push(fixes["lettre_" + LETTRES.charAt(i)], voix.propositions[Number(b.getAttribute("data-index"))]);
+      });
+      if (corrige) {
+        var choisi = q.querySelector('.prop[aria-pressed="true"]');
+        var bon = q.querySelector(".prop.juste");
+        if (choisi === bon) morceaux.push(fixes.juste);
+        else morceaux.push(fixes["choisie_" + LETTRES.charAt(liste.indexOf(choisi))], fixes["bonne_" + LETTRES.charAt(liste.indexOf(bon))]);
+        morceaux.push(fixes.explication, voix.explication);
+      }
+      return morceaux;
+    }
+
+    function jouer(q) {
+      var morceaux = morceauxALire(q);
+      var rang = 0;
+      var son = new Audio();
+      function suivant() {
+        if (lecteur !== son) return;
+        if (rang >= morceaux.length) { arreterLecture(); return; }
+        son.src = "data:audio/mpeg;base64," + rangee.clips[morceaux[rang++]];
+        var essai = son.play();
+        if (essai && essai.catch) essai.catch(function () { if (lecteur === son) arreterLecture(); });
+      }
+      son.addEventListener("ended", suivant);
+      son.addEventListener("error", function () { if (lecteur === son) arreterLecture(); });
+      lecteur = son;
+      enLecture = q;
+      suivant();
+    }
 
     function voixLocale() {
       var francaises = synthese.getVoices().filter(function (v) {
@@ -292,14 +342,16 @@
     }
 
     function arreterLecture() {
-      if (synthese && enLecture) synthese.cancel();
+      if (lecteur) { lecteur.pause(); lecteur = null; }
+      else if (synthese && enLecture) synthese.cancel();
       enLecture = null;
     }
 
     function ecouter(q, relance) {
-      if (!synthese) return;
+      if (!rangee && !synthese) return;
       if (enLecture === q) { arreterLecture(); return; } // encore L : on arrête
       arreterLecture();
+      if (rangee) { jouer(q); return; }
       if (!relance && synthese.getVoices().length === 0) {
         // le navigateur charge la liste des voix après la page : on l'attend un peu, une seule fois
         var minuteur, reprendre = function () {
@@ -362,8 +414,8 @@
     recommencer.addEventListener("click", reinitialiser);
     btnTouches.addEventListener("click", function () { afficherAide(touches.hidden); });
     document.addEventListener("keydown", touche);
-    if (synthese) {
-      synthese.getVoices(); // lance le chargement des voix
+    if (rangee || synthese) {
+      if (!rangee) synthese.getVoices(); // lance le chargement des voix du navigateur
       questions.forEach(function (q) {
         var bouton = q.querySelector(".ecouter");
         bouton.hidden = false;

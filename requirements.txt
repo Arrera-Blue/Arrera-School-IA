@@ -3,9 +3,11 @@ annotated-types==0.8.0
 anyio==4.15.1
 attrs==26.1.0
 certifi==2026.7.22
+cffi==2.1.1
 click==8.5.0
 diskcache==5.6.3
 fastapi==0.141.1
+flatbuffers==25.12.19
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
@@ -19,8 +21,13 @@ MarkupSafe==3.0.3
 mpmath==1.3.0
 numpy==2.4.6 ; python_version < "3.12"  # numpy 2.5 exige Python 3.12 : Debian 12 a la 3.11 (3.3, C7)
 numpy==2.5.3 ; python_version >= "3.12"
+onnxruntime==1.31.0
 packaging==26.3
+pathvalidate==3.3.1
+piper-tts==1.8.0  # la voix des exercices (E5), sur le PC enseignant ; licence GPL-3.0 (docs/etapes/etape-E5-accessibilite.md)
 pluggy==1.6.0
+protobuf==7.36.2
+pycparser==3.12
 pydantic==2.13.5
 pydantic_core==2.46.5
 Pygments==2.21.0
@@ -29,6 +36,7 @@ python-dotenv==1.2.3
 PyYAML==6.0.3
 referencing==0.37.0
 rpds-py==2026.6.3
+soundfile==0.14.0  # l'encodage MP3 de la voix (libsndfile fournie avec le paquet)
 starlette==1.6.0
 sympy==1.14.0
 typing-inspection==0.4.4
