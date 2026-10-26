@@ -10,10 +10,10 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from generateur.moteur import config, registre
+from generateur.moteur import config, lecture, registre
 
 
-def rendre(instance: dict, type_: str, variante: str = "gabarit") -> str:
+def rendre(instance: dict, type_: str, variante: str = "gabarit", voix: bool = True) -> str:
     type_exo = registre.charger(type_)
     if variante not in type_exo.gabarits:
         raise ValueError(f"gabarit « {variante} » absent du type « {type_} » ; disponibles : {', '.join(type_exo.gabarits)}")
@@ -26,6 +26,8 @@ def rendre(instance: dict, type_: str, variante: str = "gabarit") -> str:
     # les champs optionnels absents valent None plutôt que de faire échouer StrictUndefined
     champs = {cle: None for cle in type_exo.schema.get("properties", {})}
     champs.update(instance)
+    # la voix fabriquée par Piper (E5), rangée dans la page ; None : la page utilisera la voix du navigateur
+    champs["audio"] = lecture.pour_la_page(instance) if voix else None
     return env.get_template(f"{variante}.html").render(**champs)
 
 
@@ -39,11 +41,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Rendre une instance JSON en exercice HTML.")
     parser.add_argument("instance", type=Path, help="fichier JSON de l'exercice")
     parser.add_argument("--variante", default="gabarit")
+    parser.add_argument("--sans-voix", action="store_true", help="sans la voix de Piper : celle du navigateur")
     parser.add_argument("--sortie", type=Path, default=config.chemin("sortie") / "exercice.html")
     args = parser.parse_args()
 
     instance = json.loads(args.instance.read_text(encoding="utf-8"))
-    chemin = ecrire(rendre(instance, instance["type"], args.variante), args.sortie)
+    chemin = ecrire(rendre(instance, instance["type"], args.variante, voix=not args.sans_voix), args.sortie)
     print(f"exercice écrit : {chemin}")
 
 

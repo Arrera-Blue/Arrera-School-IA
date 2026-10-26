@@ -15,8 +15,8 @@ def page(**champs) -> str:
 
 def test_la_page_reste_hors_ligne():
     html = page()
-    assert ('content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src data:"'
-            in html)
+    assert ('content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src data:; '
+            'media-src data:"' in html)
     # aucune adresse externe : ni script, ni feuille de style, ni image, ni lien
     assert not re.search(r"(src|href)\s*=\s*[\"']?(https?:)?//", html)
 

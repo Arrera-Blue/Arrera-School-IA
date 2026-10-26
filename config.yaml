@@ -40,6 +40,12 @@ chemins:                          # relatifs à la racine du dépôt (/app dans 
   base: "donnees/arrera.sqlite3"  # comptes, sessions, journal des accès (E1) ; jamais versionnée ; droits 600, dossier 700
   sauvegardes: "donnees/sauvegardes"  # une copie de la base par jour, gardée 7 jours, droits 600
   cle_codes: "donnees/cle-codes"  # clé secrète des codes des élèves (E3, ⚖3) : hors de la base et des sauvegardes, 600
+  lecture: "cache/lecture"        # les morceaux de voix déjà fabriqués (E5) : un aperçu refait ne refait pas la voix
+lecture:                          # E5 : la voix des exercices, fabriquée ici par Piper et rangée dans la page (MP3)
+  voix: "modeles/piper/fr_FR-siwis-medium.onnx"  # femme, licence CC BY 4.0 ; vide : la voix du navigateur
+  # voix: "modeles/piper/fr_FR-upmc-medium.onnx" # l'autre voix retenue : Pierre (homme, CC BY-SA 4.0), avec
+  locuteur: null                  #   locuteur: "pierre" (cette voix en a deux : jessica, pierre)
+  lenteur: 1.1                    # 1 : le débit de la voix ; 1,1 : un peu plus lent, pour des élèves de collège
 suivi:                            # E4 : les règles des indicateurs, affichées telles quelles à l'enseignant
   questions_min: 6                # en dessous : « pas assez de réponses »
   a_consolider: 0.5               # réussite en dessous : « à consolider »
