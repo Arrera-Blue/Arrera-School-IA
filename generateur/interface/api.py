@@ -84,9 +84,9 @@ from generateur.moteur.validation.fond import controler
 STATIQUE = Path(__file__).with_name("statique")
 HOTES = {"127.0.0.1", "localhost", "[::1]"}
 METHODES_SURES = {"GET", "HEAD", "OPTIONS"}
-# la page : ses propres scripts et styles seulement, aucune ressource extérieure (le PC enseignant peut être
+# la page : ses propres scripts, styles et polices seulement, aucune ressource extérieure (le PC enseignant peut être
 # hors ligne), et l'aperçu ne peut venir que d'ici
-CSP_PAGE = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; "
+CSP_PAGE = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; "
             "frame-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'")
 # l'aperçu : la politique du gabarit, plus un bac à sable (origine opaque) même ouvert hors de l'iframe
 CSP_APERCU = ("sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
