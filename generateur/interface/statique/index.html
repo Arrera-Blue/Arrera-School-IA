@@ -5,23 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Générateur d'exercices</title>
   <link rel="icon" href="data:,">
+  <script src="/statique/theme.js"></script>
   <link rel="stylesheet" href="/statique/style.css">
   <script src="/statique/app.js" defer></script>
 </head>
 <body>
+  <svg class="sprite" aria-hidden="true" focusable="false"><defs>
+    <symbol id="i-creer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 0 1 3 3L7.1 18.9 3 20l1.1-4.1Z"/></symbol>
+    <symbol id="i-banque" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></symbol>
+    <symbol id="i-classes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5 12 5l10 4.5-10 4.5Z"/><path d="M6 11.3V16c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.7"/></symbol>
+    <symbol id="i-comptes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5.5 6.5-5.5s5.7 2.1 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.7 2.6 3 5.2"/></symbol>
+    <symbol id="i-sortir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-points" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></symbol>
+  </defs></svg>
+
   <header class="entete">
-    <div class="entete-contenu">
-      <p class="marque">Générateur d'exercices</p>
-      <nav id="nav-principale" aria-label="Sections" hidden>
-        <a href="#/generer" data-vue="generer">Générer</a>
-        <a href="#/banque" data-vue="banque">Banque</a>
-        <a href="#/classes" data-vue="classes">Classes</a>
-        <a href="#/comptes" data-vue="comptes" id="lien-comptes" hidden>Comptes</a>
-      </nav>
-      <div id="entete-compte" class="entete-compte" hidden>
-        <a href="#/compte" data-vue="compte" id="entete-nom" title="Mon compte"></a>
-        <button type="button" id="btn-deconnexion" class="secondaire petit">Se déconnecter</button>
-      </div>
+    <span class="logo" aria-hidden="true">AB</span>
+    <nav id="nav-principale" aria-label="Sections" hidden>
+      <a class="menu-lien" href="#/generer" data-vue="generer"><svg class="icone" aria-hidden="true"><use href="#i-creer"/></svg><span class="menu-nom">Créer un exercice</span></a>
+      <a class="menu-lien" href="#/banque" data-vue="banque"><svg class="icone" aria-hidden="true"><use href="#i-banque"/></svg><span class="menu-nom">Banque</span></a>
+      <a class="menu-lien" href="#/classes" data-vue="classes"><svg class="icone" aria-hidden="true"><use href="#i-classes"/></svg><span class="menu-nom">Classes</span></a>
+    </nav>
+    <div id="entete-compte" class="entete-compte" hidden>
+      <a class="menu-lien" href="#/comptes" data-vue="comptes" id="lien-comptes" hidden><svg class="icone" aria-hidden="true"><use href="#i-comptes"/></svg><span class="menu-nom">Comptes</span></a>
+      <a class="menu-lien" href="#/compte" data-vue="compte"><span class="avatar" id="entete-initiales" aria-hidden="true"></span><span class="visuellement-cache">Mon compte : </span><span class="menu-nom" id="entete-nom"></span></a>
+      <button type="button" id="btn-deconnexion" class="menu-lien"><svg class="icone" aria-hidden="true"><use href="#i-sortir"/></svg><span class="menu-nom">Se déconnecter</span></button>
     </div>
   </header>
 
@@ -50,12 +59,20 @@
       </div>
     </section>
 
-    <!-- Mon compte : changer son mot de passe (obligatoire s'il est provisoire) -->
+    <!-- Mon compte : l'apparence, changer son mot de passe (obligatoire s'il est provisoire) -->
     <section id="vue-compte" class="vue vue-etroite" aria-labelledby="titre-compte" hidden>
       <h1 id="titre-compte">Mon compte</h1>
       <p id="compte-infos" class="infos"></p>
       <p id="compte-provisoire" class="avertissement" role="alert" hidden>Votre mot de passe est provisoire :
         choisissez le vôtre pour continuer.</p>
+      <div class="reglage">
+        <h2 id="titre-apparence">Apparence</h2>
+        <span class="bascule" role="group" aria-labelledby="titre-apparence">
+          <button type="button" data-theme-choix="sombre" aria-pressed="true">Sombre</button>
+          <button type="button" data-theme-choix="clair" aria-pressed="false">Clair</button>
+        </span>
+        <p>Le thème de l'interface sur cet ordinateur.</p>
+      </div>
       <form id="form-mot-de-passe" class="carte" novalidate>
         <h2>Changer de mot de passe</h2>
         <label for="mdp-ancien">Mot de passe actuel</label>
@@ -143,24 +160,26 @@
       </div>
     </section>
 
-    <!-- Générer : la demande, sa vérification, la progression -->
+    <!-- Accueil : la demande, sa vérification, la progression ; ce qui attend l'enseignant -->
     <section id="vue-generer" class="vue" aria-labelledby="titre-generer" hidden>
       <h1 id="titre-generer">Créer un exercice</h1>
 
       <form id="form-phrase" class="carte" novalidate>
-        <h2>1. Votre demande</h2>
-        <label for="phrase">Décrivez l'exercice comme vous le diriez à un collègue</label>
-        <textarea id="phrase" rows="3" maxlength="1000" required
-                  placeholder="Un QCM de 8 questions sur le théorème de Pythagore pour des 4e, plutôt facile"></textarea>
-        <div class="actions">
-          <button type="submit" id="btn-analyser">Analyser la demande</button>
-          <button type="button" id="btn-a-la-main" class="lien">ou remplir le formulaire à la main</button>
+        <div class="demande">
+          <label for="phrase" class="visuellement-cache">Décrivez l'exercice comme vous le diriez à un collègue</label>
+          <textarea id="phrase" rows="3" maxlength="1000" required
+                    placeholder="Décrivez l'exercice comme à un collègue : un QCM de 8 questions sur le théorème de Pythagore pour des 4e, plutôt facile…"></textarea>
+          <div class="actions">
+            <button type="submit" id="btn-analyser">Analyser la demande</button>
+            <button type="button" id="btn-a-la-main" class="lien">Remplir à la main</button>
+          </div>
         </div>
+        <p class="local">Le modèle tourne sur cet ordinateur : rien n'est envoyé en ligne.</p>
         <p id="analyse-etat" class="etat" role="status"></p>
       </form>
 
       <form id="form-requete" class="carte" novalidate hidden>
-        <h2>2. Vérifiez avant de générer</h2>
+        <h2>Vérifiez avant de générer</h2>
         <ul id="remarques" class="remarques"></ul>
         <p id="chemin" class="note" hidden></p>
         <div class="grille">
@@ -217,7 +236,7 @@
       </form>
 
       <section id="progression" class="carte" aria-labelledby="titre-progression" hidden>
-        <h2 id="titre-progression">3. Génération</h2>
+        <h2 id="titre-progression">Génération</h2>
         <p id="prog-message" class="prog-message" aria-live="polite"></p>
         <progress id="prog-barre" max="1"></progress>
         <p id="prog-temps" class="note"></p>
@@ -227,11 +246,16 @@
         <ol id="prog-journal" class="journal"></ol>
         <div id="prog-erreur" class="erreur" role="alert" hidden></div>
       </section>
+
+      <section id="bloc-a-faire" aria-labelledby="titre-a-faire" hidden>
+        <h2 id="titre-a-faire">À faire</h2>
+        <ul id="a-faire" class="a-faire"></ul>
+      </section>
     </section>
 
     <!-- Banque : la liste des exercices -->
     <section id="vue-banque" class="vue" aria-labelledby="titre-banque" hidden>
-      <h1 id="titre-banque">Banque d'exercices</h1>
+      <h1 id="titre-banque">Banque</h1>
       <form id="filtres" class="filtres" novalidate>
         <div class="champ champ-recherche">
           <label for="filtre-recherche">Rechercher</label>
@@ -314,7 +338,7 @@
           et le prénom sont gardés)</span></label>
         <textarea id="classe-liste" rows="8" maxlength="10000" spellcheck="false"></textarea>
         <div class="actions">
-          <button type="submit" id="btn-verifier-liste" class="secondaire">Vérifier la liste</button>
+          <button type="submit" id="btn-verifier-liste">Vérifier la liste</button>
           <button type="button" id="btn-annuler-classe" class="lien">Annuler</button>
         </div>
         <div id="classe-apercu" hidden>
@@ -347,7 +371,7 @@
 
     <!-- Une classe : ses élèves, corriger, nouveau code, désactiver, exporter, supprimer -->
     <section id="vue-classe" class="vue" aria-labelledby="cl-titre" hidden>
-      <p><a href="#/classes" class="retour">← Retour aux classes</a></p>
+      <p><a href="#/classes" class="retour">← Classes</a></p>
       <h1 id="cl-titre" tabindex="-1"></h1>
       <p id="cl-infos" class="infos"></p>
       <div class="actions barre-actions">
@@ -357,6 +381,7 @@
         <button type="button" id="btn-cl-archiver" class="secondaire"></button>
       </div>
       <form id="form-ajout" class="carte" novalidate hidden>
+        <h2>Ajouter des élèves</h2>
         <label for="ajout-liste">Les élèves à ajouter : une ligne par élève, le nom puis le prénom</label>
         <textarea id="ajout-liste" rows="4" maxlength="10000" spellcheck="false"></textarea>
         <div class="actions">
@@ -379,47 +404,55 @@
 
     <!-- Le suivi d'une classe (E4) : des indicateurs pour repérer les besoins ; rien n'est décidé sans l'enseignant -->
     <section id="vue-suivi" class="vue" aria-labelledby="su-titre" hidden>
-      <p><a id="su-retour" href="#/classes" class="retour">← Retour à la classe</a></p>
-      <h1 id="su-titre" tabindex="-1">Suivi</h1>
-      <p id="su-rappel" class="note" role="note"></p>
-      <div class="actions">
-        <label class="case"><input type="checkbox" id="su-masquer"> Masquer les noms (pour projeter au tableau)</label>
+      <p><a id="su-retour" href="#/classes" class="retour">← La classe</a></p>
+      <div class="entete-vue">
+        <h1 id="su-titre" tabindex="-1">Suivi</h1>
+        <label class="interrupteur" title="Pour projeter au tableau"><input type="checkbox" id="su-masquer"> Masquer les noms</label>
       </div>
+      <p id="su-rappel" class="note" role="note"></p>
       <p id="su-message" class="etat" role="status"></p>
       <div id="su-contenu">
-        <h2>Les élèves, attendu par attendu</h2>
-        <div class="tableau-defilant">
-          <table id="table-suivi" class="tableau grille-suivi">
-            <caption class="visuellement-cache">Pour chaque élève, sa réussite sur chaque attendu du programme travaillé</caption>
-            <thead></thead>
-            <tbody></tbody>
-          </table>
+        <div class="onglets" role="tablist" aria-label="Vues du suivi">
+          <button type="button" role="tab" id="su-onglet-grille" aria-selected="true" aria-controls="su-panneau-grille">Grille</button>
+          <button type="button" role="tab" id="su-onglet-besoins" aria-selected="false" aria-controls="su-panneau-besoins">Qui a besoin de quoi</button>
+          <button type="button" role="tab" id="su-onglet-groupes" aria-selected="false" aria-controls="su-panneau-groupes">Groupes de besoins</button>
+          <button type="button" role="tab" id="su-onglet-exercices" aria-selected="false" aria-controls="su-panneau-exercices">Exercices à travailler</button>
         </div>
-        <ul id="su-legende" class="legende"></ul>
-        <ol id="su-attendus" class="liste-attendus"></ol>
-
-        <h2>Qui a besoin de quoi</h2>
-        <ul id="su-besoins" class="besoins"></ul>
-
-        <h2>Groupes de besoins</h2>
-        <p class="note">L'outil propose des groupes d'après les indicateurs. Un groupe n'existe qu'une fois enregistré par
-          vous ; vous pouvez ensuite le renommer, en retirer ou y ajouter des élèves.</p>
-        <div id="su-groupes"></div>
-
-        <h2>Exercices à travailler</h2>
-        <p class="note">Pour chaque élève : à retravailler (attendus à consolider) ou pour aller plus loin (attendus en
-          réussite). Rien n'est envoyé : vous gardez ce que vous voulez, puis validez ; les élèves les verront avec le
-          serveur de classe.</p>
-        <div class="actions">
-          <button type="button" id="btn-su-proposer" class="secondaire">Préparer des propositions</button>
-        </div>
-        <div id="su-propositions"></div>
+        <section id="su-panneau-grille" role="tabpanel" aria-labelledby="su-onglet-grille">
+          <h2 class="visuellement-cache">Les élèves, attendu par attendu</h2>
+          <div class="tableau-defilant">
+            <table id="table-suivi" class="tableau grille-suivi">
+              <caption class="visuellement-cache">Pour chaque élève, sa réussite sur chaque attendu du programme travaillé</caption>
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <ul id="su-legende" class="legende"></ul>
+          <ol id="su-attendus" class="liste-attendus"></ol>
+        </section>
+        <section id="su-panneau-besoins" role="tabpanel" aria-labelledby="su-onglet-besoins" hidden>
+          <ul id="su-besoins" class="besoins"></ul>
+        </section>
+        <section id="su-panneau-groupes" role="tabpanel" aria-labelledby="su-onglet-groupes" hidden>
+          <p class="note">L'outil propose des groupes d'après les indicateurs. Un groupe n'existe qu'une fois enregistré par
+            vous ; vous pouvez ensuite le renommer, en retirer ou y ajouter des élèves.</p>
+          <div id="su-groupes"></div>
+        </section>
+        <section id="su-panneau-exercices" role="tabpanel" aria-labelledby="su-onglet-exercices" hidden>
+          <p class="note">Pour chaque élève : à retravailler (attendus à consolider) ou pour aller plus loin (attendus en
+            réussite). Rien n'est envoyé : vous gardez ce que vous voulez, puis validez ; les élèves les verront avec le
+            serveur de classe.</p>
+          <div class="actions">
+            <button type="button" id="btn-su-proposer">Préparer des propositions</button>
+          </div>
+          <div id="su-propositions"></div>
+        </section>
       </div>
     </section>
 
     <!-- La fiche de suivi d'un élève (E4) : ses attendus, ses exercices ; annuler une tentative faite par erreur -->
     <section id="vue-fiche" class="vue" aria-labelledby="fi-titre" hidden>
-      <p><a id="fi-retour" href="#/classes" class="retour">← Retour au suivi de la classe</a></p>
+      <p><a id="fi-retour" href="#/classes" class="retour">← Le suivi de la classe</a></p>
       <h1 id="fi-titre" tabindex="-1"></h1>
       <p id="fi-infos" class="infos"></p>
       <p id="fi-message" class="etat" role="status"></p>
@@ -460,37 +493,46 @@
 
     <!-- Exercice : relecture, aperçu, décision -->
     <section id="vue-exercice" class="vue" aria-labelledby="ex-titre" hidden>
-      <p><a href="#/banque" id="ex-retour" class="retour">← Retour à la banque</a></p>
+      <p><a href="#/banque" id="ex-retour" class="retour">← Banque</a></p>
       <div class="ex-entete">
         <h1 id="ex-titre" tabindex="-1"></h1>
         <span id="ex-statut" class="badge"></span>
       </div>
       <p id="ex-infos" class="infos"></p>
       <p id="ex-programme" class="infos" hidden></p>
-      <ul id="ex-validation" class="validation" aria-label="Contrôles automatiques"></ul>
+      <details id="ex-controles" class="controles">
+        <summary id="ex-controles-resume"></summary>
+        <ul id="ex-validation" class="validation" aria-label="Contrôles automatiques"></ul>
+      </details>
       <div id="ex-erreurs" class="erreur" role="alert" hidden></div>
       <div id="ex-avertissements"></div>
 
       <div class="actions barre-actions" id="ex-actions">
         <button type="button" id="btn-accepter">Accepter l'exercice</button>
         <button type="button" id="btn-rejeter" class="secondaire">Rejeter…</button>
-        <a id="btn-telecharger" class="bouton secondaire" href="#" download>Télécharger le fichier HTML</a>
-        <button type="button" id="btn-supprimer" class="secondaire danger">Supprimer…</button>
+        <details class="plus">
+          <summary aria-label="Autres actions"><svg class="icone" aria-hidden="true"><use href="#i-points"/></svg></summary>
+          <div class="plus-menu">
+            <a id="btn-telecharger" class="bouton secondaire" href="#" download>Télécharger le fichier HTML</a>
+            <button type="button" id="btn-supprimer" class="secondaire danger">Supprimer l'exercice…</button>
+          </div>
+        </details>
       </div>
       <p id="ex-message" class="etat" role="status"></p>
       <div id="ex-regeneration" class="carte regeneration" aria-live="polite" hidden></div>
 
-      <div class="deux-colonnes">
-        <section aria-labelledby="titre-relecture">
-          <h2 id="titre-relecture">Relecture <span class="facultatif">(vue enseignant, bonnes réponses marquées)</span></h2>
-          <ol id="ex-questions" class="questions"></ol>
-        </section>
-        <section aria-labelledby="titre-apercu">
-          <h2 id="titre-apercu">Aperçu <span class="facultatif">(vue élève)</span></h2>
-          <iframe id="ex-apercu" class="apercu" title="Aperçu de l'exercice, tel que l'élève le verra"
-                  sandbox="allow-scripts"></iframe>
-        </section>
+      <div class="onglets" role="tablist" aria-label="Affichage de l'exercice">
+        <button type="button" role="tab" id="onglet-relecture" aria-selected="true" aria-controls="panneau-relecture">Relecture</button>
+        <button type="button" role="tab" id="onglet-apercu" aria-selected="false" aria-controls="panneau-apercu">Ce que voit l'élève</button>
       </div>
+      <section id="panneau-relecture" role="tabpanel" aria-labelledby="onglet-relecture">
+        <h2 id="titre-relecture" class="visuellement-cache">Relecture : vue enseignant, bonnes réponses marquées</h2>
+        <ol id="ex-questions" class="questions"></ol>
+      </section>
+      <section id="panneau-apercu" role="tabpanel" aria-labelledby="onglet-apercu" hidden>
+        <iframe id="ex-apercu" class="apercu" title="Aperçu de l'exercice, tel que l'élève le verra"
+                sandbox="allow-scripts"></iframe>
+      </section>
     </section>
   </main>
 

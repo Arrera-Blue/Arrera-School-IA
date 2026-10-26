@@ -106,10 +106,14 @@
 
   // --- navigation ---------------------------------------------------------------------------------
 
+  // les sous-pages allument la rubrique du menu dont elles dépendent
+  const RUBRIQUES = { classe: "classes", suivi: "classes", fiche: "classes", cartes: "classes" };
+
   function afficherVue(nom) {
     for (const vue of document.querySelectorAll(".vue")) vue.hidden = vue.id !== `vue-${nom}`;
+    const rubrique = nom === "exercice" ? etat.origine : RUBRIQUES[nom] || nom;
     for (const lien of document.querySelectorAll("a[data-vue]")) {
-      if (lien.dataset.vue === nom) lien.setAttribute("aria-current", "page");
+      if (lien.dataset.vue === rubrique) lien.setAttribute("aria-current", "page");
       else lien.removeAttribute("aria-current");
     }
   }
@@ -159,6 +163,7 @@
     } else {
       etat.origine = "generer";
       afficherVue("generer");
+      chargerAFaire();
     }
   }
 
@@ -217,6 +222,8 @@
   async function ouvrirSession(compte) {
     etat.compte = compte;
     $("#entete-nom").textContent = compte.nom;
+    $("#entete-initiales").textContent = initiales(compte.nom);
+    $("#titre-generer").textContent = `Bonjour ${compte.nom}`;
     $("#lien-comptes").hidden = compte.role !== "admin";
     $("#nav-principale").hidden = false;
     $("#entete-compte").hidden = false;
@@ -232,6 +239,11 @@
     }
     router();
     reprendreSuivi();
+  }
+
+  function initiales(nom) {
+    const mots = nom.replace(/[^\p{L}\s-]/gu, " ").split(/[\s-]+/).filter(Boolean);
+    return (mots.length > 1 ? mots[0][0] + mots[mots.length - 1][0] : (mots[0] || "?").slice(0, 2)).toUpperCase();
   }
 
   async function seConnecter(evenement) {
@@ -269,9 +281,26 @@
 
   function afficherCompte() {
     const compte = etat.compte;
-    $("#compte-infos").textContent = `${compte.nom} · identifiant « ${compte.identifiant} » · ${ROLES[compte.role] || compte.role}`;
+    $("#compte-infos").textContent = `${compte.nom}, identifiant « ${compte.identifiant} ». ${ROLES[compte.role] || compte.role}.`;
+    montrerTheme();
     $("#compte-provisoire").hidden = !compte.doit_changer;
     $("#mdp-message").textContent = "";
+  }
+
+  // l'apparence : un réglage de cet ordinateur (theme.js l'applique avant le premier affichage)
+  function themeChoisi() {
+    return document.documentElement.dataset.theme === "clair" ? "clair" : "sombre";
+  }
+
+  function montrerTheme() {
+    for (const b of document.querySelectorAll("[data-theme-choix]")) b.setAttribute("aria-pressed", String(b.dataset.themeChoix === themeChoisi()));
+  }
+
+  function choisirTheme(theme) {
+    if (theme === "clair") document.documentElement.dataset.theme = "clair";
+    else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem("theme", theme); } catch (_) { /* stockage indisponible : le choix vaut pour cette page */ }
+    montrerTheme();
   }
 
   async function changerMotDePasse(evenement) {
@@ -1363,6 +1392,30 @@
 
   // --- banque -----------------------------------------------------------------------------------
 
+  async function chargerAFaire() {
+    let aRelire = [];
+    try {
+      ({ exercices: aRelire } = await api("/api/exercices?statut=genere"));
+    } catch (_) { return; /* l'accueil reste utilisable sans ce rappel */ }
+    if (location.hash && location.hash !== "#/generer") return;
+    const lignes = [];
+    if (aRelire.length) {
+      lignes.push(el("li", {}, el("a", { href: "#/banque", "data-statut": "genere" },
+        el("span", { texte: aRelire.length > 1 ? `${aRelire.length} exercices à relire` : "1 exercice à relire" }), chevron())));
+    }
+    $("#a-faire").replaceChildren(...lignes);
+    $("#bloc-a-faire").hidden = !lignes.length;
+  }
+
+  function chevron() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("aria-hidden", "true");
+    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", "#i-chevron");
+    svg.append(use);
+    return svg;
+  }
+
   async function chargerBanque() {
     const parametres = new URLSearchParams();
     for (const [cle, id] of [["matiere", "#filtre-matiere"], ["niveau", "#filtre-niveau"], ["statut", "#filtre-statut"],
@@ -1449,7 +1502,7 @@
       : `modèle ${meta.modele || "?"}`;
     $("#ex-infos").textContent = [MATIERES[x.matiere] || x.matiere, x.niveau, x.notion,
       `${x.questions.length} questions`, origine, meta.duree_s !== undefined ? `généré en ${duree(meta.duree_s)}` : null,
-      meta.tentatives > 1 ? `${meta.tentatives} tentatives` : null, date(meta.date)].filter(Boolean).join(" · ");
+      meta.tentatives > 1 ? `${meta.tentatives} tentatives` : null, date(meta.date)].filter(Boolean).join(", ");
     const programme = meta.programme;
     $("#ex-programme").hidden = !programme;
     if (programme) {
@@ -1463,7 +1516,8 @@
     $("#btn-telecharger").href = `/api/exercices/${ident}/telecharger`;
     $("#btn-telecharger").setAttribute("download", `${ident}.html`);
     $("#ex-retour").href = `#/${etat.origine}`;
-    $("#ex-retour").textContent = etat.origine === "generer" ? "← Retour à la demande" : "← Retour à la banque";
+    $("#ex-retour").textContent = etat.origine === "generer" ? "← Créer un exercice" : "← Banque";
+    afficherVue("exercice"); // la rubrique du menu suit l'origine
     etat.statut = resume.statut;
     etat.valide = relecture.valide;
     occuper(donnees.occupe);
@@ -1516,6 +1570,16 @@
     const symboles = { ok: "✔ ", faux: "✘ ", "a-relire": "? " };
     $("#ex-validation").replaceChildren(...lignes.map(([classe, texte]) =>
       el("li", { class: classe }, el("span", { "aria-hidden": "true", texte: symboles[classe] }), texte)));
+    // replié en une ligne : le détail N1 à N4 s'ouvre au clic
+    const enErreur = faux || !n3 || !relecture.valide;
+    const resume = enErreur ? ["faux", "✘", "Contrôles :", "une erreur à corriger"]
+      : relecture.a_relire && !relecture.procedural
+        ? ["relire", "✔", "Contrôles réussis.", `${relecture.a_relire} question(s) sans calcul vérifié, à relire`]
+        : ["ok", "✔", "Contrôles réussis.", "voir le détail"];
+    $("#ex-controles").className = `controles controles-${resume[0]}`;
+    $("#ex-controles-resume").replaceChildren(el("span", { class: "symbole", "aria-hidden": "true", texte: resume[1] }),
+      el("span", { texte: resume[2] }), el("span", { class: "detail", texte: resume[3] }));
+    $("#ex-controles").open = enErreur;
     const avertissements = relecture.avertissements || [];
     $("#ex-avertissements").replaceChildren(...avertissements.map((a) => el("p", { class: "avertissement", texte: `⚠ ${a}` })));
   }
@@ -1634,8 +1698,9 @@
       bouton.disabled = false;
       return;
     }
-    $("#ex-message").textContent = `Question ${numero} modifiée. L'exercice est à accepter de nouveau.`;
     await ouvrirExercice(etat.exercice, true);
+    // le message après l'affichage : il annonce une question déjà redessinée
+    $("#ex-message").textContent = `Question ${numero} modifiée. L'exercice est à accepter de nouveau.`;
     const question = document.getElementById(`question-${numero}`);
     if (question) {
       question.classList.add("nouvelle");
@@ -1799,6 +1864,16 @@
     });
   }
 
+  // des onglets : un seul panneau visible à la fois
+  function choisirOnglet(onglet) {
+    for (const o of onglet.parentElement.querySelectorAll('[role="tab"]')) {
+      const choisi = o === onglet;
+      o.setAttribute("aria-selected", String(choisi));
+      o.tabIndex = choisi ? 0 : -1;
+      document.getElementById(o.getAttribute("aria-controls")).hidden = !choisi;
+    }
+  }
+
   // --- démarrage --------------------------------------------------------------------------------
 
   async function demarrer() {
@@ -1900,6 +1975,25 @@
       const motif = await demander({ titre: `Régénérer la question ${numero}`, label: "Ce qui ne va pas (facultatif)",
         ok: "Régénérer", texte: "Seule cette question sera remplacée ; les autres ne changent pas." });
       if (motif !== null) regenerer(numero, motif || null);
+    });
+    for (const b of document.querySelectorAll("[data-theme-choix]")) b.addEventListener("click", () => choisirTheme(b.dataset.themeChoix));
+    document.addEventListener("click", (e) => {
+      const onglet = e.target.closest('.onglets [role="tab"]');
+      if (onglet) choisirOnglet(onglet);
+      // le menu « ⋯ » se referme après un choix ou un clic ailleurs
+      for (const menu of document.querySelectorAll("details.plus[open]")) {
+        if (!menu.contains(e.target) || e.target.closest(".plus-menu")) menu.open = false;
+      }
+      const aRelire = e.target.closest("a[data-statut]");
+      if (aRelire) $("#filtre-statut").value = aRelire.dataset.statut;
+    });
+    document.addEventListener("keydown", (e) => {
+      const onglet = e.target.closest && e.target.closest('.onglets [role="tab"]');
+      if (!onglet || (e.key !== "ArrowRight" && e.key !== "ArrowLeft")) return;
+      const tous = [...onglet.parentElement.querySelectorAll('[role="tab"]')];
+      const voisin = tous[(tous.indexOf(onglet) + (e.key === "ArrowRight" ? 1 : tous.length - 1)) % tous.length];
+      choisirOnglet(voisin);
+      voisin.focus();
     });
     window.addEventListener("hashchange", router);
 
