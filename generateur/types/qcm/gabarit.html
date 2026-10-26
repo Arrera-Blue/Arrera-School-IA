@@ -1,140 +1,345 @@
+{%- set enfant = niveau == "6e" -%}
+{%- set libelles = {"maths": "Mathématiques", "francais": "Français", "histoire-geo": "Histoire-géographie", "svt": "SVT",
+     "physique-chimie": "Physique-chimie", "anglais": "Anglais", "technologie": "Technologie"} -%}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- aucune ressource externe, aucune connexion réseau : l'exercice doit fonctionner hors ligne ; la voix est rangée dans la page -->
+  <!-- aucune ressource externe, aucune connexion réseau : l'exercice doit fonctionner hors ligne ;
+       la voix et les polices sont rangées dans la page -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:">
+        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:; font-src data:">
   <title>{{ titre }} — {{ niveau }}</title>
   <style>
-    :root {
-      --fond: #f7f7f5; --carte: #ffffff; --texte: #1d1d1f; --doux: #55555a; --bord: #c9c9ce;
-      --accent: #1f5fbf; --choix: #dce8fb; --juste: #1e7a34; --juste-fond: #e2f4e6;
-      --faux: #b3261e; --faux-fond: #fbe4e2;
+    /* E7 : un jeu, une question à la fois. 6e : style « enfant » (Andika, un compagnon, des étoiles, une vague) ;
+       5e à 3e : style « collège » (Atkinson Hyperlegible, des points, une série, un balayage). Maquette validée :
+       docs/maquettes/exercice-eleve.html. La couleur n'est jamais seule ; les mouvements s'arrêtent si l'élève
+       a demandé moins d'animations (prefers-reduced-motion). */
+{%- if enfant %}
+  {%- for poids in ("400", "700") %}{% if polices.get("andika-" ~ poids) %}
+    @font-face { font-family: "Andika"; font-weight: {{ poids }}; src: url(data:font/woff2;base64,{{ polices["andika-" ~ poids] }}) format("woff2"); }
+  {%- endif %}{% endfor %}
+{%- else %}
+  {%- for poids in ("400", "700") %}{% if polices.get("atkinson-" ~ poids) %}
+    @font-face { font-family: "Atkinson Hyperlegible"; font-weight: {{ poids }}; src: url(data:font/woff2;base64,{{ polices["atkinson-" ~ poids] }}) format("woff2"); }
+  {%- endif %}{% endfor %}
+{%- endif %}
+
+    [data-style="enfant"] {
+      --fond: #eaf4ff; --surface: #ffffff; --encre: #1f2a44; --doux: #56627d; --filet: #cfdcf0;
+      --action: #6d5ce8; --action-fonce: #5241cf; --juste: #18865c; --juste-fond: #e2f6ee;
+      --revoir: #d4493c; --revoir-fond: #fdebe9; --recompense: #ffc53d; --choix: #efecff;
+      --police: "Andika", system-ui, -apple-system, "Segoe UI", sans-serif; --base: 1.25rem; --rayon: 22px;
     }
+    [data-style="college"] {
+      --fond: #f5f6f8; --surface: #ffffff; --encre: #161b26; --doux: #5f6b7e; --filet: #e3e7ee;
+      --action: #2b56d6; --action-fonce: #1f43b0; --juste: #1d7a43; --juste-fond: #e3f3e9;
+      --revoir: #c2410c; --revoir-fond: #fdeee6; --recompense: #b7790a; --choix: #f1f5ff;
+      --police: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif; --base: 1.0625rem; --rayon: 12px;
+    }
+
     * { box-sizing: border-box; }
-    body {
-      margin: 0; background: var(--fond); color: var(--texte);
-      font: 1.125rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "DejaVu Sans", sans-serif;
+    html, body { margin: 0; }
+    body { background: var(--fond); color: var(--encre); font: 400 var(--base)/1.5 var(--police); min-height: 100vh; }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    :focus-visible { outline: 3px solid var(--action); outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    .cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    kbd { font: 700 .72em/1 var(--police); padding: .15em .4em; border-radius: 6px; border: 1px solid currentColor; opacity: .75; }
+    .jeu { max-width: 760px; margin: 0 auto; padding: 2.4rem 1.25rem 3rem; }
+
+    /* ---- en-tête : titre, progression, score ---- */
+    .haut { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .8rem 1rem; align-items: center; margin-bottom: 1.6rem; }
+    .titre h1 { margin: 0; font-size: 1.35em; line-height: 1.2; }
+    .titre p { margin: .15rem 0 0; color: var(--doux); font-size: .85em; }
+    .outils { display: flex; gap: .4rem; align-items: center; }
+    .bouton-rond { border: 0; width: 44px; height: 44px; flex: none; border-radius: 50%; background: var(--surface); color: var(--encre); display: grid; place-items: center; }
+    [data-style="enfant"] .bouton-rond { box-shadow: 0 3px 0 var(--filet); }
+    [data-style="college"] .bouton-rond { box-shadow: inset 0 0 0 1px var(--filet); }
+    .bouton-rond svg { width: 22px; height: 22px; }
+    .progression { grid-column: 1 / -1; display: flex; gap: .35rem; align-items: center; }
+    [data-style="enfant"] .etape { width: 30px; height: 30px; color: var(--filet); }
+    [data-style="enfant"] .etape svg { width: 100%; height: 100%; display: block; }
+    [data-style="enfant"] .etape.juste { color: var(--recompense); }
+    [data-style="enfant"] .etape.faux { color: #b9c7de; }
+    [data-style="enfant"] .etape.encours { color: var(--action); }
+    [data-style="enfant"] .etape.attente { color: var(--filet); }
+    [data-style="college"] .progression { gap: 4px; }
+    [data-style="college"] .etape { flex: 1; height: 6px; border-radius: 999px; background: var(--filet); }
+    [data-style="college"] .etape svg { display: none; }
+    [data-style="college"] .etape.juste { background: var(--juste); }
+    [data-style="college"] .etape.faux { background: var(--revoir); }
+    [data-style="college"] .etape.encours { background: var(--encre); }
+    .compteurs { position: relative; display: flex; gap: 1rem; align-items: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .serie { display: inline-flex; align-items: center; gap: .3rem; color: var(--doux); }
+    .serie.active { color: var(--recompense); }
+    .serie svg { width: 18px; height: 18px; }
+
+    /* ---- la carte de la question ---- */
+    .carte { background: var(--surface); border-radius: var(--rayon); padding: 1.6rem 1.6rem 1.4rem; }
+    [data-style="enfant"] .carte { box-shadow: 0 6px 0 var(--filet); }
+    [data-style="college"] .carte { box-shadow: 0 0 0 1px var(--filet); }
+    #ecran-question { position: relative; overflow: hidden; }
+    .compagnon { position: relative; z-index: 3; display: flex; align-items: flex-end; gap: .8rem; margin: -.2rem 0 1rem; }
+    .compagnon svg { width: 64px; height: 64px; flex: none; }
+    .bulle { position: relative; margin: 0; background: var(--fond); border-radius: 16px; padding: .5rem .9rem; font-weight: 700; font-size: .9em; }
+    .bulle::before { content: ""; position: absolute; left: -8px; bottom: 12px; border: 8px solid transparent; border-right-color: var(--fond); border-left: 0; }
+    .numero { margin: 0 0 .4rem; color: var(--doux); font-size: .85em; font-weight: 700; }
+    .question-tete { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
+    .enonce { margin: 0 0 1.3rem; min-width: 0; font-size: 1.3em; line-height: 1.35; overflow-wrap: anywhere; }
+    .enonce:focus { outline: none; }
+    [data-style="college"] .enonce { font-size: 1.35em; font-weight: 400; }
+
+    .reponses { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: .7rem; }
+    .reponse { position: relative; width: 100%; display: flex; align-items: center; gap: .9rem; text-align: left; border: 0; background: var(--surface); }
+    .reponse > .texte { min-width: 0; overflow-wrap: anywhere; }
+    .lettre { flex: none; display: grid; place-items: center; font-weight: 700; }
+    [data-style="enfant"] .reponses { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    [data-style="enfant"] .reponse { min-height: 76px; padding: .8rem 1rem; border-radius: 18px; background: #f4f8ff;
+      box-shadow: 0 4px 0 var(--filet), inset 0 0 0 2px var(--filet); transition: transform .08s, box-shadow .08s; font-size: 1.1em; }
+    [data-style="enfant"] .reponse:hover:not(:disabled) { box-shadow: 0 4px 0 var(--action), inset 0 0 0 2px var(--action); }
+    [data-style="enfant"] .reponse:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--filet), inset 0 0 0 2px var(--action); }
+    [data-style="enfant"] .reponse[aria-pressed="true"] { background: var(--choix); box-shadow: 0 4px 0 var(--action-fonce), inset 0 0 0 3px var(--action); }
+    [data-style="enfant"] .lettre { width: 40px; height: 40px; border-radius: 12px; background: var(--action); color: #fff; }
+    [data-style="college"] .reponse { padding: .85rem 1rem; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--filet); }
+    [data-style="college"] .reponse:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--encre); }
+    [data-style="college"] .reponse[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--action); background: var(--choix); }
+    [data-style="college"] .lettre { width: 30px; height: 30px; border-radius: 7px; font-size: .85em; color: var(--doux);
+      box-shadow: inset 0 0 0 1px var(--filet), 0 2px 0 var(--filet); }
+    /* après la vérification : jamais la couleur seule, un symbole et un mot l'accompagnent */
+    .reponse:disabled { cursor: default; }
+    .reponse.juste { background: var(--juste-fond) !important; box-shadow: inset 0 0 0 2px var(--juste) !important; }
+    .reponse.faux { background: var(--revoir-fond) !important; box-shadow: inset 0 0 0 2px var(--revoir) !important; }
+    .reponse .marque { margin-left: auto; font-weight: 700; font-size: .85em; text-align: right; }
+    .reponse.juste .marque { color: var(--juste); }
+    .reponse.faux .marque { color: var(--revoir); }
+    .reponse.juste .lettre { background: var(--juste); color: #fff; box-shadow: none; }
+    .reponse.faux .lettre { background: var(--revoir); color: #fff; box-shadow: none; }
+    .reponse.eteinte { opacity: .55; }
+    .explication { display: none; }
+
+    .verdict { margin: 1.2rem 0 0; padding: 1rem 1.1rem; border-radius: 14px; overflow-wrap: anywhere; }
+    .verdict.juste { background: var(--juste-fond); }
+    .verdict.faux { background: var(--revoir-fond); }
+    .verdict strong { display: block; font-size: 1.05em; margin-bottom: .2rem; }
+    .verdict.juste strong { color: var(--juste); }
+    .verdict.faux strong { color: var(--revoir); }
+    .verdict p { margin: 0; }
+    .gain { float: right; font-weight: 700; color: var(--recompense); }
+
+    .bas { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.3rem; }
+    .indice { color: var(--doux); font-size: .85em; margin: 0 auto 0 0; }
+    .principal { border: 0; display: inline-flex; align-items: center; gap: .6rem; font-weight: 700; color: #fff; background: var(--action); }
+    .principal:disabled { opacity: .4; cursor: not-allowed; }
+    [data-style="enfant"] .principal { padding: .85rem 1.6rem; border-radius: 18px; font-size: 1.05em; box-shadow: 0 4px 0 var(--action-fonce); }
+    [data-style="enfant"] .principal:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--action-fonce); }
+    [data-style="college"] .principal { padding: .7rem 1.3rem; border-radius: 10px; }
+    .principal kbd { border-color: rgb(255 255 255 / 60%); opacity: 1; }
+    #annonce { margin: .8rem 0 0; min-height: 1.3em; color: var(--doux); font-size: .85em; }
+
+    /* ---- la fin ---- */
+    .fin { text-align: center; padding: 2.5rem 1.6rem 2rem; }
+    .fin h2 { margin: .4rem 0 .2rem; font-size: 1.7em; }
+    .fin .detail { color: var(--doux); margin: 0 0 1.6rem; }
+    .grandes-etoiles { display: flex; justify-content: center; gap: .6rem; margin-bottom: .4rem; }
+    .grandes-etoiles svg { width: 76px; height: 76px; color: #d7e2f3; }
+    .grandes-etoiles svg.gagnee { color: var(--recompense); animation: apparaitre .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+    .grandes-etoiles svg:nth-child(2) { width: 96px; height: 96px; margin-top: -14px; }
+    .grandes-etoiles svg.gagnee:nth-child(2) { animation-delay: .25s; }
+    .grandes-etoiles svg.gagnee:nth-child(3) { animation-delay: .5s; }
+    @keyframes apparaitre { from { transform: scale(0) rotate(-30deg); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .anneau { width: 150px; height: 150px; margin: 0 auto .4rem; position: relative; }
+    .anneau svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .anneau circle { fill: none; stroke-width: 10; }
+    .anneau .piste { stroke: var(--filet); }
+    .anneau .valeur { stroke: var(--juste); stroke-linecap: round; transition: stroke-dashoffset .9s ease-out; }
+    .anneau span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.9em; font-weight: 700; }
+    .bilan { display: flex; justify-content: center; gap: 2.2rem; margin: 0 0 1.6rem; }
+    .bilan div { display: grid; }
+    .bilan b { font-size: 1.4em; }
+    .bilan span { color: var(--doux); font-size: .85em; }
+
+    /* ---- aide ---- */
+    .aide { margin-top: 1rem; }
+    .aide h2 { margin: 0 0 .6rem; font-size: 1em; }
+    .aide table { width: 100%; border-collapse: collapse; font-size: .9em; }
+    .aide th { text-align: left; font-weight: 400; white-space: nowrap; padding: .3rem 1rem .3rem 0; vertical-align: top; }
+    .aide td { padding: .3rem 0; color: var(--doux); }
+
+    /* ---- animations : chacune répond à une action de l'élève ---- */
+    .reponses.arrivee li { animation: arrivee .38s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms + 80ms); }
+    @keyframes arrivee { from { opacity: 0; transform: translateY(14px); } }
+    .reponse.choisie { animation: rebond .28s cubic-bezier(.3, 1.6, .5, 1); }
+    @keyframes rebond { 45% { transform: scale(1.045); } }
+    .reponse.faux { animation: secousse .45s ease-in-out; }
+    @keyframes secousse { 20% { transform: translateX(-9px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+    .reponse.juste::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; animation: onde .8s ease-out forwards; }
+    @keyframes onde { from { box-shadow: 0 0 0 0 var(--juste); opacity: .55; } to { box-shadow: 0 0 0 18px var(--juste); opacity: 0; } }
+    .verdict { animation: deplier .35s cubic-bezier(.2, .8, .2, 1) both; }
+    @keyframes deplier { from { opacity: 0; transform: translateY(-10px); } }
+    .principal.appel { animation: appel .4s cubic-bezier(.3, 1.6, .5, 1); }
+    @keyframes appel { 50% { transform: scale(1.06); } }
+    #compagnon { transform-origin: 50% 100%; animation: flotter 3.2s ease-in-out infinite; }
+    @keyframes flotter { 50% { transform: translateY(-4px); } }
+    #yeux { transform-box: fill-box; transform-origin: center; animation: cligner 4.5s infinite; }
+    @keyframes cligner { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+    .compagnon.saute #compagnon { animation: saut .65s cubic-bezier(.3, 1.4, .5, 1); }
+    @keyframes saut { 18% { transform: scale(1.14, .86); } 50% { transform: translateY(-22px) scale(.94, 1.08) rotate(-6deg); } 80% { transform: scale(1.06, .94); } }
+    .compagnon.non #compagnon { animation: non .55s ease-in-out; }
+    @keyframes non { 20% { transform: rotate(-12deg); } 45% { transform: rotate(10deg); } 70% { transform: rotate(-6deg); } }
+    .bulle.parle { animation: parler .32s cubic-bezier(.3, 1.6, .5, 1); transform-origin: left bottom; }
+    @keyframes parler { from { transform: scale(.5); opacity: 0; } }
+    [data-style="enfant"] .etape.encours svg { animation: respirer 1.6s ease-in-out infinite; }
+    @keyframes respirer { 50% { transform: scale(1.18); } }
+    [data-style="enfant"] .etape.gagne svg { animation: etoile-gagnee .6s cubic-bezier(.3, 1.8, .5, 1); }
+    @keyframes etoile-gagnee { from { transform: scale(.3) rotate(-70deg); } }
+    [data-style="college"] .etape.gagne { transform-origin: left; animation: remplir .45s ease-out; }
+    @keyframes remplir { from { transform: scaleX(0); } }
+    .serie.monte svg { animation: flamme .5s cubic-bezier(.3, 1.8, .5, 1); }
+    @keyframes flamme { 45% { transform: scale(1.6) rotate(-8deg); } }
+    .envol { position: absolute; right: 70px; top: -6px; font-weight: 700; color: var(--recompense); pointer-events: none; animation: envol .9s ease-out forwards; }
+    @keyframes envol { from { opacity: 0; transform: translateY(14px) scale(.8); } 25% { opacity: 1; } to { opacity: 0; transform: translateY(-26px) scale(1.1); } }
+    .particule { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 20; }
+    .fin-titre-pop { animation: parler .45s cubic-bezier(.3, 1.6, .5, 1) .35s both; }
+    /* entre deux questions : la vague d'encre (6e), le balayage (collège) */
+    .rideau { position: absolute; top: -12px; bottom: -12px; left: 0; z-index: 2; pointer-events: none; will-change: transform; }
+    .vague { width: 170%; }
+    .balayage { width: 190%; top: -2px; bottom: -2px; }
+    .rideau svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .balayage .annonce-numero { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: baseline;
+      gap: .25rem; color: #fff; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
+    .balayage .annonce-numero b { font-size: 4.2rem; line-height: 1; }
+    .balayage .annonce-numero span { font-size: 1.4rem; opacity: .7; }
+    .balayage .annonce-numero small { position: absolute; top: -1.6rem; left: 0; font-size: .8rem; opacity: .75; }
+
+    @media (max-width: 560px) {
+      [data-style="enfant"] .reponses { grid-template-columns: minmax(0, 1fr); }
+      .carte { padding: 1.2rem; }
+      .indice { display: none; }
     }
-    .page { max-width: 50rem; margin: 0 auto; padding: 1rem; }
-    header h1 { margin: .5rem 0 .25rem; font-size: 1.6rem; line-height: 1.25; }
-    .infos { margin: 0; color: var(--doux); font-size: .95rem; }
-    .consigne { margin: 1rem 0 0; font-weight: 600; }
-    kbd {
-      font: .85em/1 ui-monospace, Menlo, "DejaVu Sans Mono", monospace; padding: .1em .35em;
-      border: 1px solid var(--bord); border-bottom-width: 2px; border-radius: .3rem; background: var(--carte);
-    }
-    .discret {
-      font: inherit; font-size: .95rem; cursor: pointer; color: var(--accent); background: var(--carte);
-      border: 1px solid var(--bord); border-radius: .5rem; padding: .3rem .7rem;
-    }
-    .discret:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-    .aide { margin: .75rem 0 0; }
-    #touches {
-      margin: .5rem 0 0; background: var(--carte); border: 1px solid var(--bord); border-radius: .75rem;
-      padding: .75rem 1rem;
-    }
-    #touches h2 { margin: 0 0 .5rem; font-size: 1rem; }
-    #touches table { border-collapse: collapse; width: 100%; font-size: .95rem; }
-    #touches th, #touches td { text-align: left; vertical-align: top; padding: .25rem .5rem .25rem 0; }
-    #touches th { font-weight: 400; white-space: nowrap; }
-    .question {
-      background: var(--carte); border: 1px solid var(--bord); border-radius: .75rem;
-      padding: 1rem; margin: 1rem 0;
-    }
-    /* la question en cours (celle à laquelle répondent les touches) : un cadre épais, pas seulement une couleur */
-    .question.courante { border: 3px solid var(--accent); padding: calc(1rem - 2px); }
-    .question:focus { outline: none; }
-    .question:focus-visible { outline: 3px solid var(--texte); outline-offset: 2px; }
-    .entete { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin: 0 0 .25rem; }
-    .question h2 { margin: 0; font-size: 1rem; color: var(--doux); }
-    .enonce { margin: 0 0 .75rem; overflow-wrap: anywhere; }
-    .propositions { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; counter-reset: lettre; }
-    .propositions li { counter-increment: lettre; }
-    .prop {
-      width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
-      background: var(--carte); border: 2px solid var(--bord); border-radius: .5rem;
-      padding: .6rem .8rem; overflow-wrap: anywhere;
-    }
-    /* la lettre suit l'ordre affiché (mélangé) : c'est celle de la touche A à D */
-    .prop::before { content: counter(lettre, upper-alpha) "  "; font-weight: 700; color: var(--accent); }
-    .prop:hover:not(:disabled) { border-color: var(--accent); }
-    .prop:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-    .prop[aria-pressed="true"] { background: var(--choix); border-color: var(--accent); }
-    .prop:disabled { cursor: default; }
-    /* le résultat n'est jamais signalé par la seule couleur : un symbole l'accompagne */
-    .prop.juste { background: var(--juste-fond); border-color: var(--juste); }
-    .prop.juste::after { content: "  ✓ bonne réponse"; color: var(--juste); font-weight: 700; }
-    .prop.faux { background: var(--faux-fond); border-color: var(--faux); }
-    .prop.faux::after { content: "  ✗ ta réponse"; color: var(--faux); font-weight: 700; }
-    .explication {
-      margin: .75rem 0 0; padding: .6rem .8rem; border-left: 4px solid var(--accent);
-      background: var(--fond); overflow-wrap: anywhere;
-    }
-    footer { position: sticky; bottom: 0; background: var(--fond); padding: .75rem 0 1rem; }
-    .action {
-      font: inherit; font-weight: 700; cursor: pointer; color: #fff; background: var(--accent);
-      border: 0; border-radius: .5rem; padding: .7rem 1.2rem;
-    }
-    .action:focus-visible { outline: 3px solid var(--texte); outline-offset: 2px; }
-    #score { margin: .5rem 0 0; font-weight: 700; min-height: 1.5em; }
-    #score:focus { outline: none; }
-    #annonce { margin: .25rem 0 0; color: var(--doux); font-size: .95rem; min-height: 1.4em; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+    @media print { .rideau, .outils { display: none !important; } }
   </style>
 </head>
-<body>
-  <div class="page">
-    <header>
-      <h1>{{ titre }}</h1>
-      <p class="infos">{{ matiere }} · {{ niveau }} · {{ notion }}</p>
-      {% if consigne %}<p class="consigne">{{ consigne }}</p>{% endif %}
-      <p class="aide">
-        <button type="button" class="discret" id="btn-touches" aria-expanded="false" aria-controls="touches">Touches du clavier <kbd>?</kbd></button>
-      </p>
-      <!-- carte de touches stable (E5) : un Stream Deck envoie ces mêmes touches, sans pilote dans l'exercice -->
-      <section id="touches" hidden aria-labelledby="titre-touches">
-        <h2 id="titre-touches">Faire l'exercice au clavier</h2>
-        <table>
-          <tbody>
-            <tr><th scope="row"><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> <kbd>D</kbd> ou <kbd>1</kbd> à <kbd>4</kbd></th><td>choisir une réponse à la question en cours (encadrée)</td></tr>
-            <tr><th scope="row"><kbd>→</kbd> <kbd>←</kbd></th><td>question suivante, question précédente</td></tr>
-            <tr><th scope="row"><kbd>Entrée</kbd></th><td>valider mes réponses (sur un bouton : appuyer sur ce bouton)</td></tr>
-            <tr><th scope="row"><kbd>L</kbd></th><td>écouter la question en cours ; encore <kbd>L</kbd> : arrêter</td></tr>
-            <tr><th scope="row"><kbd>R</kbd></th><td>recommencer, une fois les réponses corrigées</td></tr>
-            <tr><th scope="row"><kbd>?</kbd></th><td>afficher ou cacher cette aide</td></tr>
-            <tr><th scope="row"><kbd>Tab</kbd> <kbd>Espace</kbd></th><td>passer d'un bouton à l'autre et appuyer dessus, comme d'habitude</td></tr>
-          </tbody>
-        </table>
-      </section>
+<body data-style="{{ 'enfant' if enfant else 'college' }}">
+  <svg width="0" height="0" class="cache" aria-hidden="true"><defs>
+    <symbol id="etoile" viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M12 2.6l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.6l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
+    <symbol id="haut-parleur" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="flamme" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.6 1.4-4 2.6-5.3.3 1.6 1 2.6 2.1 3.1C11.4 8.3 11 5 12 2z"/></symbol>
+  </defs></svg>
+
+  <main class="jeu">
+    <header class="haut">
+      <div class="titre">
+        <h1>{{ titre }}</h1>
+        <p>{{ libelles.get(matiere, matiere) }}, {{ niveau }}{% if notion %} : {{ notion }}{% endif %}</p>
+      </div>
+      <div class="outils">
+        {% if not enfant %}
+        <div class="compteurs" aria-live="polite">
+          <span id="points">0 pt</span>
+          <span class="serie" id="serie" title="Série de bonnes réponses"><svg aria-hidden="true"><use href="#flamme"/></svg><span>×0</span></span>
+        </div>
+        {% endif %}
+        <button type="button" class="bouton-rond" id="btn-touches" aria-expanded="false" aria-controls="touches" title="Touches du clavier (?)"><b aria-hidden="true">?</b><span class="cache">Touches du clavier</span></button>
+      </div>
+      <div class="progression" id="progression" role="img" aria-label="Progression"></div>
     </header>
 
-    <main id="quiz">
-    {% for q in questions %}
-      <section class="question{% if loop.first %} courante{% endif %}" tabindex="-1" data-correct="{{ q.index_correct }}" aria-labelledby="q{{ loop.index }}">
-        <div class="entete">
-          <h2 id="q{{ loop.index }}">Question {{ loop.index }} sur {{ questions|length }}</h2>
-          <button type="button" class="discret ecouter" hidden>Écouter <kbd>L</kbd></button>
-        </div>
-        <p class="enonce">{{ q.enonce }}</p>
-        <ul class="propositions">
-        {% for p in q.propositions %}
-          <li><button type="button" class="prop" data-index="{{ loop.index0 }}" aria-pressed="false">{{ p }}</button></li>
-        {% endfor %}
-        </ul>
-        <p class="explication" hidden>{{ q.explication }}</p>
-      </section>
-    {% endfor %}
-    </main>
+    <!-- carte de touches stable (E5) : un Stream Deck envoie ces mêmes touches, sans pilote dans l'exercice -->
+    <section class="carte aide" id="touches" hidden aria-labelledby="titre-touches">
+      <h2 id="titre-touches">Jouer au clavier</h2>
+      <table>
+        <tbody>
+          <tr><th scope="row"><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> <kbd>D</kbd> ou <kbd>1</kbd> à <kbd>4</kbd></th><td>choisir une réponse</td></tr>
+          <tr><th scope="row"><kbd>Entrée</kbd></th><td>vérifier ma réponse, puis passer à la question suivante (sur un bouton : appuyer sur ce bouton)</td></tr>
+          <tr><th scope="row"><kbd>→</kbd></th><td>question suivante, une fois la réponse vérifiée</td></tr>
+          <tr><th scope="row"><kbd>L</kbd></th><td>écouter la question ; encore <kbd>L</kbd> : arrêter</td></tr>
+          <tr><th scope="row"><kbd>R</kbd></th><td>rejouer, à la fin</td></tr>
+          <tr><th scope="row"><kbd>?</kbd></th><td>afficher ou cacher cette aide ; <kbd>Échap</kbd> la ferme</td></tr>
+        </tbody>
+      </table>
+    </section>
 
-    <footer>
-      <button type="button" class="action" id="valider">Valider mes réponses</button>
-      <button type="button" class="action" id="recommencer" hidden>Recommencer</button>
-      <p id="score" role="status" aria-live="polite" tabindex="-1"></p>
-      <p id="annonce" role="status" aria-live="polite"></p>
-    </footer>
-  </div>
+    <section class="carte" id="ecran-question">
+      {% if enfant %}
+      <div class="compagnon" aria-hidden="true">
+        <svg viewBox="0 0 100 100" id="compagnon">
+          <path d="M50 6C50 6 16 44 16 64a34 34 0 0 0 68 0C84 44 50 6 50 6Z" fill="#7c6cf2"/>
+          <path d="M36 30c-6 9-10 17-10 24" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <ellipse cx="38" cy="60" rx="8" ry="9.5" fill="#fff"/><ellipse cx="62" cy="60" rx="8" ry="9.5" fill="#fff"/>
+          <g id="yeux"><circle id="oeil-g" cx="39.5" cy="62" r="4.2" fill="#1f2a44"/><circle id="oeil-d" cx="63.5" cy="62" r="4.2" fill="#1f2a44"/></g>
+          <g id="joues" opacity="0"><circle cx="28" cy="74" r="5" fill="#ff9fb2"/><circle cx="72" cy="74" r="5" fill="#ff9fb2"/></g>
+          <path id="bouche" d="M43 79q7 4 14 0" stroke="#1f2a44" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <p class="bulle" id="bulle">C'est parti ! Choisis une réponse.</p>
+      </div>
+      <div class="rideau vague" id="rideau" hidden aria-hidden="true">
+        <svg viewBox="0 0 160 100" preserveAspectRatio="none">
+          <defs><linearGradient id="eau" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#a294fa"/><stop offset=".55" stop-color="#7c6cf2"/><stop offset="1" stop-color="#5fa8f5"/></linearGradient></defs>
+          <path fill="#d6cffd" d="M12,0 L148,0 C160,14 138,26 148,40 C160,54 138,66 148,80 C158,90 142,96 148,100 L12,100 C2,86 22,72 12,58 C2,44 22,30 12,16 C6,8 16,4 12,0 Z"><animate attributeName="d" dur=".7s" repeatCount="indefinite" values="M12,0 L148,0 C160,14 138,26 148,40 C160,54 138,66 148,80 C158,90 142,96 148,100 L12,100 C2,86 22,72 12,58 C2,44 22,30 12,16 C6,8 16,4 12,0 Z;M12,0 L148,0 C138,14 160,26 148,40 C138,54 160,66 148,80 C140,90 154,96 148,100 L12,100 C22,86 2,72 12,58 C22,44 2,30 12,16 C18,8 8,4 12,0 Z;M12,0 L148,0 C160,14 138,26 148,40 C160,54 138,66 148,80 C158,90 142,96 148,100 L12,100 C2,86 22,72 12,58 C2,44 22,30 12,16 C6,8 16,4 12,0 Z"/></path>
+          <path fill="url(#eau)" d="M20,0 L140,0 C150,12 130,25 140,37 C150,50 130,62 140,75 C150,87 134,94 140,100 L20,100 C10,88 30,75 20,62 C10,50 30,37 20,25 C10,12 30,6 20,0 Z"><animate attributeName="d" dur=".55s" repeatCount="indefinite" values="M20,0 L140,0 C150,12 130,25 140,37 C150,50 130,62 140,75 C150,87 134,94 140,100 L20,100 C10,88 30,75 20,62 C10,50 30,37 20,25 C10,12 30,6 20,0 Z;M20,0 L140,0 C130,12 150,25 140,37 C130,50 150,62 140,75 C130,87 146,94 140,100 L20,100 C30,88 10,75 20,62 C30,50 10,37 20,25 C30,12 10,6 20,0 Z;M20,0 L140,0 C150,12 130,25 140,37 C150,50 130,62 140,75 C150,87 134,94 140,100 L20,100 C10,88 30,75 20,62 C10,50 30,37 20,25 C10,12 30,6 20,0 Z"/></path>
+          {% for x, r, y, d in [(45, 2.2, 90, 1.1), (70, 1.6, 70, 0.9), (95, 2.6, 95, 1.3), (118, 1.8, 60, 1.0), (58, 1.2, 40, 0.8)] %}
+          <circle cx="{{ x }}" r="{{ r }}" fill="#fff" fill-opacity=".45"><animate attributeName="cy" values="{{ y }};{{ y - 30 }}" dur="{{ d }}s" repeatCount="indefinite"/><animate attributeName="fill-opacity" values=".5;0" dur="{{ d }}s" repeatCount="indefinite"/></circle>
+          {% endfor %}
+        </svg>
+      </div>
+      {% else %}
+      <div class="rideau balayage" id="rideau" hidden aria-hidden="true">
+        <svg viewBox="0 0 190 100" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="encre-nuit" x1="0" x2="1"><stop offset="0" stop-color="#121826"/><stop offset=".6" stop-color="#1f3a8f"/><stop offset="1" stop-color="#2b56d6"/></linearGradient>
+            <linearGradient id="trait" x1="0" x2="1"><stop offset="0" stop-color="#7fa2ff" stop-opacity="0"/><stop offset="1" stop-color="#a9c1ff"/></linearGradient>
+          </defs>
+          <polygon points="40,0 150,0 125,100 15,100" fill="url(#encre-nuit)"/>
+          <polygon points="153,0 161,0 136,100 128,100" fill="url(#trait)"/>
+          <polygon points="164,0 166,0 141,100 139,100" fill="#a9c1ff" fill-opacity=".5"/>
+        </svg>
+        <div class="annonce-numero"><small>Question</small><b id="annonce-num"></b><span id="annonce-total"></span></div>
+      </div>
+      {% endif %}
+
+      <div id="contenu">
+      {% if consigne %}<p class="numero">{{ consigne }}</p>{% endif %}
+      {% for q in questions %}
+        <section class="question" id="question-{{ loop.index }}" data-correct="{{ q.index_correct }}" aria-labelledby="enonce-{{ loop.index }}" hidden>
+          <p class="numero">Question {{ loop.index }} sur {{ questions|length }}</p>
+          <div class="question-tete">
+            <h2 class="enonce" id="enonce-{{ loop.index }}" tabindex="-1">{{ q.enonce }}</h2>
+            <button type="button" class="bouton-rond ecouter" hidden title="Écouter (L)"><svg aria-hidden="true"><use href="#haut-parleur"/></svg><span class="cache">Écouter la question</span></button>
+          </div>
+          <ul class="reponses">
+          {% for p in q.propositions %}
+            <li><button type="button" class="reponse" data-index="{{ loop.index0 }}" aria-pressed="false"><span class="lettre" aria-hidden="true"></span><span class="texte">{{ p }}</span><span class="marque"></span></button></li>
+          {% endfor %}
+          </ul>
+          <p class="explication">{{ q.explication }}</p>
+        </section>
+      {% endfor %}
+        <div class="verdict" id="verdict" role="status" hidden></div>
+        <div class="bas">
+          <p class="indice" id="indice"><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> <kbd>D</kbd> pour répondre</p>
+          <button type="button" class="principal" id="btn-principal" disabled>Vérifier <kbd>Entrée</kbd></button>
+        </div>
+        <p id="annonce" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="carte fin" id="ecran-fin" hidden aria-labelledby="fin-titre">
+      {% if enfant %}
+      <div class="grandes-etoiles" id="grandes-etoiles" aria-hidden="true"></div>
+      {% else %}
+      <div class="anneau" aria-hidden="true"><svg viewBox="0 0 120 120"><circle class="piste" cx="60" cy="60" r="52"/><circle class="valeur" id="anneau" cx="60" cy="60" r="52"/></svg><span id="anneau-texte"></span></div>
+      {% endif %}
+      <h2 id="fin-titre" tabindex="-1"></h2>
+      <p class="detail" id="score" role="status"></p>
+      {% if not enfant %}
+      <div class="bilan"><div><b id="fin-points"></b><span>points</span></div><div><b id="fin-serie"></b><span>meilleure série</span></div></div>
+      {% endif %}
+      <button type="button" class="principal" id="recommencer">Rejouer <kbd>R</kbd></button>
+    </section>
+  </main>
   {% if audio %}
   <!-- la voix de l'exercice (Piper, fabriquée sur le PC enseignant) : des morceaux MP3 que la page enchaîne -->
   <script type="application/json" id="voix-rangee">{{ audio|tojson }}</script>
@@ -143,127 +348,319 @@
   <script>
   (function () {
     "use strict";
+    var $ = function (s) { return document.querySelector(s); };
+    var ENFANT = document.body.dataset.style === "enfant";
+    var CALME = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var LETTRES = "ABCD";
+    var COULEURS_FETE = ["#ffc53d", "#7c6cf2", "#1f9d6e", "#ff6f91", "#4cc3ff"];
     var questions = Array.prototype.slice.call(document.querySelectorAll(".question"));
-    var valider = document.getElementById("valider");
-    var recommencer = document.getElementById("recommencer");
-    var score = document.getElementById("score");
-    var annonce = document.getElementById("annonce");
-    var btnTouches = document.getElementById("btn-touches");
-    var touches = document.getElementById("touches");
+    var ecranQuestion = $("#ecran-question"), ecranFin = $("#ecran-fin"), principal = $("#btn-principal");
+    var annonce = $("#annonce"), touches = $("#touches"), btnTouches = $("#btn-touches");
     var synthese = window.speechSynthesis || null;
     var rangee = voixRangee();
-    var lecteur = null;
-    var LETTRES = "ABCD";
-    var corrige = false;
-    var courante = 0;
-    var enLecture = null;
+    var lecteur = null, enLecture = null;
+    var etat;
 
-    function boutons(question) {
-      return Array.prototype.slice.call(question.querySelectorAll(".prop"));
-    }
+    function boutons(q) { return Array.prototype.slice.call(q.querySelectorAll(".reponse")); }
+    function courante() { return questions[etat.rang]; }
 
     // mélange l'ordre des propositions : neutralise le biais de position des modèles
-    function melanger(question) {
-      var liste = question.querySelector(".propositions");
-      var items = Array.prototype.slice.call(liste.children);
+    function melanger(q) {
+      var liste = q.querySelector(".reponses"), items = Array.prototype.slice.call(liste.children);
       for (var i = items.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var t = items[i]; items[i] = items[j]; items[j] = t;
+        var j = Math.floor(Math.random() * (i + 1)), t = items[i]; items[i] = items[j]; items[j] = t;
       }
-      items.forEach(function (li) { liste.appendChild(li); });
-    }
-
-    // la question en cours : celle à laquelle répondent les touches A à D et L
-    function marquer(rang) {
-      questions[courante].classList.remove("courante");
-      courante = Math.max(0, Math.min(rang, questions.length - 1));
-      questions[courante].classList.add("courante");
-    }
-
-    function allerA(rang) {
-      marquer(rang);
-      var q = questions[courante];
-      q.focus({ preventScroll: true });
-      q.scrollIntoView({ block: "nearest" });
-    }
-
-    function selectionner(bouton) {
-      boutons(bouton.closest(".question")).forEach(function (b) {
-        b.setAttribute("aria-pressed", b === bouton ? "true" : "false");
+      items.forEach(function (li, k) {
+        liste.appendChild(li);
+        li.style.setProperty("--i", k);
+        li.querySelector(".lettre").textContent = LETTRES.charAt(k);
       });
     }
 
-    function choisir(evt) {
-      var bouton = evt.target.closest(".prop");
-      var question = evt.target.closest(".question");
-      if (question) marquer(questions.indexOf(question));
-      if (!bouton || corrige) return;
-      selectionner(bouton);
-    }
-
-    function choisirAuClavier(rang) {
-      var q = questions[courante];
-      var liste = boutons(q);
-      if (corrige || rang >= liste.length) return;
-      selectionner(liste[rang]);
-      // le curseur revient sur la question : la touche Entrée suivante valide, au lieu d'appuyer sur un bouton
-      if (q.contains(document.activeElement) && document.activeElement !== q) q.focus({ preventScroll: true });
-      annonce.textContent = "Question " + (courante + 1) + " : réponse " + LETTRES.charAt(rang) + ".";
-    }
-
-    function corriger() {
-      var sansReponse = questions.filter(function (q) {
-        return !q.querySelector('.prop[aria-pressed="true"]');
-      });
-      if (sansReponse.length > 0) {
-        var n = sansReponse.length;
-        score.textContent = "Il reste " + n + " question" + (n > 1 ? "s" : "") + " sans réponse.";
-        allerA(questions.indexOf(sansReponse[0]));
-        return;
-      }
-      var justes = 0;
-      questions.forEach(function (q) {
-        var correct = q.getAttribute("data-correct");
-        boutons(q).forEach(function (b) {
-          var choisi = b.getAttribute("aria-pressed") === "true";
-          var bon = b.getAttribute("data-index") === correct;
-          if (bon) b.classList.add("juste");
-          if (choisi && !bon) b.classList.add("faux");
-          if (choisi && bon) justes++;
-          b.disabled = true;
-        });
-        q.querySelector(".explication").hidden = false;
-      });
-      corrige = true;
+    function commencer() {
       arreterLecture();
-      score.textContent = "Score : " + justes + " / " + questions.length;
-      annonce.textContent = "Flèches pour relire les corrections, R pour recommencer.";
-      valider.hidden = true;
-      recommencer.hidden = false;
-      score.focus();
-    }
-
-    function reinitialiser() {
-      arreterLecture();
+      etat = { rang: 0, resultats: [], choix: null, verifie: false, points: 0, serie: 0, meilleure: 0, vient: null, transition: false };
       questions.forEach(function (q) {
         boutons(q).forEach(function (b) {
-          b.classList.remove("juste", "faux");
+          b.classList.remove("juste", "faux", "eteinte", "choisie");
           b.setAttribute("aria-pressed", "false");
           b.disabled = false;
+          b.querySelector(".marque").textContent = "";
         });
-        q.querySelector(".explication").hidden = true;
         melanger(q);
       });
-      corrige = false;
-      score.textContent = "";
+      ecranFin.hidden = true;
+      ecranQuestion.hidden = false;
       annonce.textContent = "";
-      recommencer.hidden = true;
-      valider.hidden = false;
-      window.scrollTo(0, 0);
-      allerA(0);
+      if (ENFANT) compagnon("neutre", "C'est parti ! Choisis une réponse.");
+      afficherQuestion(true);
     }
 
-    // --- lecture à voix haute : la voix rangée dans la page (Piper), sinon une voix française installée sur
+    function afficherQuestion(arrivee) {
+      questions.forEach(function (q, i) { q.hidden = i !== etat.rang; });
+      var q = courante();
+      etat.choix = null;
+      etat.verifie = false;
+      q.querySelector(".reponses").classList.toggle("arrivee", Boolean(arrivee) && !CALME);
+      $("#verdict").hidden = true;
+      $("#indice").hidden = false;
+      bouton("Vérifier", true);
+      etapes();
+      if (arrivee && !CALME && !etat.transition) {
+        $("#contenu").animate([{ opacity: 0, transform: "translateX(48px)" }, { opacity: 1, transform: "none" }],
+          { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" });
+      }
+    }
+
+    function bouton(texte, desactive) {
+      principal.innerHTML = texte + " <kbd>Entrée</kbd>";
+      principal.disabled = desactive;
+    }
+
+    function etapes() {
+      var progression = $("#progression");
+      progression.replaceChildren.apply(progression, questions.map(function (_, i) {
+        var e = document.createElement("span"), r = etat.resultats[i];
+        e.className = "etape" + (r === true ? " juste" : r === false ? " faux" : i === etat.rang && !ecranQuestion.hidden ? " encours" : "") +
+          (i === etat.vient && (r === false || !ENFANT) ? " gagne" : "");
+        e.innerHTML = '<svg aria-hidden="true"><use href="#etoile"/></svg>';
+        return e;
+      }));
+      var justes = etat.resultats.filter(Boolean).length;
+      progression.setAttribute("aria-label", "Question " + Math.min(etat.rang + 1, questions.length) + " sur " + questions.length + ", " +
+        justes + " bonne" + (justes > 1 ? "s" : "") + " réponse" + (justes > 1 ? "s" : ""));
+      if (!ENFANT) {
+        var serie = $("#serie"), avant = Number(serie.lastChild.textContent.slice(1));
+        serie.classList.toggle("active", etat.serie >= 2);
+        if (etat.serie > avant && etat.serie >= 2) { serie.classList.remove("monte"); void serie.offsetWidth; serie.classList.add("monte"); }
+        serie.lastChild.textContent = "×" + etat.serie;
+        if (etat.vient === null || !etat.resultats[etat.vient]) $("#points").textContent = points(etat.points);
+      }
+    }
+
+    function points(n) { return n + " pt" + (n > 1 ? "s" : ""); }
+
+    function choisir(rang) {
+      var q = courante(), liste = boutons(q);
+      if (etat.verifie || etat.transition || rang >= liste.length) return;
+      etat.choix = rang;
+      liste.forEach(function (b, i) {
+        b.setAttribute("aria-pressed", String(i === rang));
+        b.classList.remove("choisie");
+        if (i === rang && !CALME) { void b.offsetWidth; b.classList.add("choisie"); }
+      });
+      // le curseur revient sur la question : la touche Entrée suivante vérifie, au lieu d'appuyer sur un bouton
+      if (q.contains(document.activeElement)) q.querySelector(".enonce").focus({ preventScroll: true });
+      bouton("Vérifier", false);
+      annonce.textContent = "Réponse " + LETTRES.charAt(rang) + " choisie. Entrée pour vérifier.";
+    }
+
+    function verifier() {
+      if (etat.verifie || etat.transition) return;
+      if (etat.choix === null) { annonce.textContent = "Choisis d'abord une réponse : A, B, C ou D."; return; }
+      arreterLecture();
+      var q = courante(), liste = boutons(q), correct = q.getAttribute("data-correct");
+      var juste = liste[etat.choix].getAttribute("data-index") === correct;
+      var avant = etat.points, gain = 0;
+      etat.verifie = true;
+      etat.resultats[etat.rang] = juste;
+      if (juste) { etat.serie++; gain = 100 + 20 * (etat.serie - 1); etat.points += gain; etat.meilleure = Math.max(etat.meilleure, etat.serie); }
+      else etat.serie = 0;
+      liste.forEach(function (b, i) {
+        b.disabled = true;
+        if (b.getAttribute("data-index") === correct) { b.classList.add("juste"); b.querySelector(".marque").textContent = "✓ bonne réponse"; }
+        else if (i === etat.choix) { b.classList.add("faux"); b.querySelector(".marque").textContent = "✗ ta réponse"; }
+        else b.classList.add("eteinte");
+      });
+      var v = $("#verdict");
+      v.className = "verdict " + (juste ? "juste" : "faux");
+      v.replaceChildren();
+      if (gain && !ENFANT) { var g = document.createElement("span"); g.className = "gain"; g.textContent = "+" + gain; v.append(g); }
+      var titre = document.createElement("strong");
+      titre.textContent = juste ? "✓ Juste !" : "✗ À revoir";
+      var texte = document.createElement("p");
+      texte.textContent = q.querySelector(".explication").textContent;
+      v.append(titre, texte);
+      v.hidden = false;
+      $("#indice").hidden = true;
+      annonce.textContent = "";
+      var derniere = etat.rang + 1 >= questions.length;
+      bouton(derniere ? "Voir mon score" : "Question suivante", false);
+      if (!CALME) { principal.classList.remove("appel"); void principal.offsetWidth; principal.classList.add("appel"); }
+      etat.vient = etat.rang;
+      if (ENFANT) {
+        var mots = ["Bravo !", "Super !", "Bien joué !", "Génial !"];
+        compagnon(juste ? "content" : "oups", juste ? mots[etat.rang % mots.length] : "Presque ! Lis l'explication.");
+      }
+      etapes();
+      if (juste) {
+        var tuile = q.querySelector(".reponse.juste");
+        if (ENFANT) { etoileQuiVole(tuile, document.querySelectorAll(".etape")[etat.rang]); etincelles(tuile); }
+        else { compter($("#points"), avant, etat.points, points, 500); envol("+" + gain); }
+      }
+    }
+
+    function suivant() {
+      if (!etat.verifie || etat.transition) return;
+      arreterLecture();
+      etat.vient = null;
+      if (etat.rang + 1 >= questions.length) { finir(); return; }
+      var aller = function () {
+        etat.rang++;
+        if (ENFANT) compagnon("neutre", "À toi !");
+        afficherQuestion(!etat.transition);
+        var enonce = courante().querySelector(".enonce");
+        enonce.focus({ preventScroll: true });
+      };
+      if (CALME) { aller(); return; }
+      rideau(aller, etat.rang + 2);
+    }
+
+    // entre deux questions : un rideau (la vague en 6e, le balayage au collège) couvre la carte, la question change
+    // dessous, puis il s'en va en découvrant la nouvelle
+    function rideau(changer, numero) {
+      var r = $("#rideau"), L = ecranQuestion.offsetWidth;
+      etat.transition = true;
+      if (!ENFANT) { $("#annonce-num").textContent = numero; $("#annonce-total").textContent = "/" + questions.length; }
+      r.hidden = false;
+      var B = r.offsetWidth, milieu = L / 2 - B / 2;
+      var entree = ENFANT ? { duration: 460, easing: "cubic-bezier(.45,0,.25,1)" } : { duration: 380, easing: "cubic-bezier(.7,0,.25,1)" };
+      var sortie = ENFANT ? { duration: 560, easing: "cubic-bezier(.35,0,.2,1)" } : { duration: 420, easing: "cubic-bezier(.75,0,.3,1)" };
+      var texte = r.querySelector(".annonce-numero");
+      if (texte) texte.animate([{ opacity: 0, transform: "translate(-30%, -50%)" }, { opacity: 1, transform: "translate(-50%, -50%)" }],
+        { duration: 420, delay: 140, easing: "cubic-bezier(.2,.8,.2,1)", fill: "both" });
+      r.animate([{ transform: "translateX(" + -B + "px)" }, { transform: "translateX(" + milieu + "px)" }],
+        Object.assign({ fill: "forwards" }, entree)).onfinish = function () {
+        changer();
+        setTimeout(function () {
+          if (texte) texte.animate([{ opacity: 1 }, { opacity: 0, transform: "translate(-70%, -50%)" }], { duration: 220, easing: "ease-in", fill: "forwards" });
+          r.animate([{ transform: "translateX(" + milieu + "px)" }, { transform: "translateX(" + L + "px)" }],
+            Object.assign({ fill: "forwards" }, sortie)).onfinish = function () {
+            r.hidden = true;
+            etat.transition = false;
+          };
+        }, ENFANT ? 0 : 260);
+      };
+    }
+
+    function finir() {
+      var justes = etat.resultats.filter(Boolean).length, n = questions.length, ratio = justes / n;
+      ecranQuestion.hidden = true;
+      ecranFin.hidden = false;
+      etat.rang = n;
+      etapes();
+      var titre = $("#fin-titre");
+      var detail = justes + " bonne" + (justes > 1 ? "s" : "") + " réponse" + (justes > 1 ? "s" : "") + " sur " + n;
+      if (ENFANT) {
+        var etoiles = ratio >= 0.9 ? 3 : ratio >= 0.6 ? 2 : 1;
+        $("#grandes-etoiles").innerHTML = [1, 2, 3].map(function (i) {
+          return '<svg class="' + (i <= etoiles ? "gagnee" : "") + '"><use href="#etoile"/></svg>';
+        }).join("");
+        titre.textContent = etoiles === 3 ? "Bravo, champion !" : etoiles === 2 ? "Très bien !" : "Bien essayé !";
+        $("#score").textContent = "Score : " + justes + " / " + n + ". " + etoiles + " étoile" + (etoiles > 1 ? "s" : "") + ".";
+        if (etoiles >= 2) setTimeout(confettis, 600);
+      } else {
+        titre.textContent = ratio >= 0.9 ? "Défi réussi" : ratio >= 0.6 ? "Bon score" : "À retenter";
+        $("#score").textContent = "Score : " + justes + " / " + n + ". " + detail + ".";
+        var c = 2 * Math.PI * 52, a = $("#anneau");
+        a.style.strokeDasharray = c;
+        a.style.strokeDashoffset = c;
+        requestAnimationFrame(function () { requestAnimationFrame(function () { a.style.strokeDashoffset = c * (1 - ratio); }); });
+        compter($("#anneau-texte"), 0, justes, function (v) { return v + "/" + n; }, 900);
+        compter($("#fin-points"), 0, etat.points, String, 900);
+        $("#fin-serie").textContent = "×" + etat.meilleure;
+      }
+      if (!CALME) { titre.classList.remove("fin-titre-pop"); void titre.offsetWidth; titre.classList.add("fin-titre-pop"); }
+      titre.focus({ preventScroll: true });
+    }
+
+    // --- les animations ---
+    function compagnon(humeur, texte) {
+      var bulle = $("#bulle"), c = document.querySelector(".compagnon");
+      if (!bulle) return;
+      bulle.textContent = texte;
+      $("#bouche").setAttribute("d", { neutre: "M43 79q7 4 14 0", content: "M40 76q10 11 20 0", oups: "M46 80a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" }[humeur]);
+      $("#joues").setAttribute("opacity", humeur === "content" ? "1" : "0");
+      var dy = humeur === "oups" ? 1.5 : humeur === "content" ? -1.5 : 0;
+      $("#oeil-g").setAttribute("cy", 62 + dy);
+      $("#oeil-d").setAttribute("cy", 62 + dy);
+      if (CALME) return;
+      bulle.classList.remove("parle"); c.classList.remove("saute", "non");
+      void c.offsetWidth;
+      bulle.classList.add("parle");
+      if (humeur === "content") c.classList.add("saute");
+      if (humeur === "oups") c.classList.add("non");
+    }
+
+    function particule(classe) {
+      var e = document.createElement("span");
+      e.className = "particule" + (classe ? " " + classe : "");
+      e.setAttribute("aria-hidden", "true");
+      document.body.append(e);
+      return e;
+    }
+
+    function etoileQuiVole(depuis, vers) {
+      if (CALME || !depuis || !vers) return;
+      var a = depuis.getBoundingClientRect(), b = vers.getBoundingClientRect();
+      var e = particule();
+      e.innerHTML = '<svg width="34" height="34" style="color:#ffc53d"><use href="#etoile"/></svg>';
+      vers.classList.add("attente");
+      var x0 = a.left + a.width / 2 - 17, y0 = a.top + a.height / 2 - 17, x1 = b.left + b.width / 2 - 17, y1 = b.top + b.height / 2 - 17;
+      e.animate([
+        { transform: "translate(" + x0 + "px, " + y0 + "px) scale(.4)", opacity: 0 },
+        { transform: "translate(" + x0 + "px, " + (y0 - 40) + "px) scale(1.3) rotate(90deg)", opacity: 1, offset: 0.3 },
+        { transform: "translate(" + x1 + "px, " + y1 + "px) scale(.9) rotate(360deg)", opacity: 1 },
+      ], { duration: 750, easing: "cubic-bezier(.5,0,.3,1)" }).onfinish = function () {
+        e.remove(); vers.classList.remove("attente"); vers.classList.add("gagne");
+      };
+    }
+
+    function etincelles(depuis) {
+      if (CALME || !depuis) return;
+      var a = depuis.getBoundingClientRect(), cx = a.left + a.width / 2, cy = a.top + a.height / 2;
+      for (var i = 0; i < 10; i++) {
+        var p = particule(), taille = 6 + Math.random() * 6, angle = (i / 10) * Math.PI * 2, dist = 50 + Math.random() * 40;
+        Object.assign(p.style, { width: taille + "px", height: taille + "px", borderRadius: i % 2 ? "50%" : "2px", background: COULEURS_FETE[i % 5] });
+        p.animate([
+          { transform: "translate(" + cx + "px, " + cy + "px)", opacity: 1 },
+          { transform: "translate(" + (cx + Math.cos(angle) * dist) + "px, " + (cy + Math.sin(angle) * dist) + "px) scale(.2) rotate(180deg)", opacity: 0 },
+        ], { duration: 600 + Math.random() * 250, easing: "cubic-bezier(.1,.7,.3,1)" }).onfinish = p.remove.bind(p);
+      }
+    }
+
+    function confettis() {
+      if (CALME) return;
+      for (var i = 0; i < 70; i++) {
+        var p = particule(), x = Math.random() * innerWidth, derive = (Math.random() - 0.5) * 200, l = 6 + Math.random() * 6;
+        Object.assign(p.style, { width: l + "px", height: l * 1.6 + "px", borderRadius: "2px", background: COULEURS_FETE[i % 5] });
+        p.animate([
+          { transform: "translate(" + x + "px, -20px)", opacity: 1 },
+          { transform: "translate(" + (x + derive) + "px, " + (innerHeight + 20) + "px) rotate(" + 720 * (Math.random() - 0.5) + "deg)", opacity: 0.9 },
+        ], { duration: 1600 + Math.random() * 1400, delay: Math.random() * 500, easing: "cubic-bezier(.25,.1,.4,1)" }).onfinish = p.remove.bind(p);
+      }
+    }
+
+    function compter(el, de, a, format, duree) {
+      if (CALME) { el.textContent = format(a); return; }
+      var debut = performance.now();
+      var pas = function (t) {
+        var k = Math.min(1, (t - debut) / duree);
+        el.textContent = format(Math.round(de + (a - de) * (1 - Math.pow(1 - k, 3))));
+        if (k < 1) requestAnimationFrame(pas);
+      };
+      requestAnimationFrame(pas);
+    }
+
+    function envol(texte) {
+      if (CALME) return;
+      var e = document.createElement("span");
+      e.className = "envol"; e.textContent = texte; e.setAttribute("aria-hidden", "true");
+      $(".compteurs").append(e);
+      e.addEventListener("animationend", function () { e.remove(); });
+    }
+
+    // --- lecture à voix haute (E5) : la voix rangée dans la page (Piper), sinon une voix française installée sur
     // l'ordinateur ; jamais une voix en ligne ---
 
     function voixRangee() {
@@ -272,73 +669,65 @@
       try { return JSON.parse(element.textContent); } catch (e) { return null; }
     }
 
-    // les morceaux à enchaîner, dans l'ordre affiché des propositions
-    function morceauxALire(q) {
-      var voix = rangee.questions[questions.indexOf(q)];
-      var fixes = rangee.fixes;
-      var liste = boutons(q);
-      var morceaux = [voix.titre, voix.enonce];
-      liste.forEach(function (b, i) {
-        morceaux.push(fixes["lettre_" + LETTRES.charAt(i)], voix.propositions[Number(b.getAttribute("data-index"))]);
-      });
-      if (corrige) {
-        var choisi = q.querySelector('.prop[aria-pressed="true"]');
-        var bon = q.querySelector(".prop.juste");
-        if (choisi === bon) morceaux.push(fixes.juste);
-        else morceaux.push(fixes["choisie_" + LETTRES.charAt(liste.indexOf(choisi))], fixes["bonne_" + LETTRES.charAt(liste.indexOf(bon))]);
-        morceaux.push(fixes.explication, voix.explication);
-      }
-      return morceaux;
-    }
-
-    function jouer(q) {
-      var morceaux = morceauxALire(q);
-      var rang = 0;
-      var son = new Audio();
-      function suivant() {
-        if (lecteur !== son) return;
-        if (rang >= morceaux.length) { arreterLecture(); return; }
-        son.src = "data:audio/mpeg;base64," + rangee.clips[morceaux[rang++]];
-        var essai = son.play();
-        if (essai && essai.catch) essai.catch(function () { if (lecteur === son) arreterLecture(); });
-      }
-      son.addEventListener("ended", suivant);
-      son.addEventListener("error", function () { if (lecteur === son) arreterLecture(); });
-      lecteur = son;
-      enLecture = q;
-      suivant();
-    }
-
     function voixLocale() {
-      var francaises = synthese.getVoices().filter(function (v) {
-        return v.localService && /^fr([-_]|$)/i.test(v.lang);
-      });
+      var francaises = synthese.getVoices().filter(function (v) { return v.localService && /^fr([-_]|$)/i.test(v.lang); });
       var deFrance = francaises.filter(function (v) { return /^fr[-_]FR$/i.test(v.lang); });
       return deFrance[0] || francaises[0] || null;
     }
 
     // les écritures de maths que la synthèse lit mal
     function prononcable(texte) {
-      return texte
-        .replace(/(\d)\s*\/\s*(\d)/g, "$1 sur $2")
-        .replace(/²/g, " au carré").replace(/³/g, " au cube")
-        .replace(/×/g, " fois ").replace(/÷/g, " divisé par ")
-        .replace(/\s+/g, " ");
+      return texte.replace(/(\d)\s*\/\s*(\d)/g, "$1 sur $2").replace(/²/g, " au carré").replace(/³/g, " au cube")
+        .replace(/×/g, " fois ").replace(/÷/g, " divisé par ").replace(/\s+/g, " ");
+    }
+
+    function choisieEtBonne(q) {
+      var liste = boutons(q);
+      return { choisi: liste.indexOf(q.querySelector('.reponse[aria-pressed="true"]')), bon: liste.indexOf(q.querySelector(".reponse.juste")) };
     }
 
     function texteALire(q) {
       var rang = questions.indexOf(q);
       var morceaux = ["Question " + (rang + 1) + " sur " + questions.length + ".", q.querySelector(".enonce").textContent];
-      var liste = boutons(q);
-      liste.forEach(function (b, i) { morceaux.push(LETTRES.charAt(i) + " : " + b.textContent + "."); });
-      if (corrige) {
-        var choisi = q.querySelector('.prop[aria-pressed="true"]');
-        var bon = q.querySelector(".prop.juste");
-        morceaux.push(choisi === bon ? "Ta réponse est juste."
-          : "Ta réponse : " + LETTRES.charAt(liste.indexOf(choisi)) + ". La bonne réponse est " + LETTRES.charAt(liste.indexOf(bon)) + ".");
+      boutons(q).forEach(function (b, i) { morceaux.push(LETTRES.charAt(i) + " : " + b.querySelector(".texte").textContent + "."); });
+      if (etat.verifie) {
+        var r = choisieEtBonne(q);
+        morceaux.push(r.choisi === r.bon ? "Ta réponse est juste." : "Ta réponse : " + LETTRES.charAt(r.choisi) + ". La bonne réponse est " + LETTRES.charAt(r.bon) + ".");
         morceaux.push("Explication : " + q.querySelector(".explication").textContent);
       }
       return prononcable(morceaux.join(" "));
+    }
+
+    // les morceaux à enchaîner, dans l'ordre affiché des propositions
+    function morceauxALire(q) {
+      var voix = rangee.questions[questions.indexOf(q)], fixes = rangee.fixes;
+      var morceaux = [voix.titre, voix.enonce];
+      boutons(q).forEach(function (b, i) {
+        morceaux.push(fixes["lettre_" + LETTRES.charAt(i)], voix.propositions[Number(b.getAttribute("data-index"))]);
+      });
+      if (etat.verifie) {
+        var r = choisieEtBonne(q);
+        if (r.choisi === r.bon) morceaux.push(fixes.juste);
+        else morceaux.push(fixes["choisie_" + LETTRES.charAt(r.choisi)], fixes["bonne_" + LETTRES.charAt(r.bon)]);
+        morceaux.push(fixes.explication, voix.explication);
+      }
+      return morceaux;
+    }
+
+    function jouer(q) {
+      var morceaux = morceauxALire(q), rang = 0, son = new Audio();
+      function suite() {
+        if (lecteur !== son) return;
+        if (rang >= morceaux.length) { arreterLecture(); return; }
+        son.src = "data:audio/mpeg;base64," + rangee.clips[morceaux[rang++]];
+        var essai = son.play();
+        if (essai && essai.catch) essai.catch(function () { if (lecteur === son) arreterLecture(); });
+      }
+      son.addEventListener("ended", suite);
+      son.addEventListener("error", function () { if (lecteur === son) arreterLecture(); });
+      lecteur = son;
+      enLecture = q;
+      suite();
     }
 
     function arreterLecture() {
@@ -347,9 +736,10 @@
       enLecture = null;
     }
 
-    function ecouter(q, relance) {
-      if (!rangee && !synthese) return;
-      if (enLecture === q) { arreterLecture(); return; } // encore L : on arrête
+    function ecouter(relance) {
+      var q = courante();
+      if (!q || (!rangee && !synthese)) return;
+      if (enLecture === q && !relance) { arreterLecture(); return; } // encore L : on arrête
       arreterLecture();
       if (rangee) { jouer(q); return; }
       if (!relance && synthese.getVoices().length === 0) {
@@ -357,17 +747,14 @@
         var minuteur, reprendre = function () {
           clearTimeout(minuteur);
           synthese.removeEventListener("voiceschanged", reprendre);
-          ecouter(q, true);
+          ecouter(true);
         };
         minuteur = setTimeout(reprendre, 1500);
         synthese.addEventListener("voiceschanged", reprendre);
         return;
       }
       var voix = voixLocale();
-      if (!voix) {
-        annonce.textContent = "Lecture impossible : aucune voix française n'est installée sur cet ordinateur.";
-        return;
-      }
+      if (!voix) { annonce.textContent = "Lecture impossible : aucune voix française n'est installée sur cet ordinateur."; return; }
       var phrase = new SpeechSynthesisUtterance(texteALire(q));
       phrase.voice = voix;
       phrase.lang = voix.lang;
@@ -384,45 +771,43 @@
       btnTouches.setAttribute("aria-expanded", ouvrir ? "true" : "false");
     }
 
+    function avancer() { if (etat.verifie) suivant(); else verifier(); }
+
     function touche(evt) {
       if (evt.ctrlKey || evt.metaKey || evt.altKey || evt.defaultPrevented) return;
       var k = evt.key;
       var surUnBouton = evt.target.closest && evt.target.closest("button");
+      var enJeu = !ecranQuestion.hidden;
       var rang = "1234".indexOf(k);
       if (rang < 0 && /^(Digit|Numpad)[1-4]$/.test(evt.code)) rang = Number(evt.code.slice(-1)) - 1; // clavier AZERTY
       if (rang < 0 && k.length === 1) rang = LETTRES.indexOf(k.toUpperCase());
 
       if (k === "?") afficherAide(touches.hidden);
       else if (k === "Escape" && !touches.hidden) afficherAide(false);
-      else if (rang >= 0) choisirAuClavier(rang);
-      else if (k === "ArrowRight") allerA(courante + 1);
-      else if (k === "ArrowLeft") allerA(courante - 1);
-      else if (k === "Enter" && !surUnBouton) { if (!corrige) corriger(); }  // sur un bouton : Entrée appuie dessus
-      else if ((k === "l" || k === "L") && !evt.repeat) ecouter(questions[courante]);
-      else if ((k === "r" || k === "R") && corrige && !evt.repeat) reinitialiser();
+      else if (enJeu && rang >= 0) choisir(rang);
+      else if (enJeu && k === "Enter" && !surUnBouton) avancer();  // sur un bouton : Entrée appuie dessus
+      else if (enJeu && k === "ArrowRight" && etat.verifie) suivant();
+      else if ((k === "l" || k === "L") && enJeu && !evt.repeat) ecouter();
+      else if ((k === "r" || k === "R") && !ecranFin.hidden && !evt.repeat) commencer();
       else return;
       evt.preventDefault();
     }
 
-    questions.forEach(melanger);
-    document.getElementById("quiz").addEventListener("click", choisir);
-    document.getElementById("quiz").addEventListener("focusin", function (evt) {
-      var question = evt.target.closest(".question");
-      if (question) marquer(questions.indexOf(question));
+    document.getElementById("contenu").addEventListener("click", function (evt) {
+      var b = evt.target.closest(".reponse");
+      if (b && !b.disabled) choisir(boutons(courante()).indexOf(b));
+      if (evt.target.closest(".ecouter")) ecouter();
     });
-    valider.addEventListener("click", corriger);
-    recommencer.addEventListener("click", reinitialiser);
+    principal.addEventListener("click", avancer);
+    $("#recommencer").addEventListener("click", commencer);
     btnTouches.addEventListener("click", function () { afficherAide(touches.hidden); });
     document.addEventListener("keydown", touche);
     if (rangee || synthese) {
       if (!rangee) synthese.getVoices(); // lance le chargement des voix du navigateur
-      questions.forEach(function (q) {
-        var bouton = q.querySelector(".ecouter");
-        bouton.hidden = false;
-        bouton.addEventListener("click", function () { ecouter(q); });
-      });
+      document.querySelectorAll(".ecouter").forEach(function (b) { b.hidden = false; });
       window.addEventListener("pagehide", arreterLecture);
     }
+    commencer();
   })();
   </script>
 </body>
