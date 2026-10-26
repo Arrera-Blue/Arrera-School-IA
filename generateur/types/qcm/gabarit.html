@@ -22,18 +22,44 @@
     header h1 { margin: .5rem 0 .25rem; font-size: 1.6rem; line-height: 1.25; }
     .infos { margin: 0; color: var(--doux); font-size: .95rem; }
     .consigne { margin: 1rem 0 0; font-weight: 600; }
+    kbd {
+      font: .85em/1 ui-monospace, Menlo, "DejaVu Sans Mono", monospace; padding: .1em .35em;
+      border: 1px solid var(--bord); border-bottom-width: 2px; border-radius: .3rem; background: var(--carte);
+    }
+    .discret {
+      font: inherit; font-size: .95rem; cursor: pointer; color: var(--accent); background: var(--carte);
+      border: 1px solid var(--bord); border-radius: .5rem; padding: .3rem .7rem;
+    }
+    .discret:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .aide { margin: .75rem 0 0; }
+    #touches {
+      margin: .5rem 0 0; background: var(--carte); border: 1px solid var(--bord); border-radius: .75rem;
+      padding: .75rem 1rem;
+    }
+    #touches h2 { margin: 0 0 .5rem; font-size: 1rem; }
+    #touches table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+    #touches th, #touches td { text-align: left; vertical-align: top; padding: .25rem .5rem .25rem 0; }
+    #touches th { font-weight: 400; white-space: nowrap; }
     .question {
       background: var(--carte); border: 1px solid var(--bord); border-radius: .75rem;
       padding: 1rem; margin: 1rem 0;
     }
-    .question h2 { margin: 0 0 .25rem; font-size: 1rem; color: var(--doux); }
+    /* la question en cours (celle à laquelle répondent les touches) : un cadre épais, pas seulement une couleur */
+    .question.courante { border: 3px solid var(--accent); padding: calc(1rem - 2px); }
+    .question:focus { outline: none; }
+    .question:focus-visible { outline: 3px solid var(--texte); outline-offset: 2px; }
+    .entete { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin: 0 0 .25rem; }
+    .question h2 { margin: 0; font-size: 1rem; color: var(--doux); }
     .enonce { margin: 0 0 .75rem; overflow-wrap: anywhere; }
-    .propositions { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+    .propositions { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; counter-reset: lettre; }
+    .propositions li { counter-increment: lettre; }
     .prop {
       width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
       background: var(--carte); border: 2px solid var(--bord); border-radius: .5rem;
       padding: .6rem .8rem; overflow-wrap: anywhere;
     }
+    /* la lettre suit l'ordre affiché (mélangé) : c'est celle de la touche A à D */
+    .prop::before { content: counter(lettre, upper-alpha) "  "; font-weight: 700; color: var(--accent); }
     .prop:hover:not(:disabled) { border-color: var(--accent); }
     .prop:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
     .prop[aria-pressed="true"] { background: var(--choix); border-color: var(--accent); }
@@ -54,6 +80,8 @@
     }
     .action:focus-visible { outline: 3px solid var(--texte); outline-offset: 2px; }
     #score { margin: .5rem 0 0; font-weight: 700; min-height: 1.5em; }
+    #score:focus { outline: none; }
+    #annonce { margin: .25rem 0 0; color: var(--doux); font-size: .95rem; min-height: 1.4em; }
   </style>
 </head>
 <body>
@@ -62,12 +90,33 @@
       <h1>{{ titre }}</h1>
       <p class="infos">{{ matiere }} · {{ niveau }} · {{ notion }}</p>
       {% if consigne %}<p class="consigne">{{ consigne }}</p>{% endif %}
+      <p class="aide">
+        <button type="button" class="discret" id="btn-touches" aria-expanded="false" aria-controls="touches">Touches du clavier <kbd>?</kbd></button>
+      </p>
+      <!-- carte de touches stable (E5) : un Stream Deck envoie ces mêmes touches, sans pilote dans l'exercice -->
+      <section id="touches" hidden aria-labelledby="titre-touches">
+        <h2 id="titre-touches">Faire l'exercice au clavier</h2>
+        <table>
+          <tbody>
+            <tr><th scope="row"><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> <kbd>D</kbd> ou <kbd>1</kbd> à <kbd>4</kbd></th><td>choisir une réponse à la question en cours (encadrée)</td></tr>
+            <tr><th scope="row"><kbd>→</kbd> <kbd>←</kbd></th><td>question suivante, question précédente</td></tr>
+            <tr><th scope="row"><kbd>Entrée</kbd></th><td>valider mes réponses (sur un bouton : appuyer sur ce bouton)</td></tr>
+            <tr><th scope="row"><kbd>L</kbd></th><td>écouter la question en cours ; encore <kbd>L</kbd> : arrêter</td></tr>
+            <tr><th scope="row"><kbd>R</kbd></th><td>recommencer, une fois les réponses corrigées</td></tr>
+            <tr><th scope="row"><kbd>?</kbd></th><td>afficher ou cacher cette aide</td></tr>
+            <tr><th scope="row"><kbd>Tab</kbd> <kbd>Espace</kbd></th><td>passer d'un bouton à l'autre et appuyer dessus, comme d'habitude</td></tr>
+          </tbody>
+        </table>
+      </section>
     </header>
 
     <main id="quiz">
     {% for q in questions %}
-      <section class="question" data-correct="{{ q.index_correct }}" aria-labelledby="q{{ loop.index }}">
-        <h2 id="q{{ loop.index }}">Question {{ loop.index }} sur {{ questions|length }}</h2>
+      <section class="question{% if loop.first %} courante{% endif %}" tabindex="-1" data-correct="{{ q.index_correct }}" aria-labelledby="q{{ loop.index }}">
+        <div class="entete">
+          <h2 id="q{{ loop.index }}">Question {{ loop.index }} sur {{ questions|length }}</h2>
+          <button type="button" class="discret ecouter" hidden>Écouter <kbd>L</kbd></button>
+        </div>
         <p class="enonce">{{ q.enonce }}</p>
         <ul class="propositions">
         {% for p in q.propositions %}
@@ -82,7 +131,8 @@
     <footer>
       <button type="button" class="action" id="valider">Valider mes réponses</button>
       <button type="button" class="action" id="recommencer" hidden>Recommencer</button>
-      <p id="score" role="status" aria-live="polite"></p>
+      <p id="score" role="status" aria-live="polite" tabindex="-1"></p>
+      <p id="annonce" role="status" aria-live="polite"></p>
     </footer>
   </div>
 
@@ -93,7 +143,14 @@
     var valider = document.getElementById("valider");
     var recommencer = document.getElementById("recommencer");
     var score = document.getElementById("score");
+    var annonce = document.getElementById("annonce");
+    var btnTouches = document.getElementById("btn-touches");
+    var touches = document.getElementById("touches");
+    var synthese = window.speechSynthesis || null;
+    var LETTRES = "ABCD";
     var corrige = false;
+    var courante = 0;
+    var enLecture = null;
 
     function boutons(question) {
       return Array.prototype.slice.call(question.querySelectorAll(".prop"));
@@ -110,20 +167,52 @@
       items.forEach(function (li) { liste.appendChild(li); });
     }
 
-    function choisir(evt) {
-      var bouton = evt.target.closest(".prop");
-      if (!bouton || corrige) return;
+    // la question en cours : celle à laquelle répondent les touches A à D et L
+    function marquer(rang) {
+      questions[courante].classList.remove("courante");
+      courante = Math.max(0, Math.min(rang, questions.length - 1));
+      questions[courante].classList.add("courante");
+    }
+
+    function allerA(rang) {
+      marquer(rang);
+      var q = questions[courante];
+      q.focus({ preventScroll: true });
+      q.scrollIntoView({ block: "nearest" });
+    }
+
+    function selectionner(bouton) {
       boutons(bouton.closest(".question")).forEach(function (b) {
         b.setAttribute("aria-pressed", b === bouton ? "true" : "false");
       });
     }
 
+    function choisir(evt) {
+      var bouton = evt.target.closest(".prop");
+      var question = evt.target.closest(".question");
+      if (question) marquer(questions.indexOf(question));
+      if (!bouton || corrige) return;
+      selectionner(bouton);
+    }
+
+    function choisirAuClavier(rang) {
+      var q = questions[courante];
+      var liste = boutons(q);
+      if (corrige || rang >= liste.length) return;
+      selectionner(liste[rang]);
+      // le curseur revient sur la question : la touche Entrée suivante valide, au lieu d'appuyer sur un bouton
+      if (q.contains(document.activeElement) && document.activeElement !== q) q.focus({ preventScroll: true });
+      annonce.textContent = "Question " + (courante + 1) + " : réponse " + LETTRES.charAt(rang) + ".";
+    }
+
     function corriger() {
       var sansReponse = questions.filter(function (q) {
         return !q.querySelector('.prop[aria-pressed="true"]');
-      }).length;
-      if (sansReponse > 0) {
-        score.textContent = "Il reste " + sansReponse + " question" + (sansReponse > 1 ? "s" : "") + " sans réponse.";
+      });
+      if (sansReponse.length > 0) {
+        var n = sansReponse.length;
+        score.textContent = "Il reste " + n + " question" + (n > 1 ? "s" : "") + " sans réponse.";
+        allerA(questions.indexOf(sansReponse[0]));
         return;
       }
       var justes = 0;
@@ -140,13 +229,16 @@
         q.querySelector(".explication").hidden = false;
       });
       corrige = true;
+      arreterLecture();
       score.textContent = "Score : " + justes + " / " + questions.length;
+      annonce.textContent = "Flèches pour relire les corrections, R pour recommencer.";
       valider.hidden = true;
       recommencer.hidden = false;
-      recommencer.focus();
+      score.focus();
     }
 
     function reinitialiser() {
+      arreterLecture();
       questions.forEach(function (q) {
         boutons(q).forEach(function (b) {
           b.classList.remove("juste", "faux");
@@ -158,15 +250,127 @@
       });
       corrige = false;
       score.textContent = "";
+      annonce.textContent = "";
       recommencer.hidden = true;
       valider.hidden = false;
       window.scrollTo(0, 0);
+      allerA(0);
+    }
+
+    // --- lecture à voix haute : uniquement une voix française installée sur l'ordinateur (hors ligne) ---
+
+    function voixLocale() {
+      var francaises = synthese.getVoices().filter(function (v) {
+        return v.localService && /^fr([-_]|$)/i.test(v.lang);
+      });
+      var deFrance = francaises.filter(function (v) { return /^fr[-_]FR$/i.test(v.lang); });
+      return deFrance[0] || francaises[0] || null;
+    }
+
+    // les écritures de maths que la synthèse lit mal
+    function prononcable(texte) {
+      return texte
+        .replace(/(\d)\s*\/\s*(\d)/g, "$1 sur $2")
+        .replace(/²/g, " au carré").replace(/³/g, " au cube")
+        .replace(/×/g, " fois ").replace(/÷/g, " divisé par ")
+        .replace(/\s+/g, " ");
+    }
+
+    function texteALire(q) {
+      var rang = questions.indexOf(q);
+      var morceaux = ["Question " + (rang + 1) + " sur " + questions.length + ".", q.querySelector(".enonce").textContent];
+      var liste = boutons(q);
+      liste.forEach(function (b, i) { morceaux.push(LETTRES.charAt(i) + " : " + b.textContent + "."); });
+      if (corrige) {
+        var choisi = q.querySelector('.prop[aria-pressed="true"]');
+        var bon = q.querySelector(".prop.juste");
+        morceaux.push(choisi === bon ? "Ta réponse est juste."
+          : "Ta réponse : " + LETTRES.charAt(liste.indexOf(choisi)) + ". La bonne réponse est " + LETTRES.charAt(liste.indexOf(bon)) + ".");
+        morceaux.push("Explication : " + q.querySelector(".explication").textContent);
+      }
+      return prononcable(morceaux.join(" "));
+    }
+
+    function arreterLecture() {
+      if (synthese && enLecture) synthese.cancel();
+      enLecture = null;
+    }
+
+    function ecouter(q, relance) {
+      if (!synthese) return;
+      if (enLecture === q) { arreterLecture(); return; } // encore L : on arrête
+      arreterLecture();
+      if (!relance && synthese.getVoices().length === 0) {
+        // le navigateur charge la liste des voix après la page : on l'attend un peu, une seule fois
+        var minuteur, reprendre = function () {
+          clearTimeout(minuteur);
+          synthese.removeEventListener("voiceschanged", reprendre);
+          ecouter(q, true);
+        };
+        minuteur = setTimeout(reprendre, 1500);
+        synthese.addEventListener("voiceschanged", reprendre);
+        return;
+      }
+      var voix = voixLocale();
+      if (!voix) {
+        annonce.textContent = "Lecture impossible : aucune voix française n'est installée sur cet ordinateur.";
+        return;
+      }
+      var phrase = new SpeechSynthesisUtterance(texteALire(q));
+      phrase.voice = voix;
+      phrase.lang = voix.lang;
+      phrase.rate = 0.9;
+      phrase.onend = phrase.onerror = function () { if (enLecture === q) enLecture = null; };
+      enLecture = q;
+      synthese.speak(phrase);
+    }
+
+    // --- carte de touches ---
+
+    function afficherAide(ouvrir) {
+      touches.hidden = !ouvrir;
+      btnTouches.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+    }
+
+    function touche(evt) {
+      if (evt.ctrlKey || evt.metaKey || evt.altKey || evt.defaultPrevented) return;
+      var k = evt.key;
+      var surUnBouton = evt.target.closest && evt.target.closest("button");
+      var rang = "1234".indexOf(k);
+      if (rang < 0 && /^(Digit|Numpad)[1-4]$/.test(evt.code)) rang = Number(evt.code.slice(-1)) - 1; // clavier AZERTY
+      if (rang < 0 && k.length === 1) rang = LETTRES.indexOf(k.toUpperCase());
+
+      if (k === "?") afficherAide(touches.hidden);
+      else if (k === "Escape" && !touches.hidden) afficherAide(false);
+      else if (rang >= 0) choisirAuClavier(rang);
+      else if (k === "ArrowRight") allerA(courante + 1);
+      else if (k === "ArrowLeft") allerA(courante - 1);
+      else if (k === "Enter" && !surUnBouton) { if (!corrige) corriger(); }  // sur un bouton : Entrée appuie dessus
+      else if ((k === "l" || k === "L") && !evt.repeat) ecouter(questions[courante]);
+      else if ((k === "r" || k === "R") && corrige && !evt.repeat) reinitialiser();
+      else return;
+      evt.preventDefault();
     }
 
     questions.forEach(melanger);
     document.getElementById("quiz").addEventListener("click", choisir);
+    document.getElementById("quiz").addEventListener("focusin", function (evt) {
+      var question = evt.target.closest(".question");
+      if (question) marquer(questions.indexOf(question));
+    });
     valider.addEventListener("click", corriger);
     recommencer.addEventListener("click", reinitialiser);
+    btnTouches.addEventListener("click", function () { afficherAide(touches.hidden); });
+    document.addEventListener("keydown", touche);
+    if (synthese) {
+      synthese.getVoices(); // lance le chargement des voix
+      questions.forEach(function (q) {
+        var bouton = q.querySelector(".ecouter");
+        bouton.hidden = false;
+        bouton.addEventListener("click", function () { ecouter(q); });
+      });
+      window.addEventListener("pagehide", arreterLecture);
+    }
   })();
   </script>
 </body>
