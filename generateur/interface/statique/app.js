@@ -1073,9 +1073,11 @@
     zone.replaceChildren(...etat.cartes.cartes.map((c) => el("article", { class: "carte-eleve" },
       el("p", { class: "carte-classe", texte: `${c.classe} · ${c.annee} · n° ${c.numero}` }),
       el("p", { class: "carte-nom", texte: `${c.prenom} ${c.nom}` }),
-      el("p", { class: "carte-consigne", texte: "Ton code secret, dans l'ordre :" }),
-      el("ol", { class: "carte-code" }, ...c.code.map((image) => el("li", {},
-        el("img", { src: `/statique/codes/${image.image}.svg`, alt: "" }), el("span", { texte: image.nom })))),
+      ...(c.connexion === "mot_de_passe"
+        ? [el("p", { class: "carte-consigne", texte: "Ton mot de passe :" }), el("p", { class: "carte-mot-de-passe", texte: c.mot_de_passe })]
+        : [el("p", { class: "carte-consigne", texte: "Ton code secret, dans l'ordre :" }),
+          el("ol", { class: "carte-code" }, ...c.code.map((image) => el("li", {},
+            el("img", { src: `/statique/codes/${image.image}.svg`, alt: "" }), el("span", { texte: image.nom }))))]),
       el("p", { class: "carte-pied", texte: "Garde-le pour toi : ne le montre à personne." }))));
   }
 

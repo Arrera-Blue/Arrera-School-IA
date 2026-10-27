@@ -318,6 +318,7 @@ details.plus summary:hover, details.plus[open] summary { background: var(--surfa
 .carte-code li { display: grid; justify-items: center; font-size: .8rem; counter-increment: rang; }
 .carte-code li::before { content: counter(rang); font-weight: 700; font-size: .75rem; color: #5a6475; }
 .carte-code img { width: 3rem; height: 3rem; }
+.carte-mot-de-passe { font: 700 1.35rem/1.3 ui-monospace, Menlo, "DejaVu Sans Mono", monospace; letter-spacing: .03em; margin: .3rem 0 .5rem !important; }
 
 @media print {
   .entete, .ecran-seulement, dialog { display: none !important; }

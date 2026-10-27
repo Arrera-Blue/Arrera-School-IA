@@ -5,7 +5,8 @@ Règles (docs/etapes/etape-E1-securite.md §6, docs/rgpd/) :
 - chaque enseignant ne voit et ne touche que **ses** classes (une classe d'un autre est « introuvable ») ;
 - minimisation : nom, prénom, classe, numéro, empreinte du code ; une liste collée avec d'autres colonnes (date
   de naissance…) n'en garde que le nom et le prénom ;
-- le code n'est montré qu'une fois, sur la carte ; ensuite, on ne peut que le refaire (codes.py) ;
+- le code n'est montré qu'une fois, sur la carte ; ensuite, on ne peut que le refaire (codes.py) : 4 images en 6e,
+  un mot de passe imprimé de la 5e à la 3e (E8) ;
 - chaque action est notée au journal, avec l'identifiant interne de l'élève, jamais son nom ;
 - l'export d'un élève est un CSV lisible, sans formule (une cellule « =… » serait exécutée par un tableur).
 """
@@ -135,12 +136,17 @@ def _eleve(conn: sqlite3.Connection, compte: dict, eleve_id: int) -> sqlite3.Row
 
 def _vue_classe(ligne: sqlite3.Row, eleves: int) -> dict:
     return {"id": ligne["id"], "nom": ligne["nom"], "niveau": ligne["niveau"], "annee": ligne["annee"],
-            "archivee": bool(ligne["archivee"]), "eleves": eleves, "creee": ligne["creee"]}
+            "archivee": bool(ligne["archivee"]), "eleves": eleves, "creee": ligne["creee"], "connexion": ligne["connexion"]}
 
 
 def _vue_eleve(ligne: sqlite3.Row) -> dict:
     return {"id": ligne["id"], "numero": ligne["numero"], "nom": ligne["nom"], "prenom": ligne["prenom"],
-            "actif": bool(ligne["actif"])}
+            "actif": bool(ligne["actif"]), "bloque": bool(ligne["bloque"])}
+
+
+def connexion_du_niveau(niveau: str) -> str:
+    """4 images en 6e ; un mot de passe imprimé de la 5e à la 3e (choix du 27/10)."""
+    return "images" if niveau == "6e" else "mot_de_passe"
 
 
 def lister(base: Base, compte: dict, archivees: bool = False) -> list[dict]:
@@ -163,17 +169,24 @@ def lire(base: Base, compte: dict, classe_id: int) -> dict:
 
 # --- les cartes de connexion --------------------------------------------------------------------------
 
-def _carte(eleve: dict, classe: sqlite3.Row, code: tuple[int, ...]) -> dict:
-    """Ce qu'imprime la carte ; le seul moment où le code existe en clair."""
-    return {"eleve_id": eleve["id"], "numero": eleve["numero"], "nom": eleve["nom"], "prenom": eleve["prenom"],
-            "classe": classe["nom"], "annee": classe["annee"], "code": images.decrire(code)}
+def _carte(eleve: dict, classe: sqlite3.Row, code: tuple[int, ...] | str) -> dict:
+    """Ce qu'imprime la carte ; le seul moment où le code existe en clair : les 4 images, ou le mot de passe."""
+    carte = {"eleve_id": eleve["id"], "numero": eleve["numero"], "nom": eleve["nom"], "prenom": eleve["prenom"],
+             "classe": classe["nom"], "annee": classe["annee"]}
+    if isinstance(code, str):
+        return {**carte, "connexion": "mot_de_passe", "mot_de_passe": code}
+    return {**carte, "connexion": "images", "code": images.decrire(code)}
 
 
-def _avec_codes(eleves: list[dict], cle: bytes) -> list[tuple[dict, tuple[int, ...], str]]:
+def _tirer(connexion: str) -> tuple[int, ...] | str:
+    return codes.tirer_mot_de_passe() if connexion == "mot_de_passe" else codes.tirer()
+
+
+def _avec_codes(eleves: list[dict], cle: bytes, connexion: str) -> list[tuple[dict, tuple[int, ...] | str, str]]:
     """Tire et calcule les codes HORS de la transaction : ~40 ms par élève."""
     resultat = []
     for e in eleves:
-        code = codes.tirer()
+        code = _tirer(connexion)
         resultat.append((e, code, codes.empreinte(code, cle)))
     return resultat
 
@@ -188,11 +201,13 @@ def creer(base: Base, compte: dict, nom: str, niveau: str, annee: str | None, el
               for e in eleves]
     if len(eleves) > ELEVES_MAX:
         raise ClasseInvalide(f"une classe compte {ELEVES_MAX} élèves au plus")
-    tires = _avec_codes(eleves, cle)
+    connexion = connexion_du_niveau(niveau)
+    tires = _avec_codes(eleves, cle, connexion)
     with base.ecrire() as conn:
         try:
-            classe_id = conn.execute("INSERT INTO classe (enseignant_id, nom, niveau, annee, creee) VALUES (?, ?, ?, ?, ?)",
-                                     (compte["id"], nom, niveau, annee, maintenant_iso())).lastrowid
+            classe_id = conn.execute("INSERT INTO classe (enseignant_id, nom, niveau, annee, creee, connexion) "
+                                     "VALUES (?, ?, ?, ?, ?, ?)",
+                                     (compte["id"], nom, niveau, annee, maintenant_iso(), connexion)).lastrowid
         except sqlite3.IntegrityError:
             raise ClasseInvalide(f"vous avez déjà une classe « {nom} » en {annee}") from None
         cartes = _inserer(conn, _classe(conn, compte, classe_id), tires)
@@ -218,7 +233,9 @@ def ajouter(base: Base, compte: dict, classe_id: int, eleves: list[dict], cle: b
     """De nouveaux élèves, numérotés à la suite."""
     eleves = [{"nom": controler_nom(e.get("nom"), "nom"), "prenom": controler_nom(e.get("prenom"), "prénom")}
               for e in eleves]
-    tires = _avec_codes(eleves, cle)
+    with base.lire() as conn:
+        connexion = _classe(conn, compte, classe_id)["connexion"]
+    tires = _avec_codes(eleves, cle, connexion)
     with base.ecrire() as conn:
         classe = _classe(conn, compte, classe_id)
         presents = conn.execute("SELECT COUNT(*) FROM eleve WHERE classe_id = ?", (classe_id,)).fetchone()[0]
@@ -234,27 +251,41 @@ def ajouter(base: Base, compte: dict, classe_id: int, eleves: list[dict], cle: b
 def nouveaux_codes(base: Base, compte: dict, classe_id: int, cle: bytes) -> list[dict]:
     """Un nouveau code pour chaque élève de la classe (cartes perdues) ; les anciens ne marchent plus."""
     with base.lire() as conn:
-        _classe(conn, compte, classe_id)
+        connexion = _classe(conn, compte, classe_id)["connexion"]
         eleves = [dict(e) for e in conn.execute("SELECT * FROM eleve WHERE classe_id = ? ORDER BY numero", (classe_id,))]
-    tires = _avec_codes(eleves, cle)
+    tires = _avec_codes(eleves, cle, connexion)
     with base.ecrire() as conn:
         classe = _classe(conn, compte, classe_id)
         for e, _, empreinte in tires:
-            conn.execute("UPDATE eleve SET code = ? WHERE id = ?", (empreinte, e["id"]))
+            # un nouveau code débloque l'élève ; ses sessions en cours se ferment
+            conn.execute("UPDATE eleve SET code = ?, echecs = 0, bloque = 0 WHERE id = ?", (empreinte, e["id"]))
+            conn.execute("DELETE FROM session_eleve WHERE eleve_id = ?", (e["id"],))
         journal.noter(conn, "codes_classe", compte, cible=f"classe:{classe_id}", detail=f"{len(tires)} code(s)")
     return [_carte(e, classe, code) for e, code, _ in tires]
 
 
 def nouveau_code(base: Base, compte: dict, eleve_id: int, cle: bytes) -> dict:
-    """Un nouveau code pour un élève (carte perdue, code vu par un autre) : un clic, en classe."""
-    code = codes.tirer()
+    """Un nouveau code pour un élève (carte perdue, code vu par un autre) : un clic, en classe. Il débloque l'élève."""
+    with base.lire() as conn:
+        connexion = _classe(conn, compte, _eleve(conn, compte, eleve_id)["classe_id"])["connexion"]
+    code = _tirer(connexion)
     empreinte = codes.empreinte(code, cle)
     with base.ecrire() as conn:
         eleve = _eleve(conn, compte, eleve_id)
-        conn.execute("UPDATE eleve SET code = ? WHERE id = ?", (empreinte, eleve_id))
+        conn.execute("UPDATE eleve SET code = ?, echecs = 0, bloque = 0 WHERE id = ?", (empreinte, eleve_id))
+        conn.execute("DELETE FROM session_eleve WHERE eleve_id = ?", (eleve_id,))
         classe = _classe(conn, compte, eleve["classe_id"])
         journal.noter(conn, "code_eleve", compte, cible=f"classe:{classe['id']}/eleve:{eleve_id}")
     return _carte(dict(eleve), classe, code)
+
+
+def debloquer(base: Base, compte: dict, eleve_id: int) -> dict:
+    """Après 5 essais manqués, l'élève est bloqué sur le serveur de classe (E8) : l'enseignant le débloque."""
+    with base.ecrire() as conn:
+        eleve = _eleve(conn, compte, eleve_id)
+        conn.execute("UPDATE eleve SET echecs = 0, bloque = 0 WHERE id = ?", (eleve_id,))
+        journal.noter(conn, "eleve_debloque", compte, cible=f"classe:{eleve['classe_id']}/eleve:{eleve_id}")
+        return _vue_eleve(conn.execute("SELECT * FROM eleve WHERE id = ?", (eleve_id,)).fetchone())
 
 
 # --- corriger, désactiver, supprimer ------------------------------------------------------------------
@@ -274,6 +305,8 @@ def activer(base: Base, compte: dict, eleve_id: int, actif: bool) -> dict:
     with base.ecrire() as conn:
         eleve = _eleve(conn, compte, eleve_id)
         conn.execute("UPDATE eleve SET actif = ? WHERE id = ?", (int(actif), eleve_id))
+        if not actif:
+            conn.execute("DELETE FROM session_eleve WHERE eleve_id = ?", (eleve_id,))  # déconnecté sur-le-champ
         journal.noter(conn, "eleve_reactive" if actif else "eleve_desactive", compte,
                       cible=f"classe:{eleve['classe_id']}/eleve:{eleve_id}")
         return _vue_eleve(conn.execute("SELECT * FROM eleve WHERE id = ?", (eleve_id,)).fetchone())
@@ -346,12 +379,12 @@ def exporter(base: Base, compte: dict, eleve_id: int) -> tuple[str, bytes]:
 
 def _reponses(conn: sqlite3.Connection, eleve_id: int) -> list[list]:
     """Les réponses de l'élève (tables du suivi, E4), annulées comprises : l'export montre tout ce qui est gardé."""
-    lignes = conn.execute("SELECT t.date, COALESCE(t.titre, t.exercice) AS exercice, t.origine, t.annulee, r.question, "
+    lignes = conn.execute("SELECT t.date, COALESCE(t.titre, t.exercice) AS exercice, t.origine, t.annulee, t.compte, r.question, "
                           "r.choix, r.juste, r.temps_s, r.attendu FROM reponse r JOIN tentative t ON t.id = r.tentative_id "
                           "WHERE t.eleve_id = ? ORDER BY t.date, t.id, r.question", (eleve_id,)).fetchall()
     return [[r["date"], r["exercice"], r["question"], "ABCDEFGH"[r["choix"]] if r["choix"] < 8 else r["choix"],
              "oui" if r["juste"] else "non", r["temps_s"], r["attendu"] or "", ORIGINES.get(r["origine"], r["origine"]),
-             "non (annulée)" if r["annulee"] else "oui"] for r in lignes]
+             "non (annulée)" if r["annulee"] else "non (entraînement)" if not r["compte"] else "oui"] for r in lignes]
 
 
 # --- archiver, purger ---------------------------------------------------------------------------------
