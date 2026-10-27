@@ -159,3 +159,41 @@ def autorise(base: Base, eleve: dict, exercice: str, jour: str | None = None) ->
     """L'élève peut-il ouvrir cet exercice ? Seulement s'il est sur son accueil."""
     accueil = pour_l_eleve(base, eleve, jour)
     return any(c["exercice"] == exercice for liste in accueil.values() for c in liste)
+
+
+# --- ligne de commande (essais, avant le bouton « Publier » de l'interface enseignant) --------------------------------
+
+def main(argv: list[str] | None = None) -> int:
+    """python -m generateur.donnees.publications <identifiant> <exercice> --classe "6e Démo" """
+    import argparse
+
+    from generateur.donnees import comptes
+    from generateur.moteur import config
+
+    parser = argparse.ArgumentParser(description="Publier un exercice accepté pour une classe (serveur de classe, E8).")
+    parser.add_argument("identifiant", help="le compte de l'enseignant")
+    parser.add_argument("exercice", help="l'identifiant de l'exercice (banque), accepté")
+    parser.add_argument("--classe", required=True, help="le nom de la classe (« 6e Démo »)")
+    parser.add_argument("--debut")
+    parser.add_argument("--fin")
+    args = parser.parse_args(argv)
+    base = Base(config.chemin("base"))
+    compte = comptes.lire(base, args.identifiant)
+    if compte is None:
+        print(f"compte inconnu : {args.identifiant}")
+        return 1
+    trouvees = [c for c in classes.lister(base, compte) if c["nom"] == args.classe]
+    if not trouvees:
+        print(f"classe inconnue pour {args.identifiant} : {args.classe}")
+        return 1
+    try:
+        p = publier(base, compte, args.exercice, trouvees[0]["id"], debut=args.debut, fin=args.fin)
+    except (classes.ClasseInvalide, classes.Introuvable) as e:
+        print(f"refusé : {e}")
+        return 1
+    print(f"publié : « {p['titre']} » pour {args.classe} ({p['pour']})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

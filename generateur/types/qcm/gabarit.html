@@ -6,10 +6,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- aucune ressource externe, aucune connexion réseau : l'exercice doit fonctionner hors ligne ;
-       la voix et les polices sont rangées dans la page -->
+  <!-- aucune ressource externe : la voix et les polices sont rangées dans la page. Le fichier autonome ne se connecte
+       à rien (E8.6) ; servie par le serveur de classe (mode classe), la page envoie ses réponses à ce serveur seul -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:; font-src data:">
+        content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:; font-src data:{% if classe %}; connect-src 'self'{% endif %}">
   <title>{{ titre }} — {{ niveau }}</title>
   <style>
     /* E7 : un jeu, une question à la fois. 6e : style « enfant » (Andika, un compagnon, des étoiles, une vague) ;
@@ -159,6 +159,8 @@
     .bilan div { display: grid; }
     .bilan b { font-size: 1.4em; }
     .bilan span { color: var(--doux); font-size: .85em; }
+    .lien-accueil { display: inline-block; margin-top: 1rem; color: var(--doux); font-weight: 700; text-underline-offset: 4px; }
+    .lien-accueil:hover { color: var(--encre); }
 
     /* ---- aide ---- */
     .aide { margin-top: 1rem; }
@@ -222,7 +224,7 @@
     @media print { .rideau, .outils { display: none !important; } }
   </style>
 </head>
-<body data-style="{{ 'enfant' if enfant else 'college' }}">
+<body data-style="{{ 'enfant' if enfant else 'college' }}"{% if classe %} data-mode="classe"{% endif %}>
   <svg width="0" height="0" class="cache" aria-hidden="true"><defs>
     <symbol id="etoile" viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M12 2.6l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.6l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
     <symbol id="haut-parleur" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
@@ -303,7 +305,7 @@
       <div id="contenu">
       {% if consigne %}<p class="numero">{{ consigne }}</p>{% endif %}
       {% for q in questions %}
-        <section class="question" id="question-{{ loop.index }}" data-correct="{{ q.index_correct }}" aria-labelledby="enonce-{{ loop.index }}" hidden>
+        <section class="question" id="question-{{ loop.index }}"{% if not classe %} data-correct="{{ q.index_correct }}"{% endif %} aria-labelledby="enonce-{{ loop.index }}" hidden>
           <p class="numero">Question {{ loop.index }} sur {{ questions|length }}</p>
           <div class="question-tete">
             <h2 class="enonce" id="enonce-{{ loop.index }}" tabindex="-1">{{ q.enonce }}</h2>
@@ -314,7 +316,7 @@
             <li><button type="button" class="reponse" data-index="{{ loop.index0 }}" aria-pressed="false"><span class="lettre" aria-hidden="true"></span><span class="texte">{{ p }}</span><span class="marque"></span></button></li>
           {% endfor %}
           </ul>
-          <p class="explication">{{ q.explication }}</p>
+          {% if not classe %}<p class="explication">{{ q.explication }}</p>{% endif %}
         </section>
       {% endfor %}
         <div class="verdict" id="verdict" role="status" hidden></div>
@@ -338,8 +340,13 @@
       <div class="bilan"><div><b id="fin-points"></b><span>points</span></div><div><b id="fin-serie"></b><span>meilleure série</span></div></div>
       {% endif %}
       <button type="button" class="principal" id="recommencer">Rejouer <kbd>R</kbd></button>
+      {% if classe %}<p><a class="lien-accueil" id="retour-accueil" href="/">Retour à mes exercices</a></p>{% endif %}
     </section>
   </main>
+  {% if classe %}
+  <!-- servie par le serveur de classe : l'exercice à qui envoyer les réponses -->
+  <script type="application/json" id="serveur">{{ {"exercice": exercice_id}|tojson }}</script>
+  {% endif %}
   {% if audio %}
   <!-- la voix de l'exercice (Piper, fabriquée sur le PC enseignant) : des morceaux MP3 que la page enchaîne -->
   <script type="application/json" id="voix-rangee">{{ audio|tojson }}</script>
@@ -350,6 +357,8 @@
     "use strict";
     var $ = function (s) { return document.querySelector(s); };
     var ENFANT = document.body.dataset.style === "enfant";
+    var CLASSE = document.body.dataset.mode === "classe";
+    var SERVEUR = CLASSE ? JSON.parse(document.getElementById("serveur").textContent) : null;
     var CALME = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     var LETTRES = "ABCD";
     var COULEURS_FETE = ["#ffc53d", "#7c6cf2", "#1f9d6e", "#ff6f91", "#4cc3ff"];
@@ -379,7 +388,10 @@
 
     function commencer() {
       arreterLecture();
-      etat = { rang: 0, resultats: [], choix: null, verifie: false, points: 0, serie: 0, meilleure: 0, vient: null, transition: false };
+      etat = { rang: 0, resultats: [], choix: null, verifie: false, points: 0, serie: 0, meilleure: 0, vient: null, transition: false,
+        tentative: null, envoi: false, debut: 0 };
+      // en mode classe, une nouvelle partie : les explications reçues du serveur s'effacent
+      if (CLASSE) document.querySelectorAll(".question .explication").forEach(function (p) { p.remove(); });
       questions.forEach(function (q) {
         boutons(q).forEach(function (b) {
           b.classList.remove("juste", "faux", "eteinte", "choisie");
@@ -402,6 +414,7 @@
       etat.choix = null;
       etat.verifie = false;
       q.querySelector(".reponses").classList.toggle("arrivee", Boolean(arrivee) && !CALME);
+      etat.debut = Date.now();
       $("#verdict").hidden = true;
       $("#indice").hidden = false;
       bouton("Vérifier", true);
@@ -456,10 +469,57 @@
     }
 
     function verifier() {
-      if (etat.verifie || etat.transition) return;
+      if (etat.verifie || etat.transition || etat.envoi) return;
       if (etat.choix === null) { annonce.textContent = "Choisis d'abord une réponse : A, B, C ou D."; return; }
       arreterLecture();
-      var q = courante(), liste = boutons(q), correct = q.getAttribute("data-correct");
+      var q = courante();
+      if (CLASSE) { envoyer(q); return; }
+      corriger(q, q.getAttribute("data-correct"), q.querySelector(".explication").textContent);
+    }
+
+    // mode classe : la page n'a ni les bonnes réponses, ni les explications ; le serveur recalcule et répond (⚖4)
+    function envoyer(q) {
+      var choisi = boutons(q)[etat.choix];
+      etat.envoi = true;
+      principal.disabled = true;
+      annonce.textContent = "Vérification…";
+      fetch("/api/exercices/" + encodeURIComponent(SERVEUR.exercice) + "/reponses", {
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tentative: etat.tentative, question: etat.rang + 1, choix: Number(choisi.getAttribute("data-index")),
+          temps: Math.min(3600, Math.round((Date.now() - etat.debut) / 100) / 10) }),
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) { return { statut: r.status, d: d }; });
+      }).then(function (x) {
+        etat.envoi = false;
+        if (x.statut !== 200) { erreurServeur(x.statut, x.d); return; }
+        etat.tentative = x.d.tentative;
+        var p = document.createElement("p");
+        p.className = "explication";
+        p.textContent = x.d.explication;
+        q.append(p);
+        if (x.d.voix && rangee) {
+          rangee.clips["explication-" + etat.rang] = x.d.voix;
+          rangee.questions[etat.rang].explication = "explication-" + etat.rang;
+        }
+        corriger(q, String(x.d.correct), x.d.explication);
+      }).catch(function () { etat.envoi = false; erreurServeur(0, {}); });
+    }
+
+    function erreurServeur(statut, d) {
+      principal.disabled = false;
+      if (statut === 401) {
+        annonce.innerHTML = "";
+        annonce.append("Tu as été déconnecté (10 minutes sans rien faire). ");
+        var lien = document.createElement("a");
+        lien.href = "/"; lien.textContent = "Me reconnecter";
+        annonce.append(lien);
+      } else {
+        annonce.textContent = "La réponse n'est pas partie" + (d && d.detail ? " (" + d.detail + ")" : "") + " : réessaie.";
+      }
+    }
+
+    function corriger(q, correct, explication) {
+      var liste = boutons(q);
       var juste = liste[etat.choix].getAttribute("data-index") === correct;
       var avant = etat.points, gain = 0;
       etat.verifie = true;
@@ -479,7 +539,7 @@
       var titre = document.createElement("strong");
       titre.textContent = juste ? "✓ Juste !" : "✗ À revoir";
       var texte = document.createElement("p");
-      texte.textContent = q.querySelector(".explication").textContent;
+      texte.textContent = explication;
       v.append(titre, texte);
       v.hidden = false;
       $("#indice").hidden = true;
@@ -715,7 +775,7 @@
     }
 
     function jouer(q) {
-      var morceaux = morceauxALire(q), rang = 0, son = new Audio();
+      var morceaux = morceauxALire(q).filter(function (k) { return k && rangee.clips[k]; }), rang = 0, son = new Audio();
       function suite() {
         if (lecteur !== son) return;
         if (rang >= morceaux.length) { arreterLecture(); return; }

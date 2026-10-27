@@ -113,12 +113,13 @@ def _morceau(v: Voix, texte: str) -> tuple[str, bytes]:
     return cle, son
 
 
-def pour_la_page(instance: dict) -> dict | None:
+def pour_la_page(instance: dict, explications: bool = True) -> dict | None:
     """Les morceaux de voix d'un exercice QCM, à ranger dans la page ; None sans voix utilisable.
 
     {"questions": [{"titre", "enonce", "propositions": [...], "explication"}], "fixes": {nom: clé},
      "clips": {clé: MP3 en base64}} : les questions et les phrases fixes désignent les morceaux par leur clé, un
-    texte répété n'est rangé qu'une fois."""
+    texte répété n'est rangé qu'une fois. Sans `explications` (page du serveur de classe), les explications restent
+    au serveur : elles diraient la bonne réponse (`morceau_base64`, après la vérification)."""
     v = voix()
     if v is None:
         return None
@@ -133,7 +134,7 @@ def pour_la_page(instance: dict) -> dict | None:
         n = len(instance["questions"])
         questions = [{"titre": morceau(f"Question {i} sur {n}."), "enonce": morceau(q["enonce"]),
                       "propositions": [morceau(p) for p in q["propositions"]],
-                      "explication": morceau(q["explication"])}
+                      **({"explication": morceau(q["explication"])} if explications else {})}
                      for i, q in enumerate(instance["questions"], start=1)]
         nb_lettres = max(len(q["propositions"]) for q in instance["questions"])
         fixes = {nom: morceau(texte) for nom, texte in phrases_fixes(nb_lettres).items()}
@@ -141,6 +142,18 @@ def pour_la_page(instance: dict) -> dict | None:
         _avertir(f"synthèse impossible ({type(e).__name__} : {e})")
         return None
     return {"questions": questions, "fixes": fixes, "clips": clips}
+
+
+def morceau_base64(texte: str) -> str | None:
+    """Le MP3 d'un seul texte, en base64 (l'explication envoyée par le serveur de classe après la vérification)."""
+    v = voix()
+    if v is None:
+        return None
+    try:
+        return base64.b64encode(_morceau(v, prononcable(texte))[1]).decode("ascii")
+    except Exception as e:  # la voix ne fait jamais échouer une réponse
+        _avertir(f"synthèse impossible ({type(e).__name__} : {e})")
+        return None
 
 
 def main() -> None:

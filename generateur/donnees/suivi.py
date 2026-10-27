@@ -121,19 +121,38 @@ def ajouter_reponse(base: Base, eleve_id: int, tentative_id: int, instance: dict
     """Une réponse de l'élève, recalculée ; refusée si la tentative n'est pas la sienne, si l'exercice a changé depuis
     son début, ou si la question a déjà sa réponse. Renvoie {"juste", "correct"} (correct : le rang d'origine de la
     bonne proposition, que la page n'a pas : c'est le serveur qui corrige, ⚖4)."""
+    verdict = repondre(base, eleve_id, tentative_id, instance, numero, choix, temps)
+    return {"juste": verdict["juste"], "correct": verdict["correct"]}
+
+
+def repondre(base: Base, eleve_id: int, tentative_id: int | None, instance: dict, numero, choix, temps) -> dict:
+    """Le serveur de classe : une réponse, et sa tentative si c'est la première (`tentative_id` vide). La réponse est
+    contrôlée AVANT d'ouvrir la tentative, et les deux sont écrites ensemble : une première réponse refusée ne laisse
+    pas de tentative vide, qui aurait « compté » à la place de la vraie. Renvoie {"tentative", "compte", "juste",
+    "correct"} ; `compte` : None si la tentative existait déjà."""
     ligne = _ligne(instance, numero, choix, temps)
+    if tentative_id is not None and (isinstance(tentative_id, bool) or not isinstance(tentative_id, int)):
+        raise classes.Introuvable("tentative introuvable")
     with base.ecrire() as conn:
+        compte_ = None
+        if tentative_id is None:
+            tentative_id = _inserer_tentative(conn, eleve_id, instance, "classe", None)
+            compte_ = bool(conn.execute("SELECT compte FROM tentative WHERE id = ?", (tentative_id,)).fetchone()[0])
         t = conn.execute("SELECT * FROM tentative WHERE id = ? AND eleve_id = ? AND annulee = 0",
                          (tentative_id, eleve_id)).fetchone()
         if t is None or t["exercice"] != ((instance.get("meta") or {}).get("id") or "?") \
                 or t["empreinte"] != empreinte_exercice(instance):
-            raise classes.Introuvable("tentative introuvable")
-        try:
+            erreur = classes.Introuvable("tentative introuvable")
+        elif conn.execute("SELECT 1 FROM reponse WHERE tentative_id = ? AND question = ?", (tentative_id, numero)).fetchone():
+            erreur = classes.ClasseInvalide(f"question {numero} : déjà répondue")
+        else:
+            erreur = None
             conn.execute("INSERT INTO reponse (tentative_id, question, choix, juste, temps_s, attendu, difficulte) "
                          "VALUES (?, ?, ?, ?, ?, ?, ?)", (tentative_id, *ligne))
-        except sqlite3.IntegrityError:
-            raise classes.ClasseInvalide(f"question {numero} : déjà répondue") from None
-    return {"juste": bool(ligne[2]), "correct": instance["questions"][numero - 1]["index_correct"]}
+    if erreur is not None:
+        raise erreur
+    return {"tentative": tentative_id, "compte": compte_, "juste": bool(ligne[2]),
+            "correct": instance["questions"][numero - 1]["index_correct"]}
 
 
 # --- les indicateurs (E4.1, E4.2) --------------------------------------------------------------------------
