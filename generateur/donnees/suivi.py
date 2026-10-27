@@ -1,8 +1,10 @@
 """Le suivi des élèves (évolution E4) : voir, pour chaque élève, où il a des difficultés et où il a des facilités,
 attendu par attendu du programme, pour savoir sur quels exercices il doit se concentrer (décision D1).
 
-- Les réponses arrivent par `enregistrer_tentative` : le simulateur (simulation.py) aujourd'hui, le serveur de
-  classe demain (E8). Juste ou faux est **recalculé** à partir de l'exercice, jamais cru de l'appelant.
+- Les réponses arrivent par `enregistrer_tentative` (le simulateur, simulation.py, toutes d'un coup), ou par
+  `commencer_tentative` puis `ajouter_reponse` (le serveur de classe, E8, une à une). Juste ou faux est
+  **recalculé** à partir de l'exercice, jamais cru de l'appelant. Seule la **première** tentative d'un élève sur un
+  exercice compte dans le suivi ; les suivantes sont de l'entraînement (choix du 27/10).
 - Les règles sont **lisibles** (seuils dans config.yaml, `suivi`) : « à consolider » sous 50 % de réussite sur au
   moins 6 questions d'un attendu, « en réussite » à partir de 85 %, « pas assez de réponses » en dessous de 6 ;
   chaque case dit pourquoi (« 2 réussites sur 8 questions »).
@@ -61,33 +63,77 @@ def attendu_de_question(instance: dict, numero: int) -> str | None:
     return attendus[0] if len(attendus) == 1 else None
 
 
+def _ligne(instance: dict, numero, choix, temps) -> tuple:
+    """Une réponse contrôlée, juste ou faux recalculé à partir de l'exercice : (numéro, choix, juste, temps, attendu,
+    difficulté). Une question ou une proposition qui n'existe pas, un temps impossible, sont refusés."""
+    questions = instance.get("questions") or []
+    if not (isinstance(numero, int) and not isinstance(numero, bool) and 0 < numero <= len(questions)):
+        raise classes.ClasseInvalide(f"question inconnue : {numero}")
+    q = questions[numero - 1]
+    if not (isinstance(choix, int) and not isinstance(choix, bool) and 0 <= choix < len(q["propositions"])):
+        raise classes.ClasseInvalide(f"question {numero} : proposition inconnue : {choix}")
+    if temps is not None and not (isinstance(temps, (int, float)) and 0 <= float(temps) <= 3600):
+        raise classes.ClasseInvalide(f"question {numero} : temps impossible : {temps}")
+    return (numero, choix, int(choix == q["index_correct"]), temps, attendu_de_question(instance, numero),
+            q.get("difficulte"))
+
+
+def _premiere(conn: sqlite3.Connection, eleve_id: int, exercice: str) -> bool:
+    """Aucune tentative de l'élève sur cet exercice ne compte encore : celle-ci comptera."""
+    return conn.execute("SELECT 1 FROM tentative WHERE eleve_id = ? AND exercice = ? AND annulee = 0 AND compte = 1",
+                        (eleve_id, exercice)).fetchone() is None
+
+
+def _inserer_tentative(conn: sqlite3.Connection, eleve_id: int, instance: dict, origine: str, date: str | None) -> int:
+    exercice = (instance.get("meta") or {}).get("id") or "?"
+    return conn.execute("INSERT INTO tentative (eleve_id, exercice, titre, empreinte, origine, date, compte) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (eleve_id, exercice, instance.get("titre"), empreinte_exercice(instance), origine,
+                         date or maintenant_iso(), int(_premiere(conn, eleve_id, exercice)))).lastrowid
+
+
 def enregistrer_tentative(base: Base, eleve_id: int, instance: dict, reponses: list[tuple[int, int, float | None]],
                           origine: str, date: str | None = None) -> int:
-    """Une tentative et ses réponses (numéro de question, proposition choisie, temps en secondes). Juste ou faux est
-    recalculé ici, à partir de l'exercice ; une question ou une proposition qui n'existe pas est refusée."""
-    questions = instance.get("questions") or []
-    vues = set()
-    lignes = []
+    """Une tentative et ses réponses (numéro de question, proposition choisie, temps en secondes), toutes d'un coup."""
+    lignes, vues = [], set()
     for numero, choix, temps in reponses:
-        if not (isinstance(numero, int) and 0 < numero <= len(questions)) or numero in vues:
-            raise classes.ClasseInvalide(f"question inconnue ou en double : {numero}")
-        q = questions[numero - 1]
-        if not (isinstance(choix, int) and 0 <= choix < len(q["propositions"])):
-            raise classes.ClasseInvalide(f"question {numero} : proposition inconnue : {choix}")
-        if temps is not None and not (0 <= float(temps) <= 3600):
-            raise classes.ClasseInvalide(f"question {numero} : temps impossible : {temps}")
+        if numero in vues:
+            raise classes.ClasseInvalide(f"question en double : {numero}")
         vues.add(numero)
-        lignes.append((numero, choix, int(choix == q["index_correct"]), temps, attendu_de_question(instance, numero),
-                       q.get("difficulte")))
-    meta = instance.get("meta") or {}
+        lignes.append(_ligne(instance, numero, choix, temps))
     with base.ecrire() as conn:
-        tentative_id = conn.execute("INSERT INTO tentative (eleve_id, exercice, titre, empreinte, origine, date) "
-                                    "VALUES (?, ?, ?, ?, ?, ?)",
-                                    (eleve_id, meta.get("id") or "?", instance.get("titre"), empreinte_exercice(instance),
-                                     origine, date or maintenant_iso())).lastrowid
+        tentative_id = _inserer_tentative(conn, eleve_id, instance, origine, date)
         conn.executemany("INSERT INTO reponse (tentative_id, question, choix, juste, temps_s, attendu, difficulte) "
                          "VALUES (?, ?, ?, ?, ?, ?, ?)", [(tentative_id, *ligne) for ligne in lignes])
     return tentative_id
+
+
+def commencer_tentative(base: Base, eleve_id: int, instance: dict, origine: str = "classe") -> dict:
+    """Le serveur de classe (E8) : une tentative ouverte au début de l'exercice ; les réponses arrivent une à une.
+    Renvoie {"id", "compte"} : compte = False, c'est un entraînement (l'élève a déjà fait cet exercice)."""
+    with base.ecrire() as conn:
+        tentative_id = _inserer_tentative(conn, eleve_id, instance, origine, None)
+        compte_ = conn.execute("SELECT compte FROM tentative WHERE id = ?", (tentative_id,)).fetchone()[0]
+    return {"id": tentative_id, "compte": bool(compte_)}
+
+
+def ajouter_reponse(base: Base, eleve_id: int, tentative_id: int, instance: dict, numero, choix, temps) -> dict:
+    """Une réponse de l'élève, recalculée ; refusée si la tentative n'est pas la sienne, si l'exercice a changé depuis
+    son début, ou si la question a déjà sa réponse. Renvoie {"juste", "correct"} (correct : le rang d'origine de la
+    bonne proposition, que la page n'a pas : c'est le serveur qui corrige, ⚖4)."""
+    ligne = _ligne(instance, numero, choix, temps)
+    with base.ecrire() as conn:
+        t = conn.execute("SELECT * FROM tentative WHERE id = ? AND eleve_id = ? AND annulee = 0",
+                         (tentative_id, eleve_id)).fetchone()
+        if t is None or t["exercice"] != ((instance.get("meta") or {}).get("id") or "?") \
+                or t["empreinte"] != empreinte_exercice(instance):
+            raise classes.Introuvable("tentative introuvable")
+        try:
+            conn.execute("INSERT INTO reponse (tentative_id, question, choix, juste, temps_s, attendu, difficulte) "
+                         "VALUES (?, ?, ?, ?, ?, ?, ?)", (tentative_id, *ligne))
+        except sqlite3.IntegrityError:
+            raise classes.ClasseInvalide(f"question {numero} : déjà répondue") from None
+    return {"juste": bool(ligne[2]), "correct": instance["questions"][numero - 1]["index_correct"]}
 
 
 # --- les indicateurs (E4.1, E4.2) --------------------------------------------------------------------------
@@ -143,15 +189,17 @@ def _comptes(lignes) -> dict:
 
 
 def indicateurs(base: Base, compte: dict, classe_id: int, noter: bool = True) -> dict:
-    """La grille élèves × attendus, et « qui a besoin de quoi » par attendu. Les tentatives annulées ne comptent
-    pas ; un élève désactivé reste affiché (ses données sont gardées), grisé."""
+    """La grille élèves × attendus, et « qui a besoin de quoi » par attendu. Les tentatives annulées, et les
+    entraînements (exercice rejoué), ne comptent pas ; un élève désactivé reste affiché (ses données sont gardées),
+    grisé."""
     regles = seuils()
     with base.ecrire() as conn:
         classe = classes._classe(conn, compte, classe_id)
         eleves = conn.execute("SELECT * FROM eleve WHERE classe_id = ? ORDER BY numero", (classe_id,)).fetchall()
         lignes = conn.execute("SELECT t.eleve_id, r.attendu, r.juste, r.difficulte FROM reponse r "
                               "JOIN tentative t ON t.id = r.tentative_id JOIN eleve e ON e.id = t.eleve_id "
-                              "WHERE e.classe_id = ? AND t.annulee = 0 AND r.attendu IS NOT NULL", (classe_id,)).fetchall()
+                              "WHERE e.classe_id = ? AND t.annulee = 0 AND t.compte = 1 AND r.attendu IS NOT NULL",
+                              (classe_id,)).fetchall()
         if noter:
             journal.noter(conn, "suivi_consulte", compte, cible=f"classe:{classe_id}")
     comptes_ = _comptes(lignes)
@@ -179,7 +227,7 @@ def fiche(base: Base, compte: dict, eleve_id: int) -> dict:
         eleve = classes._eleve(conn, compte, eleve_id)
         lignes = conn.execute("SELECT t.eleve_id, r.attendu, r.juste, r.difficulte FROM reponse r "
                               "JOIN tentative t ON t.id = r.tentative_id WHERE t.eleve_id = ? AND t.annulee = 0 "
-                              "AND r.attendu IS NOT NULL", (eleve_id,)).fetchall()
+                              "AND t.compte = 1 AND r.attendu IS NOT NULL", (eleve_id,)).fetchall()
         tentatives = conn.execute("SELECT t.*, COUNT(r.id) AS questions, SUM(r.juste) AS justes FROM tentative t "
                                   "LEFT JOIN reponse r ON r.tentative_id = t.id WHERE t.eleve_id = ? "
                                   "GROUP BY t.id ORDER BY t.date DESC, t.id DESC", (eleve_id,)).fetchall()
@@ -190,7 +238,8 @@ def fiche(base: Base, compte: dict, eleve_id: int) -> dict:
             "seuils": regles, "etats": LIBELLES_ETATS,
             "attendus": [{**_decrire_attendu(a, ""), **_case(comptes_[(eleve_id, a)], regles)} for a in attendus],
             "tentatives": [{"id": t["id"], "date": t["date"], "exercice": t["exercice"], "titre": t["titre"],
-                            "origine": t["origine"], "annulee": bool(t["annulee"]), "questions": t["questions"],
+                            "origine": t["origine"], "annulee": bool(t["annulee"]), "compte": bool(t["compte"]),
+                            "questions": t["questions"],
                             "justes": t["justes"] or 0} for t in tentatives]}
 
 
