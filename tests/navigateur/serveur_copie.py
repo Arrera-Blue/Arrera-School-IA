@@ -6,6 +6,8 @@ Copie banque/ dans <dossier>, puis sert l'interface sur 127.0.0.1:<port> (8012 p
 uniquement dans cette copie : les essais (accepter, modifier, supprimer…) ne touchent jamais la vraie banque.
 La base (comptes, journal) est neuve, dans la copie, avec un seul compte administrateur : ESSAI (E1), sa classe
 de démonstration (24 élèves fictifs) et leurs réponses simulées, pour le suivi (E4).
+Le serveur de classe (E8) tourne aussi, sur la même copie, au port suivant (<port> + 1) : c'est son adresse que
+l'interface affiche, et l'essai y bloque un élève par 5 codes faux.
 """
 
 import contextlib
@@ -39,9 +41,17 @@ if not comptes.lire(base, ESSAI["identifiant"]):
     with contextlib.redirect_stdout(io.StringIO()):  # « 6e Démo », remplie de réponses aux profils connus
         assert demo.main([ESSAI["identifiant"]]) == 0 and simulation.main([ESSAI["identifiant"]]) == 0
 
+import threading  # noqa: E402
+
 import uvicorn  # noqa: E402
 
+from generateur.classe import serveur as serveur_classe  # noqa: E402
 from generateur.interface import api  # noqa: E402
 
-print(f"Interface d'essai : http://127.0.0.1:{port}/ (banque copiée dans {copie})", flush=True)
+REGLAGES_CLASSE = {"adresse": "127.0.0.1", "port": port + 1, "hotes": [], "certificat": None, "cle_privee": None}
+serveur_classe.reglages = lambda: REGLAGES_CLASSE  # l'interface montre l'adresse de CE serveur de classe
+threading.Thread(target=uvicorn.run, args=(serveur_classe.creer_application(r=REGLAGES_CLASSE),),
+                 kwargs={"host": "127.0.0.1", "port": port + 1, "log_level": "warning"}, daemon=True).start()
+print(f"Interface d'essai : http://127.0.0.1:{port}/ (banque copiée dans {copie}) ; "
+      f"serveur de classe : http://127.0.0.1:{port + 1}/", flush=True)
 uvicorn.run(api.creer_application(), host="127.0.0.1", port=port, log_level="warning")

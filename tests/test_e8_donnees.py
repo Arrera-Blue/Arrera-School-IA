@@ -234,6 +234,40 @@ def test_publier_pour_une_classe_un_groupe_ou_un_eleve(base, prof, autre):
         publications.publier(base, prof, "qcm-classe", vue["id"], eleve_id=autres[0]["eleve_id"])
 
 
+def test_qui_l_a_fait_parmi_les_eleves_concernes_et_l_etat_de_la_publication(base, prof):
+    vue, cartes = classe(base, prof)
+    marie, lucas, marie2 = (c["eleve_id"] for c in cartes)
+    instance = exercice_en_banque("qcm-faits")
+    groupe = suivi.creer_groupe(base, prof, vue["id"], "Jeudi", None, "consolider", [lucas, marie2])
+    publications.publier(base, prof, "qcm-faits", vue["id"], groupe_id=groupe["id"], debut="2026-11-03", fin="2026-11-14")
+    suivi.commencer_tentative(base, marie, instance)   # hors du groupe : ne compte pas
+    suivi.commencer_tentative(base, lucas, instance)
+    vue_pub = lambda jour: publications.lister(base, prof, vue["id"], jour)[0]
+    p = vue_pub("2026-11-05")
+    assert (p["concernes"], p["faits"], p["etat"], p["visible"]) == (2, 1, "en_cours", True)
+    assert (vue_pub("2026-11-02")["etat"], vue_pub("2026-11-14")["etat"], vue_pub("2026-11-15")["etat"]) == ("a_venir", "en_cours", "terminee")
+    classes.activer(base, prof, marie2, False)  # un élève désactivé n'est plus attendu
+    assert vue_pub("2026-11-05")["concernes"] == 1
+    assert [x["classe"] for x in publications.de_l_exercice(base, prof, "qcm-faits")] == ["6e B"]
+    instance["meta"]["statut"] = "genere"  # modifié depuis : caché aux élèves, signalé à l'enseignant
+    banque.ecrire(instance)
+    assert vue_pub("2026-11-05")["visible"] is False
+    classes.archiver(base, prof, vue["id"], True)
+    assert publications.de_l_exercice(base, prof, "qcm-faits") == []
+
+
+def test_les_eleves_bloques(base, prof, autre):
+    vue, cartes = classe(base, prof)
+    with base.ecrire() as conn:
+        conn.execute("UPDATE eleve SET bloque = 1 WHERE id IN (?, ?)", (cartes[0]["eleve_id"], cartes[2]["eleve_id"]))
+    assert [(b["prenom"], b["classe"]) for b in classes.bloques(base, prof)] == [("Marie", "6e B"), ("Marie", "6e B")]
+    assert classes.bloques(base, autre) == []
+    classes.activer(base, prof, cartes[2]["eleve_id"], False)  # désactivé : plus rien à débloquer
+    assert len(classes.bloques(base, prof)) == 1
+    classes.debloquer(base, prof, cartes[0]["eleve_id"])
+    assert classes.bloques(base, prof) == []
+
+
 def test_les_dates_de_debut_et_de_fin(base, prof):
     vue, cartes = classe(base, prof)
     exercice_en_banque("qcm-date")

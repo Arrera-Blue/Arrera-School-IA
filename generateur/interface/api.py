@@ -54,6 +54,15 @@ enregistrés par l'enseignant :
     PUT  /api/groupes/{id} · DELETE /api/groupes/{id}   l'ajuster · le supprimer
     GET  /api/classes/{id}/propositions · POST       les exercices validés et ceux proposés · valider
     DELETE /api/propositions/{id}                    retirer un exercice validé
+
+Serveur de classe (E8) : l'enseignant publie ses exercices acceptés ; les élèves les font sur le serveur de classe,
+application séparée (generateur/classe/) :
+    GET  /api/classes/{id}/publications              les exercices publiés de la classe (pour qui, dates, faits)
+    GET  /api/exercices/{id}/publications · POST     où l'exercice est publié · le publier (accepté seulement)
+    DELETE /api/publications/{id}                    le retirer (les réponses restent dans le suivi)
+    POST /api/eleves/{id}/debloquer                  après 5 codes faux
+    GET  /api/eleves/bloques                         les élèves bloqués, pour « À faire »
+    GET  /api/serveur-classe                         le serveur de classe répond-il ? son adresse
 """
 
 import argparse
@@ -73,7 +82,8 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from generateur import procedural, programmes
-from generateur.donnees import classes, codes, comptes, journal, sessions, suivi
+from generateur.classe import serveur as serveur_classe
+from generateur.donnees import classes, codes, comptes, journal, publications, sessions, suivi
 from generateur.donnees.base import Base
 from generateur.interface.taches import DejaFinie, File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre
@@ -190,6 +200,14 @@ class NouveauGroupe(BaseModel):
 class GroupeModifie(BaseModel):
     nom: str = Field(max_length=120)
     eleves: list[int] = Field(default_factory=list, max_length=classes.ELEVES_MAX)
+
+
+class Publication(BaseModel):
+    classe_id: int = Field(ge=1)
+    groupe_id: int | None = Field(None, ge=1)
+    eleve_id: int | None = Field(None, ge=1)
+    debut: str | None = Field(None, max_length=10)
+    fin: str | None = Field(None, max_length=10)
 
 
 class PropositionValidee(BaseModel):
@@ -667,6 +685,40 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
     def supprimer_proposition(proposition_id: int, request: Request):
         faire(suivi.supprimer_proposition, base, request.state.compte, proposition_id)
         return {"supprime": proposition_id}
+
+    # --- serveur de classe (E8) : publier, retirer, débloquer -----------------------------------------
+
+    @app.get("/api/classes/{classe_id}/publications")
+    def publications_classe(classe_id: int, request: Request):
+        return {"publications": faire(publications.lister, base, request.state.compte, classe_id)}
+
+    @app.get("/api/exercices/{ident}/publications")
+    def publications_exercice(ident: str, request: Request):
+        _charger(ident)
+        return {"publications": publications.de_l_exercice(base, request.state.compte, ident)}
+
+    @app.post("/api/exercices/{ident}/publications", status_code=201)
+    def publier(ident: str, corps: Publication, request: Request):
+        _charger(ident)
+        return {"publication": faire(publications.publier, base, request.state.compte, ident, corps.classe_id,
+                                     corps.groupe_id, corps.eleve_id, corps.debut, corps.fin)}
+
+    @app.delete("/api/publications/{publication_id}")
+    def retirer_publication(publication_id: int, request: Request):
+        faire(publications.retirer, base, request.state.compte, publication_id)
+        return {"retiree": publication_id}
+
+    @app.get("/api/eleves/bloques")
+    def eleves_bloques(request: Request):
+        return {"eleves": classes.bloques(base, request.state.compte)}
+
+    @app.post("/api/eleves/{eleve_id}/debloquer")
+    def debloquer_eleve(eleve_id: int, request: Request):
+        return {"eleve": faire(classes.debloquer, base, request.state.compte, eleve_id)}
+
+    @app.get("/api/serveur-classe")
+    def etat_serveur_classe():
+        return serveur_classe.etat()
 
     # --- génération et banque (phase 3) -------------------------------------------------------------
 

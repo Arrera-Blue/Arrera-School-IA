@@ -129,7 +129,7 @@
     }
     if (location.hash !== "#/cartes") oublierCartes(); // les codes en clair ne restent pas en mémoire
     const m = location.hash.match(/^#\/exercice\/([a-z0-9_-]+)$/);
-    const c = location.hash.match(/^#\/classe\/(\d+)$/);
+    const c = location.hash.match(/^#\/classe\/(\d+)(\/publies)?$/);
     const s = location.hash.match(/^#\/suivi\/(\d+)$/);
     const f = location.hash.match(/^#\/suivi-eleve\/(\d+)$/);
     if (location.hash === "#/classes") {
@@ -137,7 +137,7 @@
       chargerClasses();
     } else if (c) {
       afficherVue("classe");
-      ouvrirClasse(parseInt(c[1], 10));
+      ouvrirClasse(parseInt(c[1], 10), "", c[2] ? "publies" : "eleves");
     } else if (s) {
       afficherVue("suivi");
       ouvrirSuivi(parseInt(s[1], 10));
@@ -185,7 +185,7 @@
     clearTimeout(etat.suivi);
     oublierCartes();
     for (const id of ["#table-banque tbody", "#ex-questions", "#table-comptes tbody", "#table-journal tbody",
-      "#table-classes tbody", "#table-eleves tbody", "#table-apercu tbody", "#table-suivi thead", "#table-suivi tbody",
+      "#table-classes tbody", "#table-eleves tbody", "#table-publications tbody", "#table-apercu tbody", "#table-suivi thead", "#table-suivi tbody",
       "#su-attendus", "#su-besoins", "#su-groupes", "#su-propositions", "#table-fiche tbody", "#table-tentatives tbody"]) {
       $(id).replaceChildren();
     }
@@ -462,6 +462,36 @@
       el("td", {}, el("span", { class: `badge ${c.archivee ? "" : "statut-accepte"}`, texte: c.archivee ? "archivée" : "active" })))));
     message.textContent = donnees.classes.length ? `${donnees.classes.length} classe(s).`
       : "Aucune classe. Créez-en une, ou une classe de démonstration : python -m generateur.donnees.demo <identifiant>.";
+    afficherServeurClasse();
+  }
+
+  // E8 : le serveur de classe répond-il ? et l'adresse à donner aux élèves
+  async function afficherServeurClasse() {
+    let serveur;
+    try {
+      serveur = await api("/api/serveur-classe");
+    } catch (_) {
+      $("#serveur-classe").hidden = true;
+      return;
+    }
+    $("#serveur-etat").className = `badge ${serveur.en_marche ? "statut-en_cours" : "statut-terminee"}`;
+    $("#serveur-etat").textContent = serveur.en_marche ? "en marche" : "arrêté";
+    $("#serveur-marche").hidden = !serveur.en_marche;
+    $("#serveur-arrete").hidden = serveur.en_marche;
+    $("#serveur-adresse").textContent = serveur.adresse;
+    $("#serveur-sans-https").hidden = serveur.https;
+    $("#serveur-classe").hidden = false;
+  }
+
+  async function copierAdresse() {
+    const bouton = $("#btn-copier-adresse");
+    try {
+      await navigator.clipboard.writeText($("#serveur-adresse").textContent);
+      bouton.textContent = "Copiée";
+    } catch (_) {
+      bouton.textContent = "Copie impossible : sélectionnez-la";
+    }
+    setTimeout(() => { bouton.textContent = "Copier"; }, 2000);
   }
 
   function ouvrirFormulaireClasse() {
@@ -521,19 +551,23 @@
     }
   }
 
-  async function ouvrirClasse(id, message = "") {
+  // onglet : « eleves » ou « publies » ; sans onglet, celui qui est affiché reste
+  async function ouvrirClasse(id, message = "", onglet = null) {
     $("#cl-message").textContent = message;
     $("#form-ajout").hidden = true;
-    let classe;
+    let classe, publiees;
     try {
-      ({ classe } = await api(`/api/classes/${id}`));
+      [{ classe }, { publications: publiees }] = await Promise.all([api(`/api/classes/${id}`),
+        api(`/api/classes/${id}/publications`)]);
     } catch (e) {
       $("#cl-titre").textContent = "Classe introuvable";
       $("#cl-infos").textContent = e.message;
       $("#table-eleves tbody").replaceChildren();
+      $("#table-publications tbody").replaceChildren();
       return;
     }
-    if (location.hash !== `#/classe/${id}`) return; // l'enseignant est allé ailleurs pendant le chargement
+    // l'enseignant est allé ailleurs pendant le chargement
+    if (location.hash !== `#/classe/${id}` && location.hash !== `#/classe/${id}/publies`) return;
     etat.classe = classe;
     $("#cl-titre").textContent = classe.nom;
     $("#cl-infos").textContent = [classe.niveau, classe.annee, `${classe.eleves} élève(s)`,
@@ -541,6 +575,68 @@
     $("#btn-cl-archiver").textContent = classe.archivee ? "Désarchiver la classe" : "Archiver la classe";
     $("#btn-cl-suivi").href = `#/suivi/${classe.id}`;
     $("#table-eleves tbody").replaceChildren(...classe.liste.map(ligneEleve));
+    $("#cl-nb-eleves").textContent = String(classe.liste.length);
+    afficherPublications(publiees);
+    $("#cl-onglet-eleves").dataset.chemin = `#/classe/${classe.id}`;
+    $("#cl-onglet-publies").dataset.chemin = `#/classe/${classe.id}/publies`;
+    if (onglet) choisirOnglet($(onglet === "publies" ? "#cl-onglet-publies" : "#cl-onglet-eleves"));
+  }
+
+  // --- les exercices publiés (E8) ---
+
+  const ETATS_PUBLICATION = { a_venir: "à venir", en_cours: "en cours", terminee: "terminé" };
+
+  function jourCourt(iso) {
+    return new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  }
+
+  function periode(p) {
+    if (p.debut && p.fin) {
+      const memeMois = p.debut.slice(0, 7) === p.fin.slice(0, 7);
+      return `du ${memeMois ? String(parseInt(p.debut.slice(8), 10)) : jourCourt(p.debut)} au ${jourCourt(p.fin)}`;
+    }
+    if (p.debut) return `à partir du ${jourCourt(p.debut)}`;
+    if (p.fin) return `jusqu'au ${jourCourt(p.fin)}`;
+    return "sans date";
+  }
+
+  function lignePublication(p) {
+    const details = [MATIERES[p.matiere] || p.matiere, p.niveau].filter(Boolean).join(", ");
+    const pastille = p.visible
+      ? el("span", { class: `badge statut-${p.etat}`, texte: ETATS_PUBLICATION[p.etat] })
+      : el("span", { class: "badge statut-bloque", texte: "caché",
+        title: "L'exercice a été modifié : les élèves le reverront une fois qu'il sera accepté de nouveau" });
+    return el("tr", { "data-id": String(p.id) },
+      el("td", {}, el("a", { href: `#/exercice/${p.exercice}`, texte: p.titre || p.exercice }),
+        details ? el("span", { class: "sous-titre", texte: details }) : null),
+      el("td", { texte: p.pour }), el("td", { class: "sans-coupure", texte: periode(p) }),
+      el("td", { class: "nombre faits", texte: `${p.faits} / ${p.concernes}` }), el("td", {}, pastille),
+      el("td", {}, el("button", { type: "button", class: "secondaire petit", "data-action": "retirer", texte: "Retirer…" })));
+  }
+
+  function afficherPublications(liste) {
+    etat.publications = liste;
+    $("#table-publications tbody").replaceChildren(...liste.map(lignePublication));
+    $("#cl-nb-publies").textContent = String(liste.length);
+    $("#cl-publies-vide").hidden = liste.length > 0;
+    $("#table-publications").hidden = liste.length === 0;
+  }
+
+  async function retirerPublication(evenement) {
+    const bouton = evenement.target.closest('button[data-action="retirer"]');
+    if (!bouton) return;
+    const p = (etat.publications || []).find((x) => String(x.id) === bouton.closest("tr").dataset.id);
+    if (!p) return;
+    const titre = p.titre || p.exercice;
+    const ok = await demander({ titre: `Retirer « ${titre} » ?`, champ: false, ok: "Retirer",
+      texte: `Les élèves (${p.pour}) ne le verront plus sur leur accueil. Les réponses déjà données restent dans le suivi.` });
+    if (ok === null) return;
+    try {
+      await api(`/api/publications/${p.id}`, {}, "DELETE");
+      await ouvrirClasse(etat.classe.id, `« ${titre} » est retiré : les élèves ne le voient plus.`);
+    } catch (e) {
+      $("#cl-message").textContent = `Retrait refusé : ${e.message}`;
+    }
   }
 
   function ligneEleve(e) {
@@ -548,8 +644,12 @@
       el("button", { type: "button", class: classeCss, "data-action": action, texte });
     return el("tr", { "data-id": String(e.id), class: e.actif ? null : "eleve-inactif" },
       el("td", { class: "nombre", texte: String(e.numero) }), el("td", { texte: e.nom }), el("td", { texte: e.prenom }),
-      el("td", {}, el("span", { class: `badge ${e.actif ? "statut-accepte" : "statut-genere"}`, texte: e.actif ? "actif" : "désactivé" })),
-      el("td", {}, el("div", { class: "question-actions" }, bouton("modifier", "Corriger"), bouton("code", "Nouveau code"),
+      el("td", {}, !e.actif ? el("span", { class: "badge statut-genere", texte: "désactivé" })
+        : e.bloque ? el("span", { class: "badge statut-bloque", texte: "bloqué",
+          title: "5 codes faux : ne peut plus se connecter au serveur de classe" })
+          : el("span", { class: "badge statut-accepte", texte: "actif" })),
+      el("td", {}, el("div", { class: "question-actions" }, e.actif && e.bloque ? bouton("debloquer", "Débloquer", "petit") : null,
+        bouton("modifier", "Corriger"), bouton("code", "Nouveau code"),
         bouton("actif", e.actif ? "Désactiver" : "Réactiver"), bouton("exporter", "Exporter…"),
         bouton("supprimer", "Supprimer…", "secondaire petit danger"))));
   }
@@ -575,6 +675,9 @@
         await ouvrirClasse(etat.classe.id, "Nom corrigé.");
       } else if (bouton.dataset.action === "annuler") {
         ligne.replaceWith(ligneEleve(eleve));
+      } else if (bouton.dataset.action === "debloquer") {
+        await api(`/api/eleves/${eleve.id}/debloquer`, {});
+        await ouvrirClasse(etat.classe.id, `${nom} peut de nouveau se connecter, avec la même carte.`);
       } else if (bouton.dataset.action === "code") {
         const { carte } = await api(`/api/eleves/${eleve.id}/code`, {});
         montrerCartes(`Nouveau code de ${nom}`, [carte], `#/classe/${etat.classe.id}`);
@@ -1395,12 +1498,22 @@
   // --- banque -----------------------------------------------------------------------------------
 
   async function chargerAFaire() {
-    let aRelire = [];
-    try {
-      ({ exercices: aRelire } = await api("/api/exercices?statut=genere"));
-    } catch (_) { return; /* l'accueil reste utilisable sans ce rappel */ }
+    // l'accueil reste utilisable sans ces rappels
+    const [relire, bloques] = await Promise.allSettled([api("/api/exercices?statut=genere"), api("/api/eleves/bloques")]);
+    const aRelire = relire.status === "fulfilled" ? relire.value.exercices : [];
     if (location.hash && location.hash !== "#/generer") return;
     const lignes = [];
+    // E8 : un élève bloqué après 5 codes faux attend son enseignant, en classe : en tête
+    const parClasse = new Map();
+    for (const b of bloques.status === "fulfilled" ? bloques.value.eleves : []) {
+      if (!parClasse.has(b.classe_id)) parClasse.set(b.classe_id, { classe: b.classe, noms: [] });
+      parClasse.get(b.classe_id).noms.push(`${b.prenom} ${b.nom}`);
+    }
+    for (const [id, { classe, noms }] of parClasse) {
+      const combien = noms.length > 1 ? `${noms.length} élèves bloqués` : "1 élève bloqué";
+      lignes.push(el("li", {}, el("a", { href: `#/classe/${id}` },
+        el("span", { texte: `${combien} en ${classe} (5 codes faux) : ${noms.join(", ")}` }), chevron())));
+    }
     if (aRelire.length) {
       lignes.push(el("li", {}, el("a", { href: "#/banque", "data-statut": "genere" },
         el("span", { texte: aRelire.length > 1 ? `${aRelire.length} exercices à relire` : "1 exercice à relire" }), chevron())));
@@ -1523,8 +1636,111 @@
     etat.statut = resume.statut;
     etat.valide = relecture.valide;
     occuper(donnees.occupe);
+    afficherPublication(ident);
     if (!garderMessage) $("#ex-titre").focus();
     if (donnees.occupe && !etat.regeneration) reprendreRegeneration(ident);
+  }
+
+  // E8 : un exercice accepté se publie ; la ligne dit où il l'est déjà
+  async function afficherPublication(ident) {
+    const accepte = etat.statut === "accepte";
+    $("#btn-accepter").hidden = accepte;
+    $("#btn-publier").hidden = !accepte;
+    let liste = [];
+    try {
+      ({ publications: liste } = await api(`/api/exercices/${ident}/publications`));
+    } catch (_) { /* la relecture reste utilisable sans cette ligne */ }
+    if (etat.exercice !== ident) return;
+    const ligne = $("#ex-publie");
+    ligne.hidden = liste.length === 0;
+    const morceaux = [];
+    liste.forEach((p, i) => {
+      if (i) morceaux.push(" ; ");
+      morceaux.push(el("a", { href: `#/classe/${p.classe_id}/publies`, texte: p.classe }), ` (${p.pour}, ${periode(p)})`);
+    });
+    ligne.replaceChildren(...(liste.length ? ["Publié pour ", ...morceaux,
+      accepte ? "." : ". Les élèves ne le voient plus tant qu'il n'est pas accepté de nouveau."] : []));
+  }
+
+  async function ouvrirPublication() {
+    const x = etat.donnees && etat.donnees.exercice;
+    if (!x) return;
+    let liste;
+    try {
+      ({ classes: liste } = await api("/api/classes"));
+    } catch (e) {
+      $("#ex-message").textContent = `Classes illisibles : ${e.message}`;
+      return;
+    }
+    if (!liste.length) {
+      $("#ex-message").textContent = "Aucune classe : créez d'abord une classe (rubrique Classes).";
+      return;
+    }
+    etat.classesPublication = liste;
+    $("#form-publier").reset();
+    $("#pub-titre").textContent = `Publier « ${x.titre || etat.exercice} »`;
+    $("#pub-erreur").hidden = true;
+    remplirSelect($("#pub-classe"), liste.map((c) => String(c.id)),
+      Object.fromEntries(liste.map((c) => [String(c.id), `${c.nom} (${c.niveau})`])));
+    pourPublication();
+    $("#dialogue-publier").showModal();
+    $("#pub-classe").focus();
+    await choisirClassePublication();
+  }
+
+  async function choisirClassePublication() {
+    const id = $("#pub-classe").value;
+    const classe = etat.classesPublication.find((c) => String(c.id) === id);
+    const niveau = etat.donnees.exercice.niveau;
+    $("#pub-niveau").hidden = !classe || !niveau || classe.niveau === niveau;
+    $("#pub-niveau").textContent = classe ? `Exercice de ${niveau}, classe de ${classe.niveau} : vérifiez qu'il convient.` : "";
+    try {
+      const [{ classe: detail }, { groupes }] = await Promise.all([api(`/api/classes/${id}`), api(`/api/classes/${id}/groupes`)]);
+      if ($("#pub-classe").value !== id) return; // une autre classe a été choisie entre-temps
+      const actifs = detail.liste.filter((e) => e.actif);
+      remplirSelect($("#pub-eleve"), actifs.map((e) => String(e.id)),
+        Object.fromEntries(actifs.map((e) => [String(e.id), `${e.numero}. ${e.nom} ${e.prenom}`])));
+      remplirSelect($("#pub-groupe"), groupes.map((g) => String(g.id)), Object.fromEntries(groupes.map((g) =>
+        [String(g.id), `${g.nom} (${g.eleves.length} élève${g.eleves.length > 1 ? "s" : ""})`])));
+      $("#pub-groupe").hidden = groupes.length === 0;
+      $("#pub-sans-groupe").hidden = groupes.length > 0;
+    } catch (e) {
+      $("#pub-erreur").textContent = `Classe illisible : ${e.message}`;
+      $("#pub-erreur").hidden = false;
+    }
+  }
+
+  function pourPublication() {
+    const pour = document.querySelector('input[name="pub-pour"]:checked').value;
+    $("#pub-bloc-groupe").hidden = pour !== "groupe";
+    $("#pub-bloc-eleve").hidden = pour !== "eleve";
+  }
+
+  async function publier(evenement) {
+    evenement.preventDefault();
+    const erreur = $("#pub-erreur");
+    const pour = document.querySelector('input[name="pub-pour"]:checked').value;
+    const corps = { classe_id: parseInt($("#pub-classe").value, 10), debut: $("#pub-debut").value || null,
+      fin: $("#pub-fin").value || null };
+    if (pour === "groupe") corps.groupe_id = parseInt($("#pub-groupe").value, 10) || null;
+    if (pour === "eleve") corps.eleve_id = parseInt($("#pub-eleve").value, 10) || null;
+    if ((pour === "groupe" && !corps.groupe_id) || (pour === "eleve" && !corps.eleve_id)) {
+      erreur.textContent = pour === "groupe" ? "Choisissez un groupe." : "Choisissez un élève.";
+      erreur.hidden = false;
+      return;
+    }
+    $("#pub-ok").disabled = true;
+    try {
+      const { publication } = await api(`/api/exercices/${etat.exercice}/publications`, corps);
+      $("#dialogue-publier").close();
+      $("#ex-message").textContent = `Publié pour ${publication.classe} (${publication.pour}, ${periode(publication)}).`;
+      afficherPublication(etat.exercice);
+    } catch (e) {
+      erreur.textContent = `Publication refusée : ${e.message}`;
+      erreur.hidden = false;
+    } finally {
+      $("#pub-ok").disabled = false;
+    }
   }
 
   function viderExercice() {
@@ -1532,6 +1748,7 @@
     etat.donnees = null;
     for (const id of ["#ex-infos", "#ex-validation", "#ex-avertissements", "#ex-questions"]) $(id).replaceChildren();
     $("#ex-programme").hidden = true;
+    $("#ex-publie").hidden = true;
     $("#ex-erreurs").hidden = true;
     $("#ex-actions").hidden = true;
     $("#ex-regeneration").hidden = true;
@@ -1716,6 +1933,7 @@
     $("#btn-accepter").disabled = etat.occupe || !etat.valide || etat.statut === "accepte";
     $("#btn-rejeter").disabled = etat.occupe || etat.statut === "rejete";
     $("#btn-supprimer").disabled = etat.occupe || etat.statut === "accepte";
+    $("#btn-publier").disabled = etat.occupe;
     $("#btn-accepter").title = etat.valide ? "" : "L'exercice contient une erreur : modifiez ou régénérez la question concernée";
     $("#btn-supprimer").title = etat.statut === "accepte" ? "Un exercice accepté doit d'abord être rejeté" : "";
   }
@@ -1727,8 +1945,9 @@
       $("#ex-statut").replaceWith(Object.assign(badgeStatut(resume.statut), { id: "ex-statut" }));
       etat.statut = resume.statut;
       occuper(etat.occupe);
+      afficherPublication(etat.exercice);
       message.textContent = decision === "accepter"
-        ? "Exercice accepté : il pourra être publié vers les postes élèves."
+        ? "Exercice accepté : vous pouvez maintenant le publier pour une classe."
         : "Exercice rejeté. Il reste dans la banque, avec votre motif.";
     } catch (e) {
       message.textContent = `Décision non enregistrée : ${e.message}`;
@@ -1868,6 +2087,7 @@
 
   // des onglets : un seul panneau visible à la fois
   function choisirOnglet(onglet) {
+    if (onglet.dataset.chemin && location.hash !== onglet.dataset.chemin) history.replaceState(null, "", onglet.dataset.chemin);
     for (const o of onglet.parentElement.querySelectorAll('[role="tab"]')) {
       const choisi = o === onglet;
       o.setAttribute("aria-selected", String(choisi));
@@ -1896,6 +2116,8 @@
     $("#classes-archivees").addEventListener("change", chargerClasses);
     $("#btn-purge").addEventListener("click", purgerAnnees);
     $("#table-eleves").addEventListener("click", agirSurEleve);
+    $("#table-publications").addEventListener("click", retirerPublication);
+    $("#btn-copier-adresse").addEventListener("click", copierAdresse);
     $("#btn-cl-ajouter").addEventListener("click", () => {
       $("#form-ajout").hidden = false;
       $("#ajout-liste").focus();
@@ -1941,6 +2163,11 @@
       etat.recherche = setTimeout(chargerBanque, ATTENTE_RECHERCHE_MS);
     });
     $("#btn-accepter").addEventListener("click", () => decider("accepter"));
+    $("#btn-publier").addEventListener("click", ouvrirPublication);
+    $("#form-publier").addEventListener("submit", publier);
+    $("#pub-annuler").addEventListener("click", () => $("#dialogue-publier").close());
+    $("#pub-classe").addEventListener("change", choisirClassePublication);
+    for (const r of document.querySelectorAll('input[name="pub-pour"]')) r.addEventListener("change", pourPublication);
     $("#btn-rejeter").addEventListener("click", async () => {
       const motif = await demander({ titre: "Rejeter l'exercice", label: "Motif (facultatif)", ok: "Rejeter",
         texte: "L'exercice restera dans la banque, marqué « rejeté ». Votre motif aide à améliorer le générateur." });
