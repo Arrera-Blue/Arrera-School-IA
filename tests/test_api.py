@@ -1,6 +1,7 @@
 """Phase 3 : l'interface enseignant (generateur/interface/) — file d'attente, points d'entrée, protections."""
 
 import json
+import socket
 import threading
 import warnings
 
@@ -609,3 +610,96 @@ def test_le_suivi_d_un_autre_est_introuvable(client):
         assert autre.request(methode, url, json=corps).status_code == 404, url
     sans_session = TestClient(client.app, base_url="http://127.0.0.1:8000")
     assert sans_session.get(f"/api/classes/{classe['id']}/suivi").status_code == 401
+
+
+# --- serveur de classe (E8, étape 4) : publier, retirer, débloquer -------------------------------------
+
+def exercice_accepte(client) -> str:
+    ident = generer(client)["exercice"]
+    assert client.post(f"/api/exercices/{ident}/decision", json={"decision": "accepter"}).status_code == 200
+    return ident
+
+
+def test_publier_puis_retirer_un_exercice(client):
+    ident, classe = exercice_accepte(client), creer_classe(client)["classe"]
+    r = client.post(f"/api/exercices/{ident}/publications", json={"classe_id": classe["id"], "fin": "2099-06-30"})
+    assert r.status_code == 201, r.text
+    publiee = r.json()["publication"]
+    assert (publiee["pour"], publiee["concernes"], publiee["faits"], publiee["etat"]) == ("toute la classe", 3, 0, "en_cours")
+    assert publiee["classe"] == "6e B" and publiee["matiere"] == "maths" and publiee["niveau"] == "4e"
+    assert [p["id"] for p in client.get(f"/api/classes/{classe['id']}/publications").json()["publications"]] == [publiee["id"]]
+    assert [p["classe"] for p in client.get(f"/api/exercices/{ident}/publications").json()["publications"]] == ["6e B"]
+    eleve = client.get(f"/api/classes/{classe['id']}").json()["classe"]["liste"][0]
+    pour_un = client.post(f"/api/exercices/{ident}/publications", json={"classe_id": classe["id"], "eleve_id": eleve["id"],
+                                                                         "debut": "2099-01-01"}).json()["publication"]
+    assert (pour_un["pour"], pour_un["concernes"], pour_un["etat"]) == (f"{eleve['prenom']} {eleve['nom']}", 1, "a_venir")
+    assert client.request("DELETE", f"/api/publications/{publiee['id']}", json={}).status_code == 200
+    assert [p["id"] for p in client.get(f"/api/classes/{classe['id']}/publications").json()["publications"]] == [pour_un["id"]]
+    assert client.request("DELETE", f"/api/publications/{publiee['id']}", json={}).status_code == 404
+
+
+@pytest.mark.parametrize("corps, statut", [({"debut": "03/11/2026"}, 422), ({"debut": "2026-11-14", "fin": "2026-11-03"}, 422),
+                                           ({"groupe_id": 999}, 404), ({"eleve_id": 999}, 404),
+                                           ({"groupe_id": 1, "eleve_id": 1}, 422)])
+def test_une_publication_mal_formee_est_refusee(client, corps, statut):
+    ident, classe = exercice_accepte(client), creer_classe(client)["classe"]
+    r = client.post(f"/api/exercices/{ident}/publications", json={"classe_id": classe["id"], **corps})
+    assert r.status_code == statut, r.text
+    assert client.get(f"/api/classes/{classe['id']}/publications").json()["publications"] == []
+
+
+def test_seul_un_exercice_accepte_se_publie(client):
+    ident, classe = generer(client)["exercice"], creer_classe(client)["classe"]
+    r = client.post(f"/api/exercices/{ident}/publications", json={"classe_id": classe["id"]})
+    assert r.status_code == 422 and "accepté" in r.json()["detail"]
+    assert client.post("/api/exercices/inconnu/publications", json={"classe_id": classe["id"]}).status_code == 404
+
+
+def test_les_publications_d_un_autre_sont_introuvables(client):
+    ident, classe = exercice_accepte(client), creer_classe(client)["classe"]
+    publiee = client.post(f"/api/exercices/{ident}/publications", json={"classe_id": classe["id"]}).json()["publication"]
+    comptes.creer(client.base, "autre", "Autre", "le mot de passe d'un autre")
+    autre = TestClient(client.app, base_url="http://127.0.0.1:8000")
+    autre.post("/api/session", json={"identifiant": "autre", "mot_de_passe": "le mot de passe d'un autre"})
+    assert autre.get(f"/api/classes/{classe['id']}/publications").status_code == 404
+    assert autre.get(f"/api/exercices/{ident}/publications").json()["publications"] == []
+    assert autre.post(f"/api/exercices/{ident}/publications", json={"classe_id": classe["id"]}).status_code == 404
+    assert autre.request("DELETE", f"/api/publications/{publiee['id']}", json={}).status_code == 404
+    assert len(client.get(f"/api/classes/{classe['id']}/publications").json()["publications"]) == 1
+
+
+def test_debloquer_un_eleve_et_le_voir_dans_a_faire(client):
+    classe = creer_classe(client)["classe"]
+    eleve = client.get(f"/api/classes/{classe['id']}").json()["classe"]["liste"][1]
+    with client.base.ecrire() as conn:  # 5 codes faux au serveur de classe
+        conn.execute("UPDATE eleve SET echecs = 5, bloque = 1 WHERE id = ?", (eleve["id"],))
+    assert client.get(f"/api/classes/{classe['id']}").json()["classe"]["liste"][1]["bloque"] is True
+    bloques = client.get("/api/eleves/bloques").json()["eleves"]
+    assert [(b["id"], b["classe"], b["prenom"]) for b in bloques] == [(eleve["id"], "6e B", eleve["prenom"])]
+    comptes.creer(client.base, "autre", "Autre", "le mot de passe d'un autre")
+    autre = TestClient(client.app, base_url="http://127.0.0.1:8000")
+    autre.post("/api/session", json={"identifiant": "autre", "mot_de_passe": "le mot de passe d'un autre"})
+    assert autre.get("/api/eleves/bloques").json()["eleves"] == []
+    assert autre.post(f"/api/eleves/{eleve['id']}/debloquer", json={}).status_code == 404
+    assert client.post(f"/api/eleves/{eleve['id']}/debloquer", json={}).json()["eleve"]["bloque"] is False
+    assert client.get("/api/eleves/bloques").json()["eleves"] == []
+
+
+def test_l_etat_du_serveur_de_classe(client, monkeypatch):
+    from generateur.classe import serveur as serveur_classe
+
+    ecoute = socket.socket()
+    ecoute.bind(("127.0.0.1", 0))
+    ecoute.listen()
+    port = ecoute.getsockname()[1]
+    reglages = {"adresse": "127.0.0.1", "port": port, "hotes": [], "certificat": None, "cle_privee": None}
+    monkeypatch.setattr(serveur_classe, "reglages", lambda: reglages)
+    assert client.get("/api/serveur-classe").json() == {"en_marche": True, "adresse": f"http://127.0.0.1:{port}", "https": False}
+    ecoute.close()
+    assert client.get("/api/serveur-classe").json()["en_marche"] is False
+    def injoignable(*_a, **_k):
+        raise OSError("injoignable")
+
+    monkeypatch.setattr(serveur_classe.socket, "create_connection", injoignable)  # aucune connexion au vrai réseau
+    reglages.update(adresse="192.168.1.20", certificat="certs/classe.pem")
+    assert client.get("/api/serveur-classe").json() == {"en_marche": False, "adresse": f"https://192.168.1.20:{port}", "https": True}

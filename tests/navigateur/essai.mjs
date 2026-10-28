@@ -8,7 +8,8 @@
 // seul, sans le modèle), relire, modifier une question, accepter, rechercher, supprimer, viser un attendu du
 // programme officiel et filtrer la banque par thème (E2), créer une classe et imprimer ses cartes, corriger,
 // désactiver, exporter, supprimer un élève, archiver (E3), suivre la classe de démonstration aux réponses simulées
-// (grille, noms masqués, groupes, exercices à travailler, fiche d'un élève, tentative annulée : E4), créer un compte,
+// (grille, noms masqués, groupes, exercices à travailler, fiche d'un élève, tentative annulée : E4), publier un exercice
+// accepté pour un groupe et pour la classe, le retirer, débloquer un élève bloqué au serveur de classe (E8), créer un compte,
 // se déconnecter, changer un mot de passe provisoire, affichage sur téléphone ; aucune erreur JavaScript ni
 // violation de CSP. Captures d'écran et copie de la banque : dans le dossier affiché à la fin.
 // Code de sortie : 0 si tous les contrôles passent, 1 sinon.
@@ -21,6 +22,7 @@ const CHROMES = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   "/usr/bin/chromium", "/usr/bin/chromium-browser"];
 const AVEC_MODELE = process.argv.includes("--avec-modele");
 const PORT = 8012, DEBOGAGE = 9333, BASE = `http://127.0.0.1:${PORT}/`;
+const CLASSE = `http://127.0.0.1:${PORT + 1}/`; // le serveur de classe de l'essai (serveur_copie.py)
 const ESSAI = { identifiant: "essai", nom: "Essai navigateur", motDePasse: "essai du navigateur 2026" }; // serveur_copie.py
 const dossier = mkdtempSync(join(tmpdir(), "essai-interface-"));
 const python = existsSync(".venv/bin/python") ? ".venv/bin/python" : "python3";
@@ -383,6 +385,79 @@ try {
   await jusqua(`document.querySelector("#fi-message").textContent === "Exercice rétabli."`);
   await capture("9-fiche-eleve");
 
+  // 5 sexies. serveur de classe (E8) : publier l'exercice accepté pour un groupe, puis pour la classe à une date à
+  // venir ; le voir dans la classe ; en retirer un ; un élève bloqué par 5 codes faux, signalé puis débloqué
+  await aller(`#/exercice/${ident}`);
+  await jusqua(`document.querySelector("#ex-statut").textContent === "Accepté" && !document.querySelector("#btn-publier").hidden`);
+  verifier("publier : « Publier… » à la place de « Accepter » sur un exercice accepté", await js(`document.querySelector("#btn-accepter").hidden
+    && document.querySelector("#ex-publie").hidden`));
+  await cliquer("#btn-publier");
+  await jusqua(`document.querySelector("#dialogue-publier").open && document.querySelector("#pub-groupe").options.length > 0`);
+  verifier("publier : les classes actives, pas l'archivée", await js(`[...document.querySelector("#pub-classe").options].map((o) => o.textContent)
+    .join() === "6e Démo (6e)" && document.querySelector("#pub-niveau").hidden`));
+  await js(`document.querySelector('input[name="pub-pour"][value="groupe"]').click()`);
+  verifier("publier : le groupe enregistré au suivi", await js(`!document.querySelector("#pub-bloc-groupe").hidden
+    && document.querySelector("#pub-groupe").options[0].textContent === "Mardi (3 élèves)"`));
+  await capture("10-publier");
+  await cliquer("#pub-ok");
+  await jusqua(`!document.querySelector("#dialogue-publier").open && !document.querySelector("#ex-publie").hidden`);
+  verifier("publier : pour le groupe, la ligne « Publié pour » le dit", await js(`document.querySelector("#ex-message").textContent ===
+    "Publié pour 6e Démo (groupe « Mardi », sans date)." && document.querySelector("#ex-publie a").textContent === "6e Démo"`));
+  await cliquer("#btn-publier");
+  await jusqua(`document.querySelector("#dialogue-publier").open && document.querySelector("#pub-eleve").options.length === 24`);
+  await saisir("#pub-debut", "2099-11-14");
+  await saisir("#pub-fin", "2099-11-03");
+  await cliquer("#pub-ok");
+  await jusqua(`!document.querySelector("#pub-erreur").hidden`);
+  verifier("publier : une fin avant le début est refusée", await js(`document.querySelector("#pub-erreur").textContent.includes("la fin est avant le début")`));
+  await saisir("#pub-fin", "");
+  await cliquer("#pub-ok");
+  await jusqua(`!document.querySelector("#dialogue-publier").open && document.querySelectorAll("#ex-publie a").length === 2`);
+  await cliquer("#ex-publie a");
+  await jusqua(`location.hash === "#/classe/${classeDemo}/publies" && document.querySelectorAll("#table-publications tbody tr").length === 2`);
+  verifier("classe : l'onglet « Exercices publiés », pour qui, quand, combien l'ont fait", await js(`(() => {
+    const l = [...document.querySelectorAll("#table-publications tbody tr")].map((t) => t.textContent);
+    return !document.querySelector("#cl-panneau-publies").hidden && document.querySelector("#cl-panneau-eleves").hidden
+      && document.querySelector("#cl-nb-publies").textContent === "2"
+      && l[0].includes("toute la classe") && l[0].includes("à partir du 14 nov.") && l[0].includes("0 / 24") && l[0].includes("à venir")
+      && l[1].includes("groupe « Mardi »") && l[1].includes("sans date") && l[1].includes("0 / 3") && l[1].includes("en cours"); })()`));
+  await capture("11-exercices-publies");
+  await js(`document.querySelector("#table-publications tbody tr [data-action=retirer]").click()`);
+  await jusqua(`document.querySelector("#dialogue").open`);
+  await cliquer("#dialogue-ok");
+  await jusqua(`document.querySelectorAll("#table-publications tbody tr").length === 1`);
+  verifier("classe : retirer une publication, après confirmation", await js(`document.querySelector("#cl-message").textContent.includes("est retiré")
+    && location.hash === "#/classe/${classeDemo}/publies"`));
+  // un élève tape 5 codes faux au serveur de classe (comme sur un poste élève, sans session)
+  const eleves = await (await fetch(`${CLASSE}api/classes/${classeDemo}/eleves`)).json();
+  const bloque = eleves.eleves[0];
+  let statut = 0;
+  for (let i = 0; i < 5; i++) {
+    statut = (await fetch(`${CLASSE}api/session`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eleve: bloque.id, code: ["soleil", "soleil", "soleil", "soleil"] }) })).status;
+  }
+  verifier("serveur de classe : 5 codes faux, l'élève est bloqué", statut === 423);
+  await aller("#/generer");
+  await jusqua(`document.querySelector("#a-faire").textContent.includes("élève bloqué")`);
+  const aFaire = await js(`document.querySelector("#a-faire li").textContent`);
+  verifier("accueil : l'élève bloqué, en tête de « À faire »", aFaire.startsWith("1 élève bloqué en 6e Démo (5 codes faux) : ")
+    && aFaire.includes(bloque.nom.split(" ")[0]), aFaire);
+  await js(`document.querySelector("#a-faire li a").click()`);
+  await jusqua(`location.hash === "#/classe/${classeDemo}" && document.querySelector('#table-eleves tr[data-id="${bloque.id}"] [data-action=debloquer]')`);
+  verifier("classe : la pastille « bloqué » et « Débloquer »", await js(`document.querySelector('#table-eleves tr[data-id="${bloque.id}"] .statut-bloque')
+    .textContent === "bloqué" && !document.querySelector("#cl-panneau-eleves").hidden`));
+  await js(`document.querySelector('#table-eleves tr[data-id="${bloque.id}"] [data-action=debloquer]').click()`);
+  await jusqua(`document.querySelector("#cl-message").textContent.includes("peut de nouveau se connecter")`);
+  verifier("classe : débloqué, il peut retaper son code", await js(`!document.querySelector('#table-eleves tr[data-id="${bloque.id}"] [data-action=debloquer]')`)
+    && (await fetch(`${CLASSE}api/session`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eleve: bloque.id, code: ["soleil", "soleil", "soleil", "soleil"] }) })).status === 401);
+  await aller("#/classes");
+  await jusqua(`!document.querySelector("#serveur-classe").hidden`);
+  verifier("classes : le serveur de classe en marche, son adresse à donner aux élèves", await js(`document.querySelector("#serveur-etat").textContent ===
+    "en marche" && document.querySelector("#serveur-adresse").textContent === "http://127.0.0.1:${PORT + 1}"
+    && !document.querySelector("#serveur-sans-https").hidden`));
+  await capture("12-serveur-de-classe");
+
   // 6. (option) annuler une vraie génération par le modèle, pendant qu'il écrit
   if (AVEC_MODELE) {
     await aller("#/generer");
@@ -401,7 +476,8 @@ try {
 
   // 7. téléphone : pas de défilement horizontal
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-  for (const chemin of ["#/generer", "#/banque", `#/exercice/${ident}`, "#/comptes", "#/compte", "#/classes", `#/suivi/${classeDemo}`]) {
+  for (const chemin of ["#/generer", "#/banque", `#/exercice/${ident}`, "#/comptes", "#/compte", "#/classes", `#/suivi/${classeDemo}`,
+    `#/classe/${classeDemo}/publies`]) {
     await aller(chemin);
     await attendre(800);
     verifier(`téléphone ${chemin.split("/")[1]} : pas de défilement horizontal`, await js(`document.documentElement.scrollWidth <= window.innerWidth`));

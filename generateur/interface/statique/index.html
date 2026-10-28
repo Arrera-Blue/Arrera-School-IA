@@ -310,6 +310,21 @@
       <h1 id="titre-classes">Classes</h1>
       <p id="classes-rgpd" class="avertissement" role="note" hidden><strong>Élèves fictifs uniquement.</strong> Le dossier
         RGPD (analyse d'impact) n'est pas encore validé par l'établissement : n'enregistrez pas de vrais noms d'élèves.</p>
+      <!-- E8 : le serveur de classe, où les élèves se connectent -->
+      <section id="serveur-classe" class="serveur" aria-labelledby="titre-serveur" hidden>
+        <div class="serveur-entete"><h2 id="titre-serveur">Serveur de classe</h2><span id="serveur-etat" class="badge"></span></div>
+        <div id="serveur-marche" hidden>
+          <div class="adresse"><span class="infos">Adresse à donner aux élèves :</span> <code id="serveur-adresse"></code>
+            <button type="button" class="petit" id="btn-copier-adresse">Copier</button></div>
+          <p class="aide" id="serveur-sans-https" hidden>Sans HTTPS : pour un essai sur ce PC seulement ; en classe, il
+            faudra le HTTPS de la salle (reporté).</p>
+        </div>
+        <div id="serveur-arrete" hidden>
+          <p>Les élèves ne peuvent pas se connecter. Pour le lancer, dans un terminal, depuis le dossier du projet :
+            <span class="commande">python -m generateur.classe</span></p>
+          <p class="aide">Une fois installé sur le PC enseignant, il démarrera tout seul (phase 5).</p>
+        </div>
+      </section>
       <div class="actions">
         <button type="button" id="btn-nouvelle-classe">Nouvelle classe…</button>
         <label class="case"><input type="checkbox" id="classes-archivees"> Voir les classes archivées</label>
@@ -389,17 +404,39 @@
           <button type="button" id="btn-annuler-ajout" class="lien">Annuler</button>
         </div>
       </form>
-      <p id="cl-message" class="etat" role="status"></p>
-      <div class="tableau-defilant">
-        <table id="table-eleves" class="tableau">
-          <caption class="visuellement-cache">Les élèves de la classe, par numéro</caption>
-          <thead>
-            <tr><th scope="col">N°</th><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">État</th>
-              <th scope="col">Actions</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <div class="onglets" role="tablist" aria-label="La classe">
+        <button type="button" role="tab" id="cl-onglet-eleves" aria-selected="true" aria-controls="cl-panneau-eleves">Élèves<span class="compte" id="cl-nb-eleves"></span></button>
+        <button type="button" role="tab" id="cl-onglet-publies" aria-selected="false" aria-controls="cl-panneau-publies" tabindex="-1">Exercices publiés<span class="compte" id="cl-nb-publies"></span></button>
       </div>
+      <p id="cl-message" class="etat" role="status"></p>
+      <section id="cl-panneau-eleves" role="tabpanel" aria-labelledby="cl-onglet-eleves">
+        <div class="tableau-defilant">
+          <table id="table-eleves" class="tableau">
+            <caption class="visuellement-cache">Les élèves de la classe, par numéro</caption>
+            <thead>
+              <tr><th scope="col">N°</th><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">État</th>
+                <th scope="col">Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+      <!-- E8 : ce que les élèves voient sur leur accueil, au serveur de classe -->
+      <section id="cl-panneau-publies" role="tabpanel" aria-labelledby="cl-onglet-publies" hidden>
+        <p class="aide">Ce que les élèves voient sur leur accueil, au serveur de classe. Pour publier un exercice :
+          ouvrez-le dans la <a href="#/banque">Banque</a> (il doit être accepté), puis « Publier… ».</p>
+        <p id="cl-publies-vide" class="etat" hidden>Aucun exercice publié pour cette classe.</p>
+        <div class="tableau-defilant">
+          <table id="table-publications" class="tableau">
+            <caption class="visuellement-cache">Les exercices publiés pour la classe, les plus récents d'abord</caption>
+            <thead>
+              <tr><th scope="col">Exercice</th><th scope="col">Pour</th><th scope="col">Dates</th>
+                <th scope="col" class="nombre">Faits</th><th scope="col">État</th><th scope="col"><span class="visuellement-cache">Actions</span></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
     </section>
 
     <!-- Le suivi d'une classe (E4) : des indicateurs pour repérer les besoins ; rien n'est décidé sans l'enseignant -->
@@ -506,9 +543,11 @@
       </details>
       <div id="ex-erreurs" class="erreur" role="alert" hidden></div>
       <div id="ex-avertissements"></div>
+      <p id="ex-publie" class="publie" hidden></p>
 
       <div class="actions barre-actions" id="ex-actions">
         <button type="button" id="btn-accepter">Accepter l'exercice</button>
+        <button type="button" id="btn-publier" hidden>Publier…</button>
         <button type="button" id="btn-rejeter" class="secondaire">Rejeter…</button>
         <details class="plus">
           <summary aria-label="Autres actions"><svg class="icone" aria-hidden="true"><use href="#i-points"/></svg></summary>
@@ -551,6 +590,48 @@
       <div class="actions">
         <button type="submit" id="dialogue-ok"></button>
         <button type="button" id="dialogue-annuler" class="secondaire">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- E8 : publier un exercice accepté pour une classe, un groupe ou un élève -->
+  <dialog id="dialogue-publier" aria-labelledby="pub-titre">
+    <form id="form-publier" novalidate>
+      <h2 id="pub-titre"></h2>
+      <p class="infos">Les élèves le verront sur leur accueil, au serveur de classe.</p>
+      <div class="champ">
+        <label for="pub-classe">Classe</label>
+        <select id="pub-classe"></select>
+        <p class="avertissement" id="pub-niveau" hidden></p>
+      </div>
+      <fieldset>
+        <legend>Pour</legend>
+        <div class="choix-pour">
+          <label class="case"><input type="radio" name="pub-pour" value="classe" checked> toute la classe</label>
+          <label class="case"><input type="radio" name="pub-pour" value="groupe" id="pub-pour-groupe"> un groupe</label>
+          <label class="case"><input type="radio" name="pub-pour" value="eleve"> un élève</label>
+        </div>
+        <div class="sous-choix" id="pub-bloc-groupe" hidden>
+          <label for="pub-groupe" class="visuellement-cache">Le groupe</label>
+          <select id="pub-groupe"></select>
+          <p class="aide" id="pub-sans-groupe" hidden>Cette classe n'a pas encore de groupe : créez-en un dans son suivi.</p>
+        </div>
+        <div class="sous-choix" id="pub-bloc-eleve" hidden>
+          <label for="pub-eleve" class="visuellement-cache">L'élève</label>
+          <select id="pub-eleve"></select>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Dates <span class="facultatif">(facultatives : sans date, il reste jusqu'à ce que vous le retiriez)</span></legend>
+        <div class="dates">
+          <div><label for="pub-debut">À partir du</label><input id="pub-debut" type="date"></div>
+          <div><label for="pub-fin">Jusqu'au (inclus)</label><input id="pub-fin" type="date"></div>
+        </div>
+      </fieldset>
+      <p id="pub-erreur" class="erreur" role="alert" hidden></p>
+      <div class="actions">
+        <button type="submit" id="pub-ok">Publier</button>
+        <button type="button" id="pub-annuler" class="secondaire">Annuler</button>
       </div>
     </form>
   </dialog>

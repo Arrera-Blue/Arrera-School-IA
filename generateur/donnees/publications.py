@@ -64,7 +64,27 @@ def publier(base: Base, compte: dict, exercice: str, classe_id: int, groupe_id: 
         return _vue(conn, conn.execute("SELECT * FROM publication WHERE id = ?", (publication_id,)).fetchone())
 
 
-def _vue(conn: sqlite3.Connection, p: sqlite3.Row) -> dict:
+def _concernes(conn: sqlite3.Connection, p: sqlite3.Row) -> list[int]:
+    """Les élèves (actifs) à qui l'exercice est publié : l'élève, les membres du groupe, ou toute la classe."""
+    if p["eleve_id"]:
+        lignes = conn.execute("SELECT id FROM eleve WHERE id = ? AND actif = 1", (p["eleve_id"],))
+    elif p["groupe_id"]:
+        lignes = conn.execute("SELECT ge.eleve_id FROM groupe_eleve ge JOIN eleve e ON e.id = ge.eleve_id "
+                              "WHERE ge.groupe_id = ? AND e.actif = 1", (p["groupe_id"],))
+    else:
+        lignes = conn.execute("SELECT id FROM eleve WHERE classe_id = ? AND actif = 1", (p["classe_id"],))
+    return [l[0] for l in lignes]
+
+
+def _etat(p: sqlite3.Row, jour: str) -> str:
+    if p["debut"] and jour < p["debut"]:
+        return "a_venir"
+    if p["fin"] and p["fin"] < jour:
+        return "terminee"
+    return "en_cours"
+
+
+def _vue(conn: sqlite3.Connection, p: sqlite3.Row, jour: str | None = None) -> dict:
     pour = "toute la classe"
     if p["groupe_id"]:
         g = conn.execute("SELECT nom FROM groupe WHERE id = ?", (p["groupe_id"],)).fetchone()
@@ -72,19 +92,39 @@ def _vue(conn: sqlite3.Connection, p: sqlite3.Row) -> dict:
     elif p["eleve_id"]:
         e = conn.execute("SELECT prenom, nom FROM eleve WHERE id = ?", (p["eleve_id"],)).fetchone()
         pour = f"{e['prenom']} {e['nom']}" if e else "un élève"
-    faits = conn.execute("SELECT COUNT(DISTINCT t.eleve_id) FROM tentative t JOIN eleve e ON e.id = t.eleve_id "
-                         "WHERE e.classe_id = ? AND t.exercice = ? AND t.annulee = 0", (p["classe_id"], p["exercice"])).fetchone()[0]
-    return {"id": p["id"], "classe_id": p["classe_id"], "groupe_id": p["groupe_id"], "eleve_id": p["eleve_id"],
-            "exercice": p["exercice"], "titre": p["titre"], "debut": p["debut"], "fin": p["fin"], "creee": p["creee"],
-            "pour": pour, "faits": faits}
+    concernes = set(_concernes(conn, p))
+    # « faits » : parmi les élèves concernés, ceux qui ont au moins une tentative (non annulée) sur l'exercice
+    faits = len(concernes & {l[0] for l in conn.execute("SELECT DISTINCT eleve_id FROM tentative WHERE exercice = ? "
+                                                         "AND annulee = 0", (p["exercice"],))})
+    classe = conn.execute("SELECT nom FROM classe WHERE id = ?", (p["classe_id"],)).fetchone()
+    try:
+        instance = banque.charger(p["exercice"])
+        matiere, niveau, accepte = instance.get("matiere"), instance.get("niveau"), banque.statut(instance) == banque.ACCEPTE
+    except banque.ExerciceInconnu:
+        matiere = niveau = None
+        accepte = False
+    return {"id": p["id"], "classe_id": p["classe_id"], "classe": classe["nom"] if classe else None,
+            "groupe_id": p["groupe_id"], "eleve_id": p["eleve_id"], "exercice": p["exercice"], "titre": p["titre"],
+            "matiere": matiere, "niveau": niveau, "debut": p["debut"], "fin": p["fin"], "creee": p["creee"],
+            "pour": pour, "concernes": len(concernes), "faits": faits,
+            # « a_venir », « en_cours », « terminee » ; un exercice modifié depuis (plus accepté) n'est plus montré
+            "etat": _etat(p, jour or date.today().isoformat()), "visible": accepte}
 
 
-def lister(base: Base, compte: dict, classe_id: int) -> list[dict]:
+def lister(base: Base, compte: dict, classe_id: int, jour: str | None = None) -> list[dict]:
     """Les publications d'une classe, les plus récentes d'abord, avec le nombre d'élèves qui l'ont fait."""
     with base.lire() as conn:
         classes._classe(conn, compte, classe_id)
-        return [_vue(conn, p) for p in conn.execute("SELECT * FROM publication WHERE classe_id = ? ORDER BY id DESC",
-                                                    (classe_id,))]
+        return [_vue(conn, p, jour) for p in conn.execute("SELECT * FROM publication WHERE classe_id = ? ORDER BY id DESC",
+                                                          (classe_id,))]
+
+
+def de_l_exercice(base: Base, compte: dict, exercice: str, jour: str | None = None) -> list[dict]:
+    """Où cet exercice est publié, dans les classes (non archivées) de l'enseignant."""
+    with base.lire() as conn:
+        lignes = conn.execute("SELECT p.* FROM publication p JOIN classe c ON c.id = p.classe_id WHERE p.exercice = ? "
+                              "AND c.enseignant_id = ? AND c.archivee = 0 ORDER BY p.id DESC", (exercice, compte["id"])).fetchall()
+        return [_vue(conn, p, jour) for p in lignes]
 
 
 def retirer(base: Base, compte: dict, publication_id: int) -> None:

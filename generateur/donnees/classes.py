@@ -288,6 +288,15 @@ def debloquer(base: Base, compte: dict, eleve_id: int) -> dict:
         return _vue_eleve(conn.execute("SELECT * FROM eleve WHERE id = ?", (eleve_id,)).fetchone())
 
 
+def bloques(base: Base, compte: dict) -> list[dict]:
+    """Les élèves bloqués des classes (non archivées) de l'enseignant : « À faire », sur son accueil."""
+    with base.lire() as conn:
+        lignes = conn.execute("SELECT e.id, e.nom, e.prenom, c.id AS classe_id, c.nom AS classe FROM eleve e "
+                              "JOIN classe c ON c.id = e.classe_id WHERE c.enseignant_id = ? AND c.archivee = 0 "
+                              "AND e.bloque = 1 AND e.actif = 1 ORDER BY c.nom, e.numero", (compte["id"],)).fetchall()
+    return [dict(l) for l in lignes]
+
+
 # --- corriger, désactiver, supprimer ------------------------------------------------------------------
 
 def modifier(base: Base, compte: dict, eleve_id: int, nom: str, prenom: str) -> dict:

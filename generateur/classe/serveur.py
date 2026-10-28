@@ -14,6 +14,7 @@ navigateur (postes partagés) : un cookie de session `HttpOnly`, 10 minutes sans
 
 import argparse
 import ipaddress
+import socket
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -75,6 +76,24 @@ def hotes_acceptes(r: dict) -> set[str]:
     l'essai sur le PC lui-même. Un autre nom (« DNS rebinding ») est refusé."""
     adresse = r["adresse"]
     return {adresse, f"[{adresse}]" if ":" in adresse else adresse, "127.0.0.1", "localhost", *r.get("hotes", [])}
+
+
+def adresse_publique(r: dict) -> str:
+    """L'adresse à donner aux élèves, d'après les réglages : http(s)://adresse:port."""
+    adresse = f"[{r['adresse']}]" if ":" in r["adresse"] else r["adresse"]
+    return f"{'https' if r.get('certificat') else 'http'}://{adresse}:{int(r['port'])}"
+
+
+def etat(r: dict | None = None, delai_s: float = 0.3) -> dict:
+    """Pour l'interface enseignant : le serveur de classe répond-il ? (une connexion TCP, rien de plus)"""
+    r = r or reglages()
+    hote = "127.0.0.1" if r["adresse"] in ("0.0.0.0", "::") else r["adresse"]
+    try:
+        with socket.create_connection((hote, int(r["port"])), timeout=delai_s):
+            en_marche = True
+    except OSError:
+        en_marche = False
+    return {"en_marche": en_marche, "adresse": adresse_publique(r), "https": bool(r.get("certificat"))}
 
 
 def _entretenir(base: Base, arret: threading.Event) -> None:
@@ -255,8 +274,7 @@ def main() -> None:
     options = {}
     if https:
         options = {"ssl_certfile": str(config.RACINE / r["certificat"]), "ssl_keyfile": str(config.RACINE / r["cle_privee"])}
-    adresse = f"[{args.adresse}]" if ":" in args.adresse else args.adresse
-    print(f"Serveur de classe : {'https' if https else 'http'}://{adresse}:{args.port}/   (Ctrl-C pour arrêter)", flush=True)
+    print(f"Serveur de classe : {adresse_publique(r)}/   (Ctrl-C pour arrêter)", flush=True)
     if not https:
         print("  sans HTTPS : pour un essai sur ce PC seulement ; en classe, le certificat de la salle (étape 3)", flush=True)
     uvicorn.run(creer_application(r=r), host=args.adresse, port=args.port, log_level="warning", **options)
