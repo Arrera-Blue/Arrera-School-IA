@@ -25,7 +25,12 @@ def polices(dossier: Path) -> dict[str, str]:
     return {f.stem: base64.b64encode(f.read_bytes()).decode("ascii") for f in sorted(rangement.glob("*.woff2"))}
 
 
-def rendre(instance: dict, type_: str, variante: str = "gabarit", voix: bool = True) -> str:
+def rendre(instance: dict, type_: str, variante: str = "gabarit", voix: bool = True, mode: str = "fichier") -> str:
+    """Le fichier HTML de l'exercice. `mode` : « fichier », la page autonome, hors ligne (bonnes réponses dans la page :
+    limite assumée, usage formatif) ; « classe », la page servie par le serveur de classe (E8.5) : ni bonnes réponses,
+    ni explications, le serveur corrige chaque réponse (⚖4)."""
+    if mode not in ("fichier", "classe"):
+        raise ValueError(f"mode inconnu : {mode}")
     type_exo = registre.charger(type_)
     if variante not in type_exo.gabarits:
         raise ValueError(f"gabarit « {variante} » absent du type « {type_} » ; disponibles : {', '.join(type_exo.gabarits)}")
@@ -39,7 +44,9 @@ def rendre(instance: dict, type_: str, variante: str = "gabarit", voix: bool = T
     champs = {cle: None for cle in type_exo.schema.get("properties", {})}
     champs.update(instance)
     # la voix fabriquée par Piper (E5), rangée dans la page ; None : la page utilisera la voix du navigateur
-    champs["audio"] = lecture.pour_la_page(instance) if voix else None
+    champs["audio"] = lecture.pour_la_page(instance, explications=mode == "fichier") if voix else None
+    champs["classe"] = mode == "classe"
+    champs["exercice_id"] = (instance.get("meta") or {}).get("id")
     champs["polices"] = polices(type_exo.dossier)
     return env.get_template(f"{variante}.html").render(**champs)
 

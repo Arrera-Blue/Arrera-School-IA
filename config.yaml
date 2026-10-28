@@ -46,6 +46,12 @@ lecture:                          # E5 : la voix des exercices, fabriquée ici p
   # voix: "modeles/piper/fr_FR-upmc-medium.onnx" # l'autre voix retenue : Pierre (homme, CC BY-SA 4.0), avec
   locuteur: null                  #   locuteur: "pierre" (cette voix en a deux : jessica, pierre)
   lenteur: 1.1                    # 1 : le débit de la voix ; 1,1 : un peu plus lent, pour des élèves de collège
+classe:                           # E8 : le serveur de classe (python -m generateur.classe), la porte des élèves
+  adresse: "127.0.0.1"            # l'adresse IP du PC enseignant sur le réseau de la salle ; 127.0.0.1 : essai sur ce PC
+  port: 8001                      # jamais 0.0.0.0 par défaut (toutes les interfaces : refusé sans option)
+  hotes: ["classe.local"]         # les noms acceptés en plus de l'adresse (en-tête Host)
+  certificat: null                # étape 3 : le certificat de la salle (HTTPS), et sa clé privée
+  cle_privee: null
 suivi:                            # E4 : les règles des indicateurs, affichées telles quelles à l'enseignant
   questions_min: 6                # en dessous : « pas assez de réponses »
   a_consolider: 0.5               # réussite en dessous : « à consolider »

@@ -282,6 +282,21 @@ def test_retirer_une_publication(base, prof, autre):
     assert not publications.autorise(base, {"id": cartes[0]["eleve_id"], "classe_id": vue["id"]}, "qcm-retire")
 
 
+def test_publier_en_ligne_de_commande(base, capsys):
+    base = Base(config.chemin("base"))  # celle que lit la ligne de commande (une copie de travail du test)
+    comptes.creer(base, "prof", "Professeur", "un mot de passe de test", "admin")
+    vue, _ = classe(base, comptes.lire(base, "prof"), nom="6e Démo")
+    exercice_en_banque("qcm-cli")
+    exercice_en_banque("qcm-cli-brouillon", statut="genere")
+    assert publications.main(["prof", "qcm-cli", "--classe", "6e Démo"]) == 0
+    assert "publié : « Essai » pour 6e Démo (toute la classe)" in capsys.readouterr().out
+    assert publications.main(["prof", "qcm-cli-brouillon", "--classe", "6e Démo"]) == 1
+    assert "seul un exercice accepté se publie" in capsys.readouterr().out
+    assert publications.main(["prof", "qcm-cli", "--classe", "5e Z"]) == 1
+    assert publications.main(["personne", "qcm-cli", "--classe", "6e Démo"]) == 1
+    assert [p["exercice"] for p in publications.lister(base, comptes.lire(base, "prof"), vue["id"])] == ["qcm-cli"]
+
+
 # --- répondre, une question à la fois ----------------------------------------------------------------------
 
 def test_les_reponses_une_a_une_sont_recalculees(base, prof):

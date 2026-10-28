@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mes exercices</title>
+  <link rel="stylesheet" href="/statique/eleve.css">
+  <script src="/statique/eleve.js" defer></script>
+</head>
+<body data-style="college">
+  <main class="page">
+    <p id="message" class="message info" role="status" hidden></p>
+
+    <!-- 1. la classe -->
+    <section id="ecran-classes" aria-labelledby="titre-classes" hidden>
+      <div class="entete"><div><h1 id="titre-classes">Bienvenue !</h1><p>Choisis ta classe.</p></div></div>
+      <div class="grille" id="classes"></div>
+      <p class="vide" id="classes-vide" hidden>Aucune classe ouverte pour l'instant : demande à ton professeur.</p>
+    </section>
+
+    <!-- 2. le nom -->
+    <section id="ecran-noms" aria-labelledby="titre-noms" hidden>
+      <button type="button" class="retour" id="noms-retour">‹ Ce n'est pas ma classe</button>
+      <div class="entete"><div><h1 id="titre-noms">Qui es-tu ?</h1><p id="noms-classe"></p></div></div>
+      <div class="grille noms" id="noms"></div>
+    </section>
+
+    <!-- 3. le code : 4 images (6e), ou le mot de passe de la carte (5e à 3e) -->
+    <section id="ecran-code" aria-labelledby="code-bonjour" hidden>
+      <button type="button" class="retour" id="code-retour">‹ Ce n'est pas moi</button>
+      <div class="carte code">
+        <h1 id="code-bonjour" tabindex="-1"></h1>
+        <p class="consigne" id="code-consigne"></p>
+        <div id="code-images" hidden>
+          <div class="cases" id="cases" aria-live="polite"></div>
+          <div class="images" id="images" role="group" aria-label="Les images de ton code"></div>
+          <div class="actions-code"><button type="button" class="bouton" id="effacer">Effacer</button></div>
+        </div>
+        <form id="code-mdp" novalidate hidden>
+          <label for="mdp">Mot de passe (sur ta carte)</label>
+          <div class="champ-mdp" id="champ-mdp">
+            <input id="mdp" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="100">
+            <button type="button" class="bouton" id="afficher" aria-pressed="false">Afficher</button>
+          </div>
+          <button class="bouton principal" type="submit" id="se-connecter">Se connecter</button>
+        </form>
+        <p class="message erreur" id="code-erreur" role="alert" hidden></p>
+        <p class="message bloque" id="code-bloque" role="alert" hidden></p>
+      </div>
+    </section>
+
+    <!-- 4. l'accueil -->
+    <section id="ecran-accueil" aria-labelledby="accueil-bonjour" hidden>
+      <div class="entete">
+        <div class="salut">
+          <svg viewBox="0 0 100 100" class="compagnon" aria-hidden="true"><path d="M50 6C50 6 16 44 16 64a34 34 0 0 0 68 0C84 44 50 6 50 6Z" fill="#7c6cf2"/><ellipse cx="38" cy="60" rx="8" ry="9.5" fill="#fff"/><ellipse cx="62" cy="60" rx="8" ry="9.5" fill="#fff"/><circle cx="39.5" cy="61" r="4.2" fill="#1f2a44"/><circle cx="63.5" cy="61" r="4.2" fill="#1f2a44"/><circle cx="28" cy="74" r="5" fill="#ff9fb2"/><circle cx="72" cy="74" r="5" fill="#ff9fb2"/><path d="M40 76q10 11 20 0" stroke="#1f2a44" stroke-width="3.5" stroke-linecap="round" fill="none"/></svg>
+          <div><h1 id="accueil-bonjour" tabindex="-1"></h1><p id="accueil-classe"></p></div>
+        </div>
+        <button type="button" class="bouton" id="fini">J'ai fini</button>
+      </div>
+      <div class="section retravailler" id="sec-a_retravailler" hidden><h2>À retravailler <span class="compte"></span></h2><div class="exos"></div></div>
+      <div class="section plus-loin" id="sec-plus_loin" hidden><h2>Pour aller plus loin <span class="compte"></span></h2><div class="exos"></div></div>
+      <div class="section mes" id="sec-exercices" hidden><h2>Mes exercices <span class="compte"></span></h2><div class="exos"></div></div>
+      <p class="vide" id="accueil-vide" hidden>Pas d'exercice pour l'instant : ton professeur en publiera bientôt.</p>
+      <div class="fini">
+        <button type="button" class="lien" id="pas-moi">Ce n'est pas moi</button>
+        <span class="note">Tu seras déconnecté tout seul après 10 minutes sans rien faire.</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
