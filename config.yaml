@@ -42,6 +42,8 @@ chemins:                          # relatifs à la racine du dépôt (/app dans 
   sauvegardes: "donnees/sauvegardes"  # une copie de la base par jour, gardée 7 jours, droits 600
   cle_codes: "donnees/cle-codes"  # clé secrète des codes des élèves (E3, ⚖3) : hors de la base et des sauvegardes, 600
   lecture: "cache/lecture"        # les morceaux de voix déjà fabriqués (E5) : un aperçu refait ne refait pas la voix
+  entrainement: "donnees/entrainement"  # plan IA, IA3 : le lot d'entraînement (sa banque, ses rejets) et les jeux de
+                                  # données ; jamais versionné, jamais publié, à part de la vraie banque
 lecture:                          # E5 : la voix des exercices, fabriquée ici par Piper et rangée dans la page (MP3)
   voix: "modeles/piper/fr_FR-siwis-medium.onnx"  # femme, licence CC BY 4.0 ; vide : la voix du navigateur
   # voix: "modeles/piper/fr_FR-upmc-medium.onnx" # l'autre voix retenue : Pierre (homme, CC BY-SA 4.0), avec

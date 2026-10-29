@@ -310,9 +310,7 @@ def _verifier(corps: Demande) -> dict:
                                      f"correspond pas à la matière et à la classe demandées")
         matiere, niveau = de_l_attendu, classe
         # sans notion écrite, le libellé de l'attendu en tient lieu (coupé à la longueur permise par le schéma)
-        if not notion:
-            texte = programmes.libelle(corps.attendu).removeprefix("Tout le thème : ")
-            notion = texte if len(texte) <= 120 else texte[:117].rsplit(" ", 1)[0] + "…"
+        notion = notion or programmes.notion_de(corps.attendu)
     if not (notion or phrase):
         raise HTTPException(422, "indiquer la notion, ou la demande de l'enseignant")
     demande = {"type": corps.type, "matiere": matiere, "niveau": niveau, "notion": notion,

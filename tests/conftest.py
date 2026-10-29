@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from generateur.donnees import codes, comptes, sessions
-from generateur.moteur import generation, lecture
+from generateur.moteur import config, generation, lecture
 
 
 @pytest.fixture(autouse=True)
@@ -31,15 +31,26 @@ def sans_contre_verification(monkeypatch):
     monkeypatch.setattr(generation, "contre_verifier", lambda *a, **k: None)
 
 
+@pytest.fixture(autouse=True)
+def sans_redirection(monkeypatch):
+    """Les dossiers redirigés vers le lot d'entraînement (plan IA, IA3 : `config.rediriger`) le sont pour tout le
+    processus : chaque test repart sans redirection, et n'en laisse aucune au suivant."""
+    monkeypatch.setattr(config, "_REDIRIGES", {})
+
+
 # --- la vraie banque n'est jamais touchée par les tests ---------------------------------------------------
 # Incident du 29/10 : un test lançait une régénération sans attendre sa fin ; la tâche, finie après le test (la
-# banque temporaire déjà rendue), écrivait dans la vraie banque. La suite échoue désormais si la banque a changé.
+# banque temporaire déjà rendue), écrivait dans la vraie banque. La suite échoue désormais si la banque a changé,
+# ou le lot d'entraînement (plan IA, IA3).
 
-VRAIE_BANQUE = [Path(__file__).resolve().parents[1] / "banque" / dossier for dossier in ("instances", "rejets")]
+RACINE = Path(__file__).resolve().parents[1]
+VRAIE_BANQUE = [RACINE / "banque" / dossier for dossier in ("instances", "rejets")]
+VRAI_LOT = RACINE / "donnees" / "entrainement"
 
 
 def _contenu() -> list[str]:
-    return sorted(str(p) for d in VRAIE_BANQUE if d.is_dir() for p in d.iterdir())
+    return sorted([str(p) for d in VRAIE_BANQUE if d.is_dir() for p in d.iterdir()]
+                  + [f"{p}:{p.stat().st_size}" for p in VRAI_LOT.rglob("*") if p.is_file()])
 
 
 def pytest_sessionstart(session):
@@ -49,7 +60,7 @@ def pytest_sessionstart(session):
 def pytest_sessionfinish(session, exitstatus):
     avant, apres = set(session.config.stash_banque), set(_contenu())
     if avant != apres:
-        print(f"\n✘ LA VRAIE BANQUE A CHANGÉ PENDANT LES TESTS : ajoutés {sorted(apres - avant)}, "
+        print(f"\n✘ LA VRAIE BANQUE OU LE LOT D'ENTRAÎNEMENT A CHANGÉ PENDANT LES TESTS : ajoutés {sorted(apres - avant)}, "
               f"retirés {sorted(avant - apres)}")
         session.exitstatus = 1
 

@@ -297,6 +297,13 @@ def noms_des_eleves(base: Base, compte: dict) -> list[tuple[str, str]]:
             (compte["id"],))]
 
 
+def noms_de_tous_les_eleves(base: Base) -> list[tuple[str, str]]:
+    """(prénom, nom) des élèves de tous les enseignants : aucun ne doit entrer dans les données d'entraînement du
+    modèle (plan IA, IA3)."""
+    with base.lire() as conn:
+        return [(l["prenom"], l["nom"]) for l in conn.execute("SELECT prenom, nom FROM eleve")]
+
+
 def bloques(base: Base, compte: dict) -> list[dict]:
     """Les élèves bloqués des classes (non archivées) de l'enseignant : « À faire », sur son accueil."""
     with base.lire() as conn:
