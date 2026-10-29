@@ -96,7 +96,7 @@ def deposer(base: Base, compte: dict, nom: str, contenu: bytes, matiere: str | N
     # une consigne adressée au modèle, souvent cachée (texte blanc, minuscule) dans un document téléchargé
     if passage := securite._cherche(securite.INJECTION, texte):
         raise CoursRefuse(f"ce document contient une consigne adressée au modèle (« {passage} »), peut-être cachée "
-                          "(texte blanc ou minuscule) : il n'est pas gardé.")
+                          "(texte blanc ou minuscule)")
     passages = _decouper(blocs)
     empreinte = hashlib.sha256(texte.encode("utf-8")).hexdigest()
     with base.ecrire() as conn:

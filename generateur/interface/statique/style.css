@@ -191,6 +191,7 @@ button.icone:hover { color: var(--texte); background: var(--surface); }
 .tableau thead th { font-size: .88rem; color: var(--doux); font-weight: 400; }
 .tableau tbody tr:hover { background: linear-gradient(90deg, var(--surface), transparent); }
 .tableau td a { font-weight: 700; text-decoration: none; }
+.tableau td a.bouton { font-weight: 400; }
 .tableau td a:hover { text-decoration: underline; }
 .tableau .nombre { text-align: right; font-variant-numeric: tabular-nums; }
 .sous-titre { display: block; font-size: .88rem; color: var(--doux); }
@@ -356,6 +357,24 @@ dialog .erreur { margin: 1rem 0 0; }
 .sous-choix { margin-top: .6rem; }
 .dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .8rem; }
 .dates input { min-width: 0; }
+
+/* --- mes cours (plan IA, IA2) : déposer, le texte d'un cours, la source d'une question ------------------------ */
+
+#vue-cours { max-width: 1120px; }
+.depot { background: var(--surface); border-radius: 16px; padding: 1.1rem 1.4rem; margin: 1.5rem 0 1rem; }
+.depot .grille { margin-top: 0; }
+.depot input[type="file"] { padding: .45rem .6rem; }
+.depot .avertissement { margin: .2rem 0 0; }
+.depot .actions { margin-top: 1rem; }
+#cours-refus .erreur { margin: .6rem 0 0; }
+.passages { list-style: none; padding: 0; margin: 1.5rem 0 0; border-top: 1px solid var(--filet); }
+.passages li { padding: 1rem .25rem; border-bottom: 1px solid var(--filet); }
+.passages p { margin: .2rem 0; }
+.avec-cours { border: 0; padding: 0; margin: 0 0 1.25rem; min-width: 0; }
+.source-cours { margin: .3rem 0 0; font-size: .92rem; color: var(--doux); }
+.source-cours summary { cursor: pointer; }
+.source-cours blockquote { margin: .5rem 0 0; padding: .6rem .9rem; border-left: 3px solid var(--filet-fort);
+  background: var(--surface); border-radius: 0 10px 10px 0; color: var(--texte); }
 
 /* --- suivi des élèves : la couleur n'est jamais seule (symbole et pourcentage dans chaque case) -------------- */
 
