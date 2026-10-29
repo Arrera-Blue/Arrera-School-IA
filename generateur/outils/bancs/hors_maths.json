@@ -1,0 +1,37 @@
+{
+ "description": "Banc des hallucinations hors maths (plan IA, IA0) : 4 demandes de français et d'histoire-géographie, générées 2 fois chacune (40 questions) ; chaque réponse cochée est relue à la main. Il complète le banc du prompt du 26/10 (docs/etapes/prompt-outils/).",
+ "demandes": [
+  {
+   "cle": "homophones-6e",
+   "matiere": "francais",
+   "niveau": "6e",
+   "notion": "les homophones grammaticaux (a/à, et/est, son/sont, on/ont)",
+   "nb_questions": 5,
+   "demande_enseignant": "un QCM de 5 questions sur les homophones a/à, et/est, son/sont, on/ont pour des 6e"
+  },
+  {
+   "cle": "accord-pp-etre-5e",
+   "matiere": "francais",
+   "niveau": "5e",
+   "notion": "l'accord du participe passé avec l'auxiliaire être",
+   "nb_questions": 5,
+   "demande_enseignant": "un QCM de 5 questions sur l'accord du participe passé avec être en 5e"
+  },
+  {
+   "cle": "rome-6e",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "notion": "Rome, du mythe à l'histoire",
+   "nb_questions": 5,
+   "demande_enseignant": "un QCM de 5 questions sur Rome, du mythe à l'histoire, pour des 6e"
+  },
+  {
+   "cle": "feodalite-5e",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "notion": "la société féodale au Moyen Âge",
+   "nb_questions": 5,
+   "demande_enseignant": "un QCM de 5 questions sur la société féodale au Moyen Âge en 5e"
+  }
+ ]
+}
