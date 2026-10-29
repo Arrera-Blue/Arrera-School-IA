@@ -194,7 +194,7 @@ def extraire_a_part(contenu: bytes, nom: str = "") -> dict:
                               input=contenu, capture_output=True, timeout=DELAI_S, preexec_fn=_limiter, check=False,
                               cwd=str(RACINE))
     except subprocess.TimeoutExpired:
-        raise CoursIllisible(f"la lecture de ce fichier a pris plus de {DELAI_S} s : il n'est pas gardé") from None
+        raise CoursIllisible(f"la lecture de ce fichier a pris plus de {DELAI_S} s") from None
     try:
         resultat = json.loads(fini.stdout.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -212,7 +212,7 @@ def main() -> int:  # pragma: no cover (le processus à part)
     except CoursIllisible as e:
         resultat = {"erreur": str(e)}
     except MemoryError:
-        resultat = {"erreur": "ce fichier demande trop de mémoire à lire : il n'est pas gardé"}
+        resultat = {"erreur": "ce fichier demande trop de mémoire à lire"}
     except Exception as e:  # un fichier piégé peut faire échouer le lecteur de n'importe quelle façon
         resultat = {"erreur": f"ce fichier n'a pas pu être lu ({type(e).__name__})"}
     sys.stdout.write(json.dumps(resultat, ensure_ascii=False))

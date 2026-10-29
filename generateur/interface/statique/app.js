@@ -35,9 +35,10 @@
   // classe : la classe ouverte ; listeLue : les élèves lus dans une liste collée, avant de créer la classe ;
   // cartes : les cartes à imprimer (les codes en clair : effacées dès qu'on quitte la page des cartes) (E3)
   // tableau : le suivi de la classe ouverte ; fiche : celle de l'élève ouvert ; masquer : « Masquer les noms » (E4)
+  // cours : ses cours, déposés (plan IA, IA2) ; coursOuvert : celui dont le texte est affiché
   const etat = { compte: null, programmes: {}, classe: null, listeLue: null, cartes: null, tableau: null, fiche: null,
     masquer: false, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
-    statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null };
+    statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null, cours: null, coursOuvert: null };
   const $ = (selecteur) => document.querySelector(selecteur);
 
   // --- outils -----------------------------------------------------------------------------------
@@ -108,7 +109,7 @@
   // --- navigation ---------------------------------------------------------------------------------
 
   // les sous-pages allument la rubrique du menu dont elles dépendent
-  const RUBRIQUES = { classe: "classes", suivi: "classes", fiche: "classes", cartes: "classes" };
+  const RUBRIQUES = { classe: "classes", suivi: "classes", fiche: "classes", cartes: "classes", "cours-texte": "cours" };
 
   function afficherVue(nom) {
     for (const vue of document.querySelectorAll(".vue")) vue.hidden = vue.id !== `vue-${nom}`;
@@ -133,7 +134,14 @@
     const c = location.hash.match(/^#\/classe\/(\d+)(\/publies)?$/);
     const s = location.hash.match(/^#\/suivi\/(\d+)$/);
     const f = location.hash.match(/^#\/suivi-eleve\/(\d+)$/);
-    if (location.hash === "#/classes") {
+    const t = location.hash.match(/^#\/cours\/(\d+)$/);
+    if (location.hash === "#/cours") {
+      afficherVue("cours");
+      chargerCours();
+    } else if (t) {
+      afficherVue("cours-texte");
+      ouvrirCours(parseInt(t[1], 10));
+    } else if (location.hash === "#/classes") {
       afficherVue("classes");
       chargerClasses();
     } else if (c) {
@@ -186,12 +194,15 @@
     clearTimeout(etat.suivi);
     oublierCartes();
     for (const id of ["#table-banque tbody", "#ex-questions", "#table-comptes tbody", "#table-journal tbody",
-      "#table-classes tbody", "#table-eleves tbody", "#table-publications tbody", "#table-apercu tbody", "#table-suivi thead", "#table-suivi tbody",
+      "#table-classes tbody", "#table-eleves tbody", "#table-publications tbody", "#table-cours tbody", "#ct-passages",
+      "#cours-refus", "#table-apercu tbody", "#table-suivi thead", "#table-suivi tbody",
       "#su-attendus", "#su-besoins", "#su-groupes", "#su-propositions", "#table-fiche tbody", "#table-tentatives tbody"]) {
       $(id).replaceChildren();
     }
     etat.tableau = null;
     etat.fiche = null;
+    etat.cours = null;  // les cours d'un enseignant ne restent pas sous les yeux du suivant
+    etat.coursOuvert = null;
     $("#ex-apercu").removeAttribute("src");
     $("#provisoire").hidden = true;
     $("#provisoire-valeur").textContent = "";
@@ -444,6 +455,152 @@
   }
 
   // --- classes et élèves (E3) -----------------------------------------------------------------------
+
+  // --- mes cours (plan IA, IA2) : le modèle les lit pour générer ; seul le texte est gardé -------------------------
+
+  const TAILLE_COURS_MAX = 20 * 1024 * 1024;
+
+  function tailleDuCours(c) {
+    return [c.pages ? `${c.pages} page${c.pages > 1 ? "s" : ""}` : null, `${c.mots} mots`].filter(Boolean).join(", ");
+  }
+
+  function ligneCours(c) {
+    const quoi = [MATIERES[c.matiere] || c.matiere, c.niveau].filter(Boolean).join(", ") || "—";
+    return el("tr", { "data-id": String(c.id) },
+      el("td", {}, el("a", { href: `#/cours/${c.id}`, texte: c.nom }), el("span", { class: "sous-titre", texte: c.format.toUpperCase() })),
+      el("td", { texte: quoi }), el("td", { class: "nombre faits", texte: tailleDuCours(c) }),
+      el("td", { class: "sans-coupure", texte: new Date(c.ajoute).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) }),
+      el("td", {}, el("div", { class: "question-actions" },
+        el("a", { class: "bouton secondaire petit", href: `#/cours/${c.id}`, texte: "Voir le texte" }),
+        el("button", { type: "button", class: "secondaire petit", "data-action": "retirer", texte: "Retirer…" }))));
+  }
+
+  async function lireMesCours() {
+    const { cours } = await api("/api/cours");
+    etat.cours = cours;
+    return cours;
+  }
+
+  async function chargerCours() {
+    const type = etat.types[0];
+    if (type && $("#cours-matiere").options.length === 0) {
+      remplirSelect($("#cours-matiere"), type.matieres, MATIERES, "");
+      remplirSelect($("#cours-niveau"), type.niveaux, {}, "");
+    }
+    let cours;
+    try {
+      cours = await lireMesCours();
+    } catch (e) {
+      $("#cours-message").textContent = `Cours illisibles : ${e.message}`;
+      return;
+    }
+    $("#table-cours tbody").replaceChildren(...cours.map(ligneCours));
+    $("#table-cours").hidden = cours.length === 0;
+    $("#cours-vide").hidden = cours.length > 0;
+  }
+
+  function lireLeFichier(fichier) {
+    return new Promise((resoudre, rejeter) => {
+      const lecteur = new FileReader();
+      lecteur.onload = () => resoudre(String(lecteur.result).split(",")[1] || "");
+      lecteur.onerror = () => rejeter(new Error("le fichier n'a pas pu être lu sur cet ordinateur"));
+      lecteur.readAsDataURL(fichier);
+    });
+  }
+
+  function refuserLeCours(nom, message) {
+    $("#cours-refus").prepend(el("div", { class: "erreur", role: "alert" },
+      el("p", {}, el("strong", { texte: `« ${nom} » n'est pas gardé.` }),
+        ` ${message.charAt(0).toUpperCase()}${message.slice(1).replace(/[.\s]+$/, "")}.`)));
+  }
+
+  async function deposerCours(evenement) {
+    evenement.preventDefault();
+    const fichier = $("#cours-fichier").files[0];
+    const message = $("#cours-message");
+    if (!fichier) {
+      message.textContent = "Choisissez d'abord un fichier.";
+      $("#cours-fichier").focus();
+      return;
+    }
+    if (fichier.size > TAILLE_COURS_MAX) {
+      refuserLeCours(fichier.name, "fichier trop gros : 20 Mo au plus");
+      return;
+    }
+    $("#btn-deposer").disabled = true;
+    message.textContent = `Lecture de « ${fichier.name} »…`;
+    try {
+      const contenu = await lireLeFichier(fichier);
+      const { cours } = await api("/api/cours", { nom: fichier.name, contenu,
+        matiere: $("#cours-matiere").value || null, niveau: $("#cours-niveau").value || null });
+      message.textContent = `« ${cours.nom} » est déposé : ${tailleDuCours(cours)}, ${cours.passages} passage${cours.passages > 1 ? "s" : ""}.`;
+      $("#form-cours").reset();
+      await chargerCours();
+    } catch (e) {
+      message.textContent = "";
+      refuserLeCours(fichier.name, e.message);
+    } finally {
+      $("#btn-deposer").disabled = false;
+    }
+  }
+
+  async function ouvrirCours(id) {
+    let cours;
+    try {
+      ({ cours } = await api(`/api/cours/${id}`));
+    } catch (e) {
+      $("#ct-titre").textContent = "Cours introuvable";
+      $("#ct-infos").textContent = e.message;
+      $("#ct-passages").replaceChildren();
+      return;
+    }
+    if (location.hash !== `#/cours/${id}`) return;
+    etat.coursOuvert = cours;
+    $("#ct-titre").textContent = cours.nom;
+    const quoi = [MATIERES[cours.matiere] || cours.matiere, cours.niveau].filter(Boolean).join(", ");
+    $("#ct-infos").textContent = [quoi, `${cours.format.toUpperCase()}${cours.pages ? `, ${cours.pages} page${cours.pages > 1 ? "s" : ""}` : ""}`,
+      `${cours.mots} mots`, `déposé le ${new Date(cours.ajoute).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`]
+      .filter(Boolean).join(" · ") + `. Voici le texte que le modèle peut lire, en ${cours.passages} passage${cours.passages > 1 ? "s" : ""}.`;
+    $("#ct-passages").replaceChildren(...cours.texte.map((p) => el("li", {},
+      el("p", { class: "sous-titre", texte: `Passage ${p.rang}${p.page ? ` · page ${p.page}` : ""}` }), el("p", { texte: p.texte }))));
+    $("#ct-titre").focus();
+  }
+
+  async function retirerCours(cours) {
+    const ok = await demander({ titre: `Retirer « ${cours.nom} » ?`, champ: false, ok: "Retirer",
+      texte: "Son texte est effacé de cet ordinateur ; le modèle ne pourra plus le lire. Les exercices déjà générés gardent leurs citations." });
+    if (ok === null) return;
+    try {
+      await api(`/api/cours/${cours.id}`, {}, "DELETE");
+      etat.cours = null;
+      if (location.hash !== "#/cours") location.hash = "#/cours";
+      else await chargerCours();
+      $("#cours-message").textContent = `« ${cours.nom} » est retiré : son texte est effacé.`;
+    } catch (e) {
+      $("#cours-message").textContent = `Retrait refusé : ${e.message}`;
+    }
+  }
+
+  // le formulaire de génération : « M'appuyer sur mes cours », tous ceux de la matière et de la classe, ou un seul
+  async function choixDesCours() {
+    let cours = etat.cours;
+    if (!cours) {
+      try { cours = await lireMesCours(); } catch (_) { cours = []; }
+    }
+    const matiere = $("#matiere").value, niveau = $("#niveau").value;
+    const proches = cours.filter((c) => (!c.matiere || !matiere || c.matiere === matiere) && (!c.niveau || !niveau || c.niveau === niveau));
+    const tous = proches.length && matiere
+      ? `Tous mes cours ${MATIERES[matiere] ? `de ${MATIERES[matiere].toLowerCase()}` : ""}${niveau ? `, ${niveau}` : ""} (${proches.length})`
+      : `Tous mes cours (${cours.length})`;
+    const valeur = $("#quel-cours").value;
+    remplirSelect($("#quel-cours"), ["", ...cours.map((c) => String(c.id))],
+      { "": tous, ...Object.fromEntries(cours.map((c) => [String(c.id), c.nom])) });
+    if ([...$("#quel-cours").options].some((o) => o.value === valeur)) $("#quel-cours").value = valeur;
+    $("#avec-cours").disabled = cours.length === 0;
+    if (!cours.length) $("#avec-cours").checked = false;
+    $("#sans-cours").hidden = cours.length > 0;
+    $("#choix-cours").hidden = !$("#avec-cours").checked;
+  }
 
   async function chargerClasses() {
     const message = $("#classes-etat");
@@ -1258,6 +1415,7 @@
   function montrerFormulaire() {
     const formulaire = $("#form-requete");
     formulaire.hidden = false;
+    choixDesCours();
     $("#requete-erreur").hidden = true;
     formulaire.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -1385,6 +1543,8 @@
       difficulte: $("#difficulte").value || null,
       demande_enseignant: $("#precisions").value.trim() || null,
       attendu: $("#attendu").value || null,
+      cours: $("#avec-cours").checked,
+      cours_ids: $("#avec-cours").checked && $("#quel-cours").value ? [parseInt($("#quel-cours").value, 10)] : null,
     };
     $("#btn-generer").disabled = true;
     try {
@@ -1618,7 +1778,9 @@
       : `modèle ${meta.modele || "?"}`;
     $("#ex-infos").textContent = [MATIERES[x.matiere] || x.matiere, x.niveau, x.notion,
       `${x.questions.length} questions`, origine, meta.duree_s !== undefined ? `généré en ${duree(meta.duree_s)}` : null,
-      meta.tentatives > 1 ? `${meta.tentatives} tentatives` : null, date(meta.date)].filter(Boolean).join(", ");
+      meta.tentatives > 1 ? `${meta.tentatives} tentatives` : null, date(meta.date),
+      meta.cours ? `d'après vos cours (${[...new Set((meta.cours.passages || []).map((p) => p.cours))].join(", ")})` : null]
+      .filter(Boolean).join(", ");
     const programme = meta.programme;
     $("#ex-programme").hidden = !programme;
     if (programme) {
@@ -1840,6 +2002,9 @@
         el("p", { class: "explication" }, el("strong", { texte: "Explication : " }), q.explication),
         ...(info.erreurs || []).map((a) => el("p", { class: "erreur", texte: `✘ ${a}` })),
         ...(info.avertissements || []).map((a) => el("p", { class: "avertissement", texte: `⚠ ${a}` })),
+        info.source ? el("details", { class: "source-cours" },
+          el("summary", { texte: `Source : cours « ${info.source.cours} »${info.source.page ? `, page ${info.source.page}` : ""}` }),
+          el("blockquote", { texte: info.source.extrait })) : null,
         boutons);
     });
     $("#ex-questions").replaceChildren(...items);
@@ -2118,6 +2283,14 @@
     $("#btn-purge").addEventListener("click", purgerAnnees);
     $("#table-eleves").addEventListener("click", agirSurEleve);
     $("#table-publications").addEventListener("click", retirerPublication);
+    $("#form-cours").addEventListener("submit", deposerCours);
+    $("#table-cours").addEventListener("click", (e) => {
+      const bouton = e.target.closest('button[data-action="retirer"]');
+      const cours = bouton && (etat.cours || []).find((c) => String(c.id) === bouton.closest("tr").dataset.id);
+      if (cours) retirerCours(cours);
+    });
+    $("#btn-ct-retirer").addEventListener("click", () => { if (etat.coursOuvert) retirerCours(etat.coursOuvert); });
+    $("#avec-cours").addEventListener("change", () => { $("#choix-cours").hidden = !$("#avec-cours").checked; });
     $("#btn-copier-adresse").addEventListener("click", copierAdresse);
     $("#btn-cl-ajouter").addEventListener("click", () => {
       $("#form-ajout").hidden = false;
@@ -2148,7 +2321,7 @@
     $("#type").addEventListener("change", choisirType);
     for (const id of ["#matiere", "#niveau"]) {
       // une autre matière ou une autre classe : un autre programme, l'attendu choisi ne vaut plus
-      $(id).addEventListener("change", () => { $("#filtre-attendu").value = ""; remplirAttendus(""); });
+      $(id).addEventListener("change", () => { $("#filtre-attendu").value = ""; remplirAttendus(""); choixDesCours(); });
     }
     $("#filtre-attendu").addEventListener("input", filtrerAttendus);
     $("#attendu").addEventListener("change", choisirAttendu);
