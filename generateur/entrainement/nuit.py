@@ -87,7 +87,7 @@ def heure_de_fin(heure: str, maintenant: datetime | None = None) -> datetime:
     return fin if fin > maintenant else fin + timedelta(days=1)
 
 
-def _noms_proteges() -> list[tuple[str, str]]:
+def noms_proteges() -> list[tuple[str, str]]:
     """Les noms de tous les élèves de la base : aucun ne doit entrer dans un exercice d'entraînement."""
     chemin = config.chemin("base")
     return classes.noms_de_tous_les_eleves(Base(chemin)) if chemin.is_file() else []
@@ -136,7 +136,7 @@ def nuit(commandes: list[Commande] | None = None, fin: datetime | None = None, n
     commandes = plan() if commandes is None else commandes
     faits = {e["cle"] for e in lire_journal() if e.get("resultat") in FAITS}
     a_faire = [c for c in commandes if c.cle not in faits]
-    noms = _noms_proteges()
+    noms = noms_proteges()
     lot = f"nuit-{datetime.now():%Y%m%d}"
     afficher(f"Génération de nuit ({lot}) : {len(a_faire)} demande(s) à faire sur {len(commandes)}"
              + (f", jusqu'à {fin:%H:%M}" if fin else "") + (f", {nombre} au plus" if nombre else "")

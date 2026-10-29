@@ -2,7 +2,9 @@
 là où elle s'est arrêtée ; le bilan."""
 
 import copy
+import hashlib
 import json
+import os
 import sys
 import warnings
 from collections import Counter
@@ -14,8 +16,8 @@ from generateur import entrainement, programmes
 from generateur.donnees import classes, comptes
 from generateur.donnees.base import Base
 from generateur.entrainement import __main__ as cli
-from generateur.entrainement import bilan, nuit, relecture
-from generateur.moteur import banque, config, generation, registre, securite
+from generateur.entrainement import bilan, jeu, nuit, relecture
+from generateur.moteur import banque, config, contre_verification, generation, registre, securite
 from generateur.moteur.fournisseurs import ErreurFournisseur
 from generateur.moteur.fournisseurs.base import Fournisseur
 from generateur.moteur.fournisseurs.maquette import Maquette
@@ -390,3 +392,137 @@ def test_l_interface_habituelle_n_a_pas_de_lot(tmp_path, monkeypatch):
     assert c.get("/api/session").json()["entrainement"] is False
     assert c.get("/api/entrainement").status_code == 404
     assert c.get("/api/classes").status_code == 200
+
+
+# --- le jeu de données (étape 3) --------------------------------------------------------------------------
+
+DEMANDE = {"type": "qcm", "matiere": "maths", "niveau": "4e", "notion": "Pythagore", "nb_questions": 3}
+
+
+def _exercice(ident, statut="accepte", attendu=None, enonce=None, **meta):
+    x = copy.deepcopy(registre.charger("qcm").exemple)
+    if enonce:
+        x["questions"][0]["enonce"] = enonce
+    x["meta"] = {"id": ident, "statut": statut, "fournisseur": "llamacpp", "date": "2026-10-29T22:00:00",
+                 "demande": DEMANDE, **({"programme": {"attendus": [attendu]}} if attendu else {}), **meta}
+    return x
+
+
+def _ecrire(dossier, *instances):
+    dossier.mkdir(parents=True, exist_ok=True)
+    for x in instances:
+        (dossier / f"{x['meta']['id']}.json").write_text(json.dumps(x, ensure_ascii=False), encoding="utf-8")
+
+
+def test_une_conversation_d_entrainement():
+    x = _exercice("qcm-a")
+    m = jeu.messages(x)
+    attendus = generation.construire_messages(registre.charger("qcm"), DEMANDE)
+    assert [e["role"] for e in m] == ["system", "user", "assistant"] and m[:2] == attendus  # le vrai prompt
+    sortie = json.loads(m[2]["content"])
+    assert sortie == {k: v for k, v in x.items() if k != "meta"}  # l'exercice, sans meta
+    assert list(sortie)[:4] == ["type", "titre", "matiere", "niveau"]
+    assert list(sortie["questions"][0]) == ["enonce", "propositions", "explication", "index_correct", "difficulte"]
+
+
+def test_un_exercice_tire_d_un_cours_garde_ses_sources():
+    x = _exercice("qcm-cours")
+    passage = {"id": 1, "cours_id": 1, "cours": "pythagore.pdf", "page": 2, "texte": "Le carré de l'hypoténuse…"}
+    x["meta"]["cours"] = {"passages": [passage], "sources": [
+        {"numero": n, "source": 1, "empreinte": contre_verification.empreinte(q)} for n, q in enumerate(x["questions"], 1)]}
+    m = jeu.messages(x)
+    assert "Extraits des cours de l'enseignant" in m[1]["content"] and "Le carré de l'hypoténuse" in m[1]["content"]
+    assert [list(q)[0] for q in json.loads(m[2]["content"])["questions"]] == ["source"] * 3
+    x["questions"][1]["enonce"] = "Une question modifiée à la main ?"  # sa source n'est plus sûre : appris sans cours
+    m = jeu.messages(x)
+    assert "Extraits des cours" not in m[1]["content"] and "source" not in m[2]["content"]
+
+
+def test_separer_par_notion():
+    exemples = [jeu.Exemple({"meta": {"id": f"x{i}"}}, "lot", notion=f"n{i % 10}") for i in range(30)]
+    jeux = jeu.separer(exemples)
+    notions = {nom: {e.notion for e in liste} for nom, liste in jeux.items()}
+    assert not notions["train"] & notions["test"] and not notions["train"] & notions["valid"]
+    assert not notions["valid"] & notions["test"]
+    assert (len(jeux["test"]), len(jeux["valid"]), len(jeux["train"])) == (3, 3, 24)
+    assert [e.id for e in jeu.separer(exemples)["test"]] == [e.id for e in jeux["test"]]  # toujours la même
+    assert [e.id for e in jeu.separer(exemples, graine=1)["test"]] != [e.id for e in jeux["test"]]
+    # une notion trop grosse pour 10 % reste à l'entraînement ; les petites vont au test et à la validation
+    gros = [jeu.Exemple({"meta": {"id": f"g{i}"}}, "lot", notion="grosse") for i in range(20)]
+    jeux = jeu.separer(gros + exemples[:3])
+    assert {e.notion for e in jeux["train"]} == {"grosse"} and len(jeux["test"]) == 2 and len(jeux["valid"]) == 1
+
+
+def test_les_proceduraux_sont_plafonnes():
+    autres = [jeu.Exemple({"meta": {"id": f"a{i}"}}, "lot", notion="a") for i in range(6)]
+    proceduraux = [jeu.Exemple({"meta": {"id": f"p{i}"}}, "procedural", notion=f"p{i % 2}") for i in range(10)]
+    gardes, de_cote = jeu.plafonner(autres + proceduraux, 1 / 3, 2026)
+    retenus = [e for e in gardes if e.source == "procedural"]
+    assert len(retenus) == 3 and len(de_cote) == 7 and {e.notion for e in retenus} == {"p0", "p1"}
+    assert jeu.plafonner(autres, 1 / 3, 2026) == (autres, [])
+
+
+def test_les_donnees_personnelles_sont_cherchees():
+    noms = [("Zoé", "Lefèvre")]
+    assert "Zoé Lefèvre" in jeu.donnee_personnelle("Zoé Lefèvre trace un triangle.", noms)
+    assert "Marie DUPONT" in jeu.donnee_personnelle("Marie DUPONT a 12 ans.", ())
+    assert "courriel" in jeu.donnee_personnelle("écris à prof@college.fr", ())
+    assert "lien" in jeu.donnee_personnelle("voir www.exemple.fr", ())
+    assert jeu.donnee_personnelle("Dans un triangle ABC rectangle en A, quelle égalité est vraie ?", noms) is None
+
+
+def test_le_jeu(tmp_path):
+    lot, enseignant, rejets = tmp_path / "lot", tmp_path / "banque", tmp_path / "rejets"
+    _ecrire(lot, *[_exercice(f"qcm-a{i}", attendu=f"maths.4e.notion-{i}", enonce=f"Question {i} : quelle égalité est vraie ?")
+                   for i in range(8)],
+            _exercice("qcm-non-relu", "genere", "maths.4e.x", "Une question que personne n'a relue ?"),
+            _exercice("qcm-procedural", "genere", "maths.4e.p", "Une question du programme ?", origine="procedural"),
+            _exercice("qcm-rejete", "rejete", enonce="Une question rejetée ?",
+                      decisions=[{"statut": "rejete", "motifs": ["reponse_fausse"], "motif": "7 cm"}]),
+            _exercice("qcm-nom", enonce="Zoé Lefèvre trace un triangle ABC rectangle en A. Quelle égalité est vraie ?"),
+            _exercice("qcm-lien", enonce="Voir www.exemple.fr : quelle égalité est vraie ?"),
+            _exercice("qcm-doublon", attendu="maths.4e.notion-0", enonce="Question 0 : quelle égalité est vraie ?"))
+    ancienne = copy.deepcopy(registre.charger("qcm").exemple["questions"][0]) | {"enonce": "L'ancienne question ?"}
+    _ecrire(enseignant, _exercice("qcm-b", attendu="maths.4e.b", enonce="Une question de l'enseignant ?",
+                                  regenerations=[{"question": 1, "date": "2026-10-20T10:00:00", "motif": "trop facile",
+                                                  "ancienne": ancienne}]),
+            _exercice("qcm-maquette", fournisseur="maquette"))
+    rejets.mkdir()
+    (rejets / "qcm-rejet-n4.json").write_text(json.dumps({"fournisseur": "llamacpp", "niveau": "N4", "erreurs": ["faux"],
+                                                          "demande": DEMANDE, "instance": registre.charger("qcm").exemple}))
+    dossier = tmp_path / "jeux" / "1"
+    m = jeu.construire(lot, enseignant, [rejets], [("Zoé", "Lefèvre")], dossier)
+
+    retenus = {x["id"]: x["source"] for liste in m["jeux"].values() for x in liste}
+    assert set(retenus) == {f"qcm-a{i}" for i in range(8)} | {"qcm-b", "qcm-procedural"}  # jamais un non relu
+    assert retenus["qcm-procedural"] == "procedural" and retenus["qcm-b"] == "banque"
+    raisons = {e["id"]: e["raison"] for e in m["ecartes"]}
+    assert "Zoé Lefèvre" in raisons["qcm-nom"] and "lien" in raisons["qcm-lien"] and "doublon" in raisons["qcm-doublon"]
+    assert sum(len(l) for l in m["jeux"].values()) == 10 and m["jeux"]["test"] and m["jeux"]["valid"]
+    lignes = [json.loads(l) for f in ("train", "valid", "test") for l in (dossier / f"{f}.jsonl").read_text().splitlines()]
+    assert len(lignes) == 10 and all([e["role"] for e in l["messages"]] == ["system", "user", "assistant"] for l in lignes)
+    paire = json.loads((dossier / "paires.jsonl").read_text())
+    assert (paire["exercice"], paire["motif"], paire["rejete"]["enonce"], paire["choisi"]["enonce"]) == \
+        ("qcm-b", "trop facile", "L'ancienne question ?", "Une question de l'enseignant ?")
+    a_eviter = [json.loads(l) for l in (dossier / "a_eviter.jsonl").read_text().splitlines()]
+    assert [(a["id"], a.get("motifs") or a.get("erreurs")) for a in a_eviter] == [("qcm-rejete", ["reponse_fausse"]),
+                                                                                  ("qcm-rejet-n4", ["faux"])]
+    for f in jeu.FICHIERS:  # figé : en lecture seule, les empreintes au manifeste
+        assert not os.access(dossier / f, os.W_OK)
+        assert m["empreintes"][f] == hashlib.sha256((dossier / f).read_bytes()).hexdigest()
+    texte = (dossier / "fiche.md").read_text(encoding="utf-8")
+    assert "**10 exercices** ; objectif avant d'entraîner : 300 (**il en manque 290**)" in texte
+    assert "| Relus et acceptés dans le lot | " in texte and "1 paire(s)" in texte and "qcm-nom" in texte
+    assert "part procédurale au plus 33 %" in texte
+    with pytest.raises(FileExistsError):  # un jeu figé ne s'écrase pas
+        jeu.construire(lot, enseignant, [rejets], [], dossier)
+
+
+def test_la_commande_jeu(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(config, "_REDIRIGES", {nom: tmp_path / nom for nom in ("banque", "rejets", "entrainement", "base")})
+    _ecrire(tmp_path / "entrainement" / "banque" / "instances", *[
+        _exercice(f"qcm-a{i}", attendu=f"maths.4e.n{i}", enonce=f"Question {i} : quelle égalité est vraie ?") for i in range(3)])
+    monkeypatch.setattr(sys, "argv", ["entrainement", "jeu"])
+    cli.main()
+    assert "Jeu de données : 3 exercices (entraînement 1, validation 1, test 1)" in capsys.readouterr().out
+    assert len(list((tmp_path / "entrainement" / "jeux").glob("*/fiche.md"))) == 1
