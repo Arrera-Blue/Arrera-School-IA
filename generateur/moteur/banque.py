@@ -33,6 +33,15 @@ from generateur.moteur.validation.n2_schema import valider as valider_le_format
 GENERE, ACCEPTE, REJETE = "genere", "accepte", "rejete"
 STATUTS = (GENERE, ACCEPTE, REJETE)
 DECISIONS = {"accepter": ACCEPTE, "rejeter": REJETE}
+# ce qui ne va pas dans un exercice rejeté, coché par l'enseignant (plan IA, IA3) : ce que le modèle doit apprendre à éviter
+MOTIFS_DE_REJET = {
+    "reponse_fausse": "Une bonne réponse est fausse",
+    "plusieurs_justes": "Plusieurs propositions sont justes",
+    "explication_fausse": "Une explication est fausse",
+    "distracteurs_faciles": "Les mauvaises réponses sont trop faciles à écarter",
+    "enonce_ambigu": "Énoncé mal formulé ou ambigu",
+    "hors_programme": "Hors programme, ou pas du niveau de la classe",
+}
 # ce que produit generation.identifiant : « qcm-fractions-6e-20261007-141737 » ; rien d'autre n'est un exercice
 # (un identifiant sert à construire un chemin de fichier : « ../ » ne doit jamais y entrer)
 IDENTIFIANT = re.compile(r"[a-z0-9][a-z0-9_-]{0,160}")  # « _ » : les types vrai_faux, texte_a_trous
@@ -106,10 +115,15 @@ def enregistrer(instance: dict, sortie: Path | None = None) -> tuple[Path, Path]
         return ecrire(instance, sortie)
 
 
-def decider(ident: str, decision: str, motif: str | None = None) -> dict:
-    """« accepter » ou « rejeter » : le statut change, la décision est ajoutée à l'historique."""
+def decider(ident: str, decision: str, motif: str | None = None, motifs: list[str] | None = None) -> dict:
+    """« accepter » ou « rejeter » : le statut change, la décision est ajoutée à l'historique. `motifs` : ce qui ne va
+    pas dans un exercice rejeté, parmi MOTIFS_DE_REJET (relecture du lot d'entraînement, plan IA, IA3)."""
     if decision not in DECISIONS:
         raise ValueError(f"décision inconnue : {decision!r} (accepter ou rejeter)")
+    if inconnus := [m for m in motifs or [] if m not in MOTIFS_DE_REJET]:
+        raise ValueError(f"motif de rejet inconnu : {inconnus[0]!r}")
+    if motifs and decision != "rejeter":
+        raise ValueError("un motif de rejet accompagne un rejet")
     with _VERROU:
         instance = charger(ident)
         if decision == "accepter" and (erreurs := controler(instance)["erreurs"]):
@@ -118,7 +132,9 @@ def decider(ident: str, decision: str, motif: str | None = None) -> dict:
         meta = instance.setdefault("meta", {"id": ident})
         meta["statut"] = DECISIONS[decision]
         meta.setdefault("decisions", []).append({"statut": meta["statut"], "date": _maintenant(),
-                                                 "motif": (motif or "").strip()[:500] or None})
+                                                 "motif": (motif or "").strip()[:500] or None}
+                                                | ({"motifs": [m for m in MOTIFS_DE_REJET if m in motifs]}
+                                                   if motifs else {}))
         _ecrire_atomique(chemin(ident), json.dumps(instance, ensure_ascii=False, indent=2))
     return instance
 
@@ -201,17 +217,30 @@ def statut(instance: dict) -> str:
     return (instance.get("meta") or {}).get("statut") or GENERE
 
 
+def signalements(instance: dict, releve: dict | None = None) -> list[int]:
+    """Ce qu'un contrôle signale à la relecture : les numéros des questions en cause (erreur ou avertissement de N3, de
+    la contre-vérification ou de l'ancrage ; calcul de maths que N4 n'a pas su refaire), et 0 pour un avertissement sur
+    l'exercice entier. Hors maths, aucun calcul n'est refait : ce n'est pas un signalement. `releve` : la relecture,
+    si elle est déjà faite."""
+    releve = releve or relecture(instance)
+    maths = instance.get("matiere") == "maths"
+    return [0] * bool(releve["avertissements"] or releve["erreurs"]) + \
+        [q["numero"] for q in releve["questions"] if q["avertissements"] or q["erreurs"]
+         or (maths and q["n4"] == "a_relire" and q["calcul"] == "modele")]
+
+
 def resume(instance: dict, fond: dict | None = None) -> dict:
     """Une ligne de la liste de la banque. `fond` : le contrôle du fond, s'il a déjà été fait."""
     meta = instance.get("meta") or {}
     fond = fond or controler(instance)
+    releve = relecture(instance, fond)
     return {
         "id": meta.get("id"), "titre": instance.get("titre"), "matiere": instance.get("matiere"),
         "niveau": instance.get("niveau"), "notion": instance.get("notion"),
         "questions": len(instance.get("questions") or []), "statut": statut(instance), "date": meta.get("date"),
         "origine": "procedural" if meta.get("origine") == "procedural" else "modele",
         "fournisseur": meta.get("fournisseur"), "modele": meta.get("modele"), "duree_s": meta.get("duree_s"),
-        "a_relire": relecture(instance, fond)["a_relire"],
+        "a_relire": releve["a_relire"], "signalements": len(signalements(instance, releve)),
         "a_corriger": len(fond["questions"]) or (1 if fond["erreurs"] else 0),
         "avertissements": len(fond["avertissements"]),
         "attendus": list((meta.get("programme") or {}).get("attendus") or []),  # programme officiel (E2.5)

@@ -270,6 +270,15 @@
     <!-- Banque : la liste des exercices -->
     <section id="vue-banque" class="vue" aria-labelledby="titre-banque" hidden>
       <h1 id="titre-banque">Banque</h1>
+      <!-- plan IA, IA3 : l'interface du lot d'entraînement (--entrainement) ; où en est la relecture -->
+      <p id="lot-intro" class="infos" hidden>Des exercices générés pour entraîner le modèle. Ils ne seront jamais publiés
+        pour une classe : votre relecture décide de ceux qu'il apprendra à imiter.</p>
+      <div id="lot-etat" class="lot-etat" hidden>
+        <h2 id="lot-relus"></h2>
+        <progress id="lot-progression" max="150" value="0"></progress>
+        <p id="lot-detail"></p>
+        <div class="actions"><button type="button" id="btn-lot-suivant">Relire le suivant</button></div>
+      </div>
       <form id="filtres" class="filtres" novalidate>
         <div class="champ champ-recherche">
           <label for="filtre-recherche">Rechercher</label>
@@ -317,6 +326,16 @@
           <tbody></tbody>
         </table>
       </div>
+      <section id="lot-jeu" aria-labelledby="titre-jeu" hidden>
+        <h2 id="titre-jeu">Ce qui pourra entrer dans le jeu de données</h2>
+        <div class="tableau-defilant">
+          <table id="table-jeu" class="tableau jeu">
+            <caption class="visuellement-cache">Les exercices utilisables, par source</caption>
+            <thead><tr><th scope="col">Source</th><th scope="col" class="nombre">Exercices</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
     </section>
 
     <!-- Classes (E3) : la liste, et en créer une à partir d'une liste collée -->
@@ -598,6 +617,7 @@
       </div>
       <p id="ex-infos" class="infos"></p>
       <p id="ex-programme" class="infos" hidden></p>
+      <p id="ex-rang" class="rang" hidden></p>
       <details id="ex-controles" class="controles">
         <summary id="ex-controles-resume"></summary>
         <ul id="ex-validation" class="validation" aria-label="Contrôles automatiques"></ul>
@@ -610,6 +630,7 @@
         <button type="button" id="btn-accepter">Accepter l'exercice</button>
         <button type="button" id="btn-publier" hidden>Publier…</button>
         <button type="button" id="btn-rejeter" class="secondaire">Rejeter…</button>
+        <button type="button" id="btn-passer" class="lien" hidden>Passer</button>
         <details class="plus">
           <summary aria-label="Autres actions"><svg class="icone" aria-hidden="true"><use href="#i-points"/></svg></summary>
           <div class="plus-menu">
@@ -651,6 +672,25 @@
       <div class="actions">
         <button type="submit" id="dialogue-ok"></button>
         <button type="button" id="dialogue-annuler" class="secondaire">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- plan IA, IA3 : rejeter un exercice du lot d'entraînement en disant pourquoi (ce que le modèle doit éviter) -->
+  <dialog id="dialogue-rejeter" aria-labelledby="rej-titre">
+    <form id="form-rejeter" novalidate>
+      <h2 id="rej-titre">Rejeter l'exercice : pourquoi ?</h2>
+      <p>Votre motif apprend au modèle ce qu'il doit éviter. Cochez ce qui s'applique.</p>
+      <fieldset id="rej-motifs" class="motifs">
+        <legend class="visuellement-cache">Ce qui ne va pas</legend>
+      </fieldset>
+      <div class="champ">
+        <label for="rej-precisions">Précisions <span class="facultatif">(facultatif)</span></label>
+        <textarea id="rej-precisions" rows="2" maxlength="500"></textarea>
+      </div>
+      <div class="actions">
+        <button type="submit" id="rej-ok">Rejeter et passer au suivant</button>
+        <button type="button" id="rej-annuler" class="secondaire">Annuler</button>
       </div>
     </form>
   </dialog>

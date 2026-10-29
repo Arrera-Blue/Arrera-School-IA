@@ -93,17 +93,6 @@ def _noms_proteges() -> list[tuple[str, str]]:
     return classes.noms_de_tous_les_eleves(Base(chemin)) if chemin.is_file() else []
 
 
-def signalements(instance: dict) -> list[int]:
-    """Ce qu'un contrôle signale : les numéros des questions en cause (erreur ou avertissement de N3, de la
-    contre-vérification ou de l'ancrage ; calcul de maths que N4 n'a pas su refaire), et 0 pour un avertissement sur
-    l'exercice entier. Hors maths, aucun calcul n'est refait : ce n'est pas un signalement."""
-    relecture = banque.relecture(instance)
-    maths = instance.get("matiere") == "maths"
-    return [0] * bool(relecture["avertissements"] or relecture["erreurs"]) + \
-        [q["numero"] for q in relecture["questions"] if q["avertissements"] or q["erreurs"]
-         or (maths and q["n4"] == "a_relire" and q["calcul"] == "modele")]
-
-
 def faire(commande: Commande, lot: str, fournisseur: str | None, noms) -> dict:
     """Une demande : l'exercice rangé dans le lot (ou le rejet), et la ligne du journal qui le dit."""
     demande = commande.demande
@@ -116,7 +105,7 @@ def faire(commande: Commande, lot: str, fournisseur: str | None, noms) -> dict:
         banque.enregistrer(instance)
         entree |= {"resultat": "genere", "id": instance["meta"]["id"],
                    "origine": "procedural" if instance["meta"].get("origine") == "procedural" else "modele",
-                   "tentatives": instance["meta"].get("tentatives", 1), "signalements": len(signalements(instance))}
+                   "tentatives": instance["meta"].get("tentatives", 1), "signalements": len(banque.signalements(instance))}
     except ErreurValidation as e:
         rejet = getattr(e, "rejet", None)
         entree |= {"resultat": "rejete", "niveau": e.niveau, "erreurs": e.erreurs[:3],

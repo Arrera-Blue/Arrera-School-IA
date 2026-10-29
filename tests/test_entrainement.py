@@ -4,6 +4,7 @@ là où elle s'est arrêtée ; le bilan."""
 import copy
 import json
 import sys
+import warnings
 from collections import Counter
 from datetime import datetime, timedelta
 
@@ -13,11 +14,18 @@ from generateur import entrainement, programmes
 from generateur.donnees import classes, comptes
 from generateur.donnees.base import Base
 from generateur.entrainement import __main__ as cli
-from generateur.entrainement import bilan, nuit
+from generateur.entrainement import bilan, nuit, relecture
 from generateur.moteur import banque, config, generation, registre, securite
 from generateur.moteur.fournisseurs import ErreurFournisseur
 from generateur.moteur.fournisseurs.base import Fournisseur
 from generateur.moteur.fournisseurs.maquette import Maquette
+
+from generateur.interface.api import creer_application, decrire_erreur
+from generateur.interface.taches import File
+
+with warnings.catch_warnings():  # starlette signale que son client de test préférera bientôt httpx2
+    warnings.simplefilter("ignore")
+    from fastapi.testclient import TestClient
 
 CLE = b"k" * 32
 QUESTIONS = [
@@ -221,16 +229,16 @@ def test_les_noms_de_tous_les_eleves_sont_proteges(lot, monkeypatch):
 
 def test_les_signalements():
     exemple = copy.deepcopy(registre.charger("qcm").exemple)
-    assert nuit.signalements(exemple) == [1]  # maths : N4 refait les calculs des questions 2 et 3, pas l'égalité de la 1
+    assert banque.signalements(exemple) == [1]  # maths : N4 refait les calculs des questions 2 et 3, pas l'égalité de la 1
     francais = json.loads(Modele().generer([], {"properties": {"matiere": {"enum": ["francais"]}, "niveau": {"enum": [
         "6e"]}, "questions": {"minItems": 4}}}))
-    assert nuit.signalements(francais) == []  # hors maths, aucun calcul n'est refait : ce n'est pas un signalement
+    assert banque.signalements(francais) == []  # hors maths, aucun calcul n'est refait : ce n'est pas un signalement
     for q in francais["questions"]:
         q["index_correct"], q["propositions"] = 0, [q["propositions"][q["index_correct"]]] + \
             [p for i, p in enumerate(q["propositions"]) if i != q["index_correct"]]
-    assert nuit.signalements(francais) == [0]  # « la bonne réponse est toujours en position 1 »
+    assert banque.signalements(francais) == [0]  # « la bonne réponse est toujours en position 1 »
     exemple["questions"][1]["index_correct"] = 0  # 3² + 4² = 25 : « 7 cm » est faux
-    assert nuit.signalements(exemple) == [1, 2]
+    assert banque.signalements(exemple) == [1, 2]
 
 
 # --- le bilan ---------------------------------------------------------------------------------------------
@@ -279,3 +287,106 @@ def test_la_commande_bilan(lot, monkeypatch, capsys):
     cli.main()
     assert "Exercices gardés : 1" in capsys.readouterr().out
     assert "Exercices dans le lot : 1." in (lot / "bilan.md").read_text(encoding="utf-8")
+
+
+# --- la relecture du lot (étape 2) ------------------------------------------------------------------------
+
+def _ligne(ident, matiere, niveau, heure, statut="genere", origine="modele"):
+    return {"id": ident, "matiere": matiere, "niveau": niveau, "date": f"2026-10-29T{heure}", "statut": statut,
+            "origine": origine}
+
+
+def test_l_ordre_de_relecture():
+    lignes = [_ligne("m1", "maths", "6e", "22:00"), _ligne("m2", "maths", "6e", "22:01"), _ligne("m3", "maths", "6e", "22:02"),
+              _ligne("f1", "francais", "5e", "22:03"), _ligne("p1", "maths", "6e", "21:00", origine="procedural"),
+              _ligne("a1", "maths", "5e", "20:00", statut="accepte"), _ligne("r1", "francais", "6e", "20:30", statut="rejete"),
+              _ligne("g1", "maths", "5e", "23:00")]
+    # les classes en alternance (français 5e, maths 5e, maths 6e), dans l'ordre de la génération ; le procédural ; les relus
+    assert [l["id"] for l in relecture.ordonner(lignes)] == ["f1", "g1", "m1", "m2", "m3", "p1", "r1", "a1"]
+    assert relecture.ordonner([]) == []
+
+
+def _lot(dossier):
+    _ranger(dossier, "qcm-a", "accepte", decisions=[{"statut": "accepte"}], date="2026-10-29T22:00:00")
+    _ranger(dossier, "qcm-b", "rejete", decisions=[{"statut": "rejete", "motifs": ["reponse_fausse"]}],
+            date="2026-10-29T22:01:00")
+    _ranger(dossier, "qcm-c", regenerations=[{"question": 1}], date="2026-10-29T22:02:00")
+    _ranger(dossier, "qcm-d", origine="procedural", date="2026-10-29T21:00:00")
+    _ranger(dossier, "qcm-e", date="2026-10-29T22:03:00")
+
+
+def test_compter_et_l_etat_de_la_relecture(tmp_path):
+    _lot(tmp_path / "lot")
+    _ranger(tmp_path / "banque", "qcm-f", "accepte")
+    e = relecture.etat(tmp_path / "lot", tmp_path / "banque")
+    assert (e["lot"], e["relus"], e["acceptes"], e["rejetes"], e["motifs"], e["corrections"], e["a_relire"]) == \
+        (5, 2, 1, 1, 1, 1, 3)
+    assert e["objectif_relus"] == 150 and e["ordre"] == ["qcm-c", "qcm-e", "qcm-d"]
+    assert e["jeu"] == {"acceptes_lot": 1, "proceduraux": 1, "acceptes_banque": 1, "total": 3, "objectif": 300,
+                        "paires": 1, "motifs": 1}
+    assert [m["code"] for m in e["motifs_de_rejet"]] == list(banque.MOTIFS_DE_REJET)
+    assert relecture.etat(tmp_path / "lot", None)["jeu"]["acceptes_banque"] == 0
+
+
+# --- l'interface du lot (--entrainement) ------------------------------------------------------------------
+
+MOT_DE_PASSE = "un mot de passe de test"
+
+
+def _client(tmp_path, entrainement):
+    app = creer_application(File(decrire_erreur=decrire_erreur), entrainement=entrainement,
+                            banque_enseignant=tmp_path / "vraie-banque")
+    comptes.creer(app.state.base, "prof", "Professeur Essai", MOT_DE_PASSE, "admin")
+    c = TestClient(app, base_url="http://127.0.0.1:8002")
+    assert c.post("/api/session", json={"identifiant": "prof", "mot_de_passe": MOT_DE_PASSE}).json()["entrainement"] \
+        is entrainement
+    return c
+
+
+@pytest.fixture
+def interface_du_lot(tmp_path, monkeypatch):
+    """L'interface lancée avec --entrainement : ses dossiers de banque sont ceux du lot (ici, tmp_path/banque)."""
+    vrai = config.chemin
+    monkeypatch.setattr(config, "chemin", lambda nom: vrai(nom) if nom == "types" else tmp_path / nom)
+    _lot(tmp_path / "banque")
+    _ranger(tmp_path / "vraie-banque", "qcm-f", "accepte")
+    return _client(tmp_path, True)
+
+
+def test_l_interface_du_lot_ne_sert_qu_a_relire(interface_du_lot):
+    c = interface_du_lot
+    assert c.get("/api/session").json()["entrainement"] is True
+    for methode, chemin, corps in [("POST", "/api/exercices/qcm-a/publications", {"classe_id": 1}),
+                                   ("GET", "/api/exercices/qcm-a/publications", None),
+                                   ("POST", "/api/generations", {"notion": "les fractions"}), ("GET", "/api/classes", None),
+                                   ("GET", "/api/cours", None), ("GET", "/api/comptes", None), ("GET", "/api/journal", None),
+                                   ("GET", "/api/eleves/bloques", None), ("GET", "/api/serveur-classe", None)]:
+        reponse = c.request(methode, chemin, json=corps)
+        assert reponse.status_code == 404 and "lot d'entraînement" in reponse.json()["detail"], chemin
+    for chemin in ("/api/types", "/api/exercices", "/api/exercices/qcm-a", "/api/exercices/qcm-a/apercu",
+                   "/api/programmes?matiere=maths&niveau=6e", "/api/generations", "/api/entrainement"):
+        assert c.get(chemin).status_code == 200, chemin
+
+
+def test_l_interface_du_lot_relit_dans_l_ordre(interface_du_lot):
+    c = interface_du_lot
+    assert [x["id"] for x in c.get("/api/exercices").json()["exercices"]] == ["qcm-c", "qcm-e", "qcm-d", "qcm-b", "qcm-a"]
+    assert [x["id"] for x in c.get("/api/exercices?statut=genere").json()["exercices"]] == ["qcm-c", "qcm-e", "qcm-d"]
+    etat = c.get("/api/entrainement").json()
+    assert etat["ordre"] == ["qcm-c", "qcm-e", "qcm-d"] and etat["jeu"]["acceptes_banque"] == 1
+    reponse = c.post("/api/exercices/qcm-e/decision", json={"decision": "rejeter", "motif": "trop facile",
+                                                            "motifs": ["distracteurs_faciles"]})
+    assert reponse.status_code == 200
+    assert banque.charger("qcm-e")["meta"]["decisions"][-1]["motifs"] == ["distracteurs_faciles"]
+    assert c.post("/api/exercices/qcm-c/decision", json={"decision": "rejeter", "motifs": ["inconnu"]}).status_code == 422
+    etat = c.get("/api/entrainement").json()
+    assert (etat["relus"], etat["rejetes"], etat["motifs"], etat["ordre"]) == (3, 2, 2, ["qcm-c", "qcm-d"])
+
+
+def test_l_interface_habituelle_n_a_pas_de_lot(tmp_path, monkeypatch):
+    vrai = config.chemin
+    monkeypatch.setattr(config, "chemin", lambda nom: vrai(nom) if nom == "types" else tmp_path / nom)
+    c = _client(tmp_path, False)
+    assert c.get("/api/session").json()["entrainement"] is False
+    assert c.get("/api/entrainement").status_code == 404
+    assert c.get("/api/classes").status_code == 200
