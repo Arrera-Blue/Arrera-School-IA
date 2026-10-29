@@ -1,0 +1,1043 @@
+{
+ "description": "Banc des connaissances (plan IA, IA0) : 80 questions de collège, français et histoire-géographie, dont la bonne réponse est établie (programme, manuel) ; une série « base » (6e-5e, 40 questions) et une série « difficile » (4e-3e et pièges classiques : accord du participe passé, modes, figures de style, dates proches, capitale de l'Australie…, 40 questions), ajoutée le 28/10 parce que la base est trop facile (40 sur 40) pour départager deux modèles. Le modèle y répond SANS voir la réponse : sa justesse mesure le risque qu'il coche une mauvaise réponse dans un exercice qu'il écrit, et sert de référence à la contre-vérification (IA1.4). La bonne réponse est rangée en premier ; le banc mélange les propositions, toujours de la même façon.",
+ "questions": [
+  {
+   "cle": "f01",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quelle est la nature du mot « rapidement » dans « Il court rapidement » ?",
+   "bonne": "un adverbe",
+   "autres": [
+    "un adjectif",
+    "un nom",
+    "un verbe"
+   ]
+  },
+  {
+   "cle": "f02",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quel est le sujet du verbe « jouent » dans « Les enfants jouent dans le jardin » ?",
+   "bonne": "les enfants",
+   "autres": [
+    "le jardin",
+    "dans le jardin",
+    "jouent"
+   ]
+  },
+  {
+   "cle": "f03",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quelle est la forme correcte de « finir » au présent avec « nous » ?",
+   "bonne": "nous finissons",
+   "autres": [
+    "nous finons",
+    "nous finirons",
+    "nous finissions"
+   ]
+  },
+  {
+   "cle": "f04",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "À quel groupe appartient le verbe « aller » ?",
+   "bonne": "au 3e groupe",
+   "autres": [
+    "au 1er groupe",
+    "au 2e groupe"
+   ]
+  },
+  {
+   "cle": "f05",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Quelle est la forme de « chanter » au passé simple, à la 3e personne du singulier ?",
+   "bonne": "il chanta",
+   "autres": [
+    "il chantait",
+    "il chantera",
+    "il a chanté"
+   ]
+  },
+  {
+   "cle": "f06",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Complète : « Il ___ parti à l'école. »",
+   "bonne": "est",
+   "autres": [
+    "et",
+    "ai",
+    "es"
+   ]
+  },
+  {
+   "cle": "f07",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Complète : « Elles ___ contentes. »",
+   "bonne": "sont",
+   "autres": [
+    "son",
+    "sons",
+    "s'ont"
+   ]
+  },
+  {
+   "cle": "f08",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quelle est la fonction de « une pomme » dans « Léa mange une pomme » ?",
+   "bonne": "complément d'objet direct",
+   "autres": [
+    "sujet",
+    "complément d'objet indirect",
+    "attribut du sujet"
+   ]
+  },
+  {
+   "cle": "f09",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Quelle est la fonction de « malade » dans « Paul semble malade » ?",
+   "bonne": "attribut du sujet",
+   "autres": [
+    "complément d'objet direct",
+    "épithète",
+    "complément circonstanciel"
+   ]
+  },
+  {
+   "cle": "f10",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Lequel de ces mots est un déterminant possessif ?",
+   "bonne": "mon",
+   "autres": [
+    "ce",
+    "le",
+    "un"
+   ]
+  },
+  {
+   "cle": "f11",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quel est le pluriel de « cheval » ?",
+   "bonne": "chevaux",
+   "autres": [
+    "chevals",
+    "chevaus",
+    "chevales"
+   ]
+  },
+  {
+   "cle": "f12",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quelle est la forme de « être » à l'imparfait, à la 1re personne du singulier ?",
+   "bonne": "j'étais",
+   "autres": [
+    "j'ai été",
+    "je suis",
+    "je serai"
+   ]
+  },
+  {
+   "cle": "f13",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quelle est la forme de « venir » au futur simple, à la 1re personne du singulier ?",
+   "bonne": "je viendrai",
+   "autres": [
+    "je venirai",
+    "je viendrais",
+    "je vins"
+   ]
+  },
+  {
+   "cle": "f14",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quel est le contraire de « grand » ?",
+   "bonne": "petit",
+   "autres": [
+    "haut",
+    "large",
+    "gros"
+   ]
+  },
+  {
+   "cle": "f15",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quelle phrase est à la forme négative ?",
+   "bonne": "Je ne viens pas.",
+   "autres": [
+    "Viens-tu ?",
+    "Quel beau jour !",
+    "Je viens."
+   ]
+  },
+  {
+   "cle": "f16",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quel est le type de la phrase « Ferme la porte. » ?",
+   "bonne": "injonctive",
+   "autres": [
+    "interrogative",
+    "exclamative",
+    "déclarative"
+   ]
+  },
+  {
+   "cle": "f17",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Complète : « Elles sont ___ hier. » (partir)",
+   "bonne": "parties",
+   "autres": [
+    "parti",
+    "partis",
+    "partie"
+   ]
+  },
+  {
+   "cle": "f18",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quelle est la nature de « et » dans « Paul et Marie » ?",
+   "bonne": "une conjonction de coordination",
+   "autres": [
+    "une préposition",
+    "un adverbe",
+    "un pronom"
+   ]
+  },
+  {
+   "cle": "f19",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quel est le radical du verbe « chanter » ?",
+   "bonne": "chant-",
+   "autres": [
+    "chante-",
+    "chanter",
+    "-er"
+   ]
+  },
+  {
+   "cle": "f20",
+   "serie": "base",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Quelle figure de style trouve-t-on dans « Ses yeux sont des étoiles » ?",
+   "bonne": "une métaphore",
+   "autres": [
+    "une comparaison",
+    "une personnification",
+    "une hyperbole"
+   ]
+  },
+  {
+   "cle": "h01",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Selon la légende, en quelle année Rome a-t-elle été fondée ?",
+   "bonne": "en 753 av. J.-C.",
+   "autres": [
+    "en 476 apr. J.-C.",
+    "en 52 av. J.-C.",
+    "en 800"
+   ]
+  },
+  {
+   "cle": "h02",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Qui sont les fondateurs légendaires de Rome ?",
+   "bonne": "Romulus et Remus",
+   "autres": [
+    "Ulysse et Pénélope",
+    "César et Pompée",
+    "Zeus et Héra"
+   ]
+  },
+  {
+   "cle": "h03",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Quelle cité grecque a inventé la démocratie au Ve siècle av. J.-C. ?",
+   "bonne": "Athènes",
+   "autres": [
+    "Sparte",
+    "Rome",
+    "Alexandrie"
+   ]
+  },
+  {
+   "cle": "h04",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Selon la tradition, qui a composé l'Iliade et l'Odyssée ?",
+   "bonne": "Homère",
+   "autres": [
+    "Platon",
+    "Virgile",
+    "Hérodote"
+   ]
+  },
+  {
+   "cle": "h05",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Les Hébreux sont à l'origine de quelle religion ?",
+   "bonne": "le judaïsme",
+   "autres": [
+    "l'islam",
+    "le bouddhisme",
+    "l'hindouisme"
+   ]
+  },
+  {
+   "cle": "h06",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Sous quel empereur le christianisme devient-il la religion officielle de l'Empire romain ?",
+   "bonne": "Théodose",
+   "autres": [
+    "Auguste",
+    "Néron",
+    "Jules César"
+   ]
+  },
+  {
+   "cle": "h07",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "En quelle année Charlemagne est-il couronné empereur ?",
+   "bonne": "en 800",
+   "autres": [
+    "en 1066",
+    "en 476",
+    "en 1515"
+   ]
+  },
+  {
+   "cle": "h08",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "En quelle année a lieu la bataille de Marignan ?",
+   "bonne": "en 1515",
+   "autres": [
+    "en 1492",
+    "en 1789",
+    "en 800"
+   ]
+  },
+  {
+   "cle": "h09",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "Qui atteint l'Amérique en 1492 ?",
+   "bonne": "Christophe Colomb",
+   "autres": [
+    "Magellan",
+    "Vasco de Gama",
+    "Marco Polo"
+   ]
+  },
+  {
+   "cle": "h10",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "Qui est le prophète de l'islam ?",
+   "bonne": "Mahomet",
+   "autres": [
+    "Moïse",
+    "Abraham",
+    "Jésus"
+   ]
+  },
+  {
+   "cle": "h11",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "En quelle année a lieu l'Hégire, point de départ du calendrier musulman ?",
+   "bonne": "en 622",
+   "autres": [
+    "en 800",
+    "en 476",
+    "en 1096"
+   ]
+  },
+  {
+   "cle": "h12",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "En quelle année le pape Urbain II appelle-t-il à la première croisade ?",
+   "bonne": "en 1095",
+   "autres": [
+    "en 1492",
+    "en 800",
+    "en 1789"
+   ]
+  },
+  {
+   "cle": "h13",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "Dans la société féodale, comment appelle-t-on le paysan qui n'est pas libre ?",
+   "bonne": "un serf",
+   "autres": [
+    "un vassal",
+    "un seigneur",
+    "un chevalier"
+   ]
+  },
+  {
+   "cle": "h14",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "Comment s'appelle le seigneur qui donne un fief à son vassal ?",
+   "bonne": "le suzerain",
+   "autres": [
+    "le serf",
+    "l'évêque",
+    "le bourgeois"
+   ]
+  },
+  {
+   "cle": "h15",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Quel est le plus grand océan du monde ?",
+   "bonne": "l'océan Pacifique",
+   "autres": [
+    "l'océan Atlantique",
+    "l'océan Indien",
+    "l'océan Arctique"
+   ]
+  },
+  {
+   "cle": "h16",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Sur quel continent se trouve l'Égypte ?",
+   "bonne": "l'Afrique",
+   "autres": [
+    "l'Asie",
+    "l'Europe",
+    "l'Amérique"
+   ]
+  },
+  {
+   "cle": "h17",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Quelle est la capitale de l'Espagne ?",
+   "bonne": "Madrid",
+   "autres": [
+    "Barcelone",
+    "Lisbonne",
+    "Séville"
+   ]
+  },
+  {
+   "cle": "h18",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Quel est le plus long fleuve de France ?",
+   "bonne": "la Loire",
+   "autres": [
+    "la Seine",
+    "le Rhône",
+    "la Garonne"
+   ]
+  },
+  {
+   "cle": "h19",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Où l'écriture cunéiforme est-elle apparue ?",
+   "bonne": "en Mésopotamie",
+   "autres": [
+    "en Gaule",
+    "en Chine",
+    "en Grèce"
+   ]
+  },
+  {
+   "cle": "h20",
+   "serie": "base",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Quel général romain a conquis la Gaule ?",
+   "bonne": "Jules César",
+   "autres": [
+    "Vercingétorix",
+    "Hannibal",
+    "Alexandre le Grand"
+   ]
+  },
+  {
+   "cle": "fd01",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "Complète : « Les fleurs que j'ai ___ sont fanées. » (cueillir)",
+   "bonne": "cueillies",
+   "autres": [
+    "cueilli",
+    "cueillis",
+    "cueillie"
+   ]
+  },
+  {
+   "cle": "fd02",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "Complète : « Elles se sont ___ les mains. » (laver)",
+   "bonne": "lavé",
+   "autres": [
+    "lavées",
+    "lavés",
+    "lavée"
+   ]
+  },
+  {
+   "cle": "fd03",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "À quel mode est le verbe de « qu'il vienne » dans « Je veux qu'il vienne » ?",
+   "bonne": "au subjonctif",
+   "autres": [
+    "à l'indicatif",
+    "au conditionnel",
+    "à l'impératif"
+   ]
+  },
+  {
+   "cle": "fd04",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "Quelle est la forme de « venir » au passé simple, à la 3e personne du pluriel ?",
+   "bonne": "ils vinrent",
+   "autres": [
+    "ils venirent",
+    "ils vienèrent",
+    "ils venèrent"
+   ]
+  },
+  {
+   "cle": "fd05",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "Quelle est la forme de « résoudre » au présent, à la 1re personne du singulier ?",
+   "bonne": "je résous",
+   "autres": [
+    "je résouds",
+    "je résoud",
+    "je résoue"
+   ]
+  },
+  {
+   "cle": "fd06",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Quelle est la fonction de « de son frère » dans « Il se souvient de son frère » ?",
+   "bonne": "complément d'objet indirect",
+   "autres": [
+    "complément d'objet direct",
+    "complément du nom",
+    "complément circonstanciel"
+   ]
+  },
+  {
+   "cle": "fd07",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Quelle est la fonction de « en classe » dans « Elle travaille en classe » ?",
+   "bonne": "complément circonstanciel de lieu",
+   "autres": [
+    "complément d'objet indirect",
+    "complément d'objet direct",
+    "attribut du sujet"
+   ]
+  },
+  {
+   "cle": "fd08",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Quelle est la fonction de « de ma voisine » dans « Le chat de ma voisine dort » ?",
+   "bonne": "complément du nom",
+   "autres": [
+    "complément d'objet indirect",
+    "sujet",
+    "complément circonstanciel"
+   ]
+  },
+  {
+   "cle": "fd09",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "Quelle est la nature de « dont » dans « le livre dont je parle » ?",
+   "bonne": "un pronom relatif",
+   "autres": [
+    "une conjonction de subordination",
+    "un adverbe",
+    "une préposition"
+   ]
+  },
+  {
+   "cle": "fd10",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "Quelle est la nature de « que » dans « Je pense que tu as raison » ?",
+   "bonne": "une conjonction de subordination",
+   "autres": [
+    "un pronom relatif",
+    "un adverbe",
+    "une préposition"
+   ]
+  },
+  {
+   "cle": "fd11",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "À quelle voix est la phrase « La souris est mangée par le chat » ?",
+   "bonne": "à la voix passive",
+   "autres": [
+    "à la voix active",
+    "à la voix pronominale"
+   ]
+  },
+  {
+   "cle": "fd12",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Complète : « Il faut que tu ___ à l'heure. » (être)",
+   "bonne": "sois",
+   "autres": [
+    "soit",
+    "es",
+    "serais"
+   ]
+  },
+  {
+   "cle": "fd13",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Quelle est la forme de « pouvoir » au conditionnel présent, à la 1re personne du singulier ?",
+   "bonne": "je pourrais",
+   "autres": [
+    "je pourrai",
+    "je pouvais",
+    "je puisse"
+   ]
+  },
+  {
+   "cle": "fd14",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "6e",
+   "enonce": "Quel est le pluriel de « un œil » ?",
+   "bonne": "des yeux",
+   "autres": [
+    "des œils",
+    "des œuils",
+    "des yeus"
+   ]
+  },
+  {
+   "cle": "fd15",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "Quelle figure de style trouve-t-on dans « Je meurs de soif » ?",
+   "bonne": "une hyperbole",
+   "autres": [
+    "une métaphore",
+    "une litote",
+    "une personnification"
+   ]
+  },
+  {
+   "cle": "fd16",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "3e",
+   "enonce": "« Va, je ne te hais point » (Corneille, Le Cid) est un exemple de :",
+   "bonne": "litote",
+   "autres": [
+    "hyperbole",
+    "antithèse",
+    "oxymore"
+   ]
+  },
+  {
+   "cle": "fd17",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "3e",
+   "enonce": "Quelle figure de style trouve-t-on dans « cette obscure clarté » ?",
+   "bonne": "un oxymore",
+   "autres": [
+    "une antithèse",
+    "une métaphore",
+    "une litote"
+   ]
+  },
+  {
+   "cle": "fd18",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "À quel temps est « nous eûmes chanté » ?",
+   "bonne": "au passé antérieur",
+   "autres": [
+    "au plus-que-parfait",
+    "au passé composé",
+    "au futur antérieur"
+   ]
+  },
+  {
+   "cle": "fd19",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "4e",
+   "enonce": "Qui a écrit « Les Misérables » ?",
+   "bonne": "Victor Hugo",
+   "autres": [
+    "Émile Zola",
+    "Honoré de Balzac",
+    "Gustave Flaubert"
+   ]
+  },
+  {
+   "cle": "fd20",
+   "serie": "difficile",
+   "matiere": "francais",
+   "niveau": "5e",
+   "enonce": "Qui a écrit « Le Cid » ?",
+   "bonne": "Pierre Corneille",
+   "autres": [
+    "Jean Racine",
+    "Molière",
+    "Voltaire"
+   ]
+  },
+  {
+   "cle": "hd01",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "4e",
+   "enonce": "En quelle année est votée la loi de séparation des Églises et de l'État en France ?",
+   "bonne": "en 1905",
+   "autres": [
+    "en 1789",
+    "en 1881",
+    "en 1945"
+   ]
+  },
+  {
+   "cle": "hd02",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "4e",
+   "enonce": "En quelle année l'esclavage est-il définitivement aboli dans les colonies françaises ?",
+   "bonne": "en 1848",
+   "autres": [
+    "en 1794",
+    "en 1815",
+    "en 1905"
+   ]
+  },
+  {
+   "cle": "hd03",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "4e",
+   "enonce": "Qui fait voter les lois de 1881-1882 sur l'école gratuite, laïque et obligatoire ?",
+   "bonne": "Jules Ferry",
+   "autres": [
+    "Victor Hugo",
+    "Jean Jaurès",
+    "Napoléon III"
+   ]
+  },
+  {
+   "cle": "hd04",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "En quelle année les femmes votent-elles pour la première fois en France ?",
+   "bonne": "en 1945",
+   "autres": [
+    "en 1918",
+    "en 1848",
+    "en 1968"
+   ]
+  },
+  {
+   "cle": "hd05",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "4e",
+   "enonce": "Quand a lieu la prise de la Bastille ?",
+   "bonne": "le 14 juillet 1789",
+   "autres": [
+    "le 4 août 1789",
+    "le 21 janvier 1793",
+    "le 14 juillet 1790"
+   ]
+  },
+  {
+   "cle": "hd06",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "En quelle année est signé l'armistice qui met fin aux combats de la Première Guerre mondiale ?",
+   "bonne": "en 1918",
+   "autres": [
+    "en 1914",
+    "en 1919",
+    "en 1945"
+   ]
+  },
+  {
+   "cle": "hd07",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "Quelle bataille de 1916 est, pour les Français, le symbole de la guerre des tranchées ?",
+   "bonne": "Verdun",
+   "autres": [
+    "la Marne",
+    "Stalingrad",
+    "Waterloo"
+   ]
+  },
+  {
+   "cle": "hd08",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "En quelle année Hitler devient-il chancelier de l'Allemagne ?",
+   "bonne": "en 1933",
+   "autres": [
+    "en 1939",
+    "en 1929",
+    "en 1923"
+   ]
+  },
+  {
+   "cle": "hd09",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "Comment appelle-t-on le régime du maréchal Pétain, de 1940 à 1944 ?",
+   "bonne": "le régime de Vichy",
+   "autres": [
+    "la IVe République",
+    "le Front populaire",
+    "le Directoire"
+   ]
+  },
+  {
+   "cle": "hd10",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "Quand a lieu le débarquement allié en Normandie ?",
+   "bonne": "le 6 juin 1944",
+   "autres": [
+    "le 8 mai 1945",
+    "le 18 juin 1940",
+    "le 6 juin 1945"
+   ]
+  },
+  {
+   "cle": "hd11",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "Qui lance l'appel du 18 juin 1940 ?",
+   "bonne": "le général de Gaulle",
+   "autres": [
+    "le maréchal Pétain",
+    "Jean Moulin",
+    "Georges Clemenceau"
+   ]
+  },
+  {
+   "cle": "hd12",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "En quelle année tombe le mur de Berlin ?",
+   "bonne": "en 1989",
+   "autres": [
+    "en 1961",
+    "en 1991",
+    "en 1945"
+   ]
+  },
+  {
+   "cle": "hd13",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "Dans quelle ville se trouve le siège de l'ONU ?",
+   "bonne": "New York",
+   "autres": [
+    "Genève",
+    "Paris",
+    "Bruxelles"
+   ]
+  },
+  {
+   "cle": "hd14",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "Qui est le premier président de la Ve République ?",
+   "bonne": "Charles de Gaulle",
+   "autres": [
+    "Georges Pompidou",
+    "René Coty",
+    "François Mitterrand"
+   ]
+  },
+  {
+   "cle": "hd15",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "En quelle année est fondée la Ve République ?",
+   "bonne": "en 1958",
+   "autres": [
+    "en 1946",
+    "en 1962",
+    "en 1968"
+   ]
+  },
+  {
+   "cle": "hd16",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "Quel traité fonde la Communauté économique européenne en 1957 ?",
+   "bonne": "le traité de Rome",
+   "autres": [
+    "le traité de Maastricht",
+    "le traité de Versailles",
+    "le traité de Lisbonne"
+   ]
+  },
+  {
+   "cle": "hd17",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "3e",
+   "enonce": "Combien d'États membres compte l'Union européenne depuis le départ du Royaume-Uni ?",
+   "bonne": "27",
+   "autres": [
+    "28",
+    "25",
+    "30"
+   ]
+  },
+  {
+   "cle": "hd18",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "Quel est le plus haut sommet des Alpes ?",
+   "bonne": "le mont Blanc",
+   "autres": [
+    "le mont Rose",
+    "le Cervin",
+    "la barre des Écrins"
+   ]
+  },
+  {
+   "cle": "hd19",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "5e",
+   "enonce": "Quel est aujourd'hui le pays le plus peuplé du monde ?",
+   "bonne": "l'Inde",
+   "autres": [
+    "la Chine",
+    "les États-Unis",
+    "l'Indonésie"
+   ]
+  },
+  {
+   "cle": "hd20",
+   "serie": "difficile",
+   "matiere": "histoire-geo",
+   "niveau": "6e",
+   "enonce": "Quelle est la capitale de l'Australie ?",
+   "bonne": "Canberra",
+   "autres": [
+    "Sydney",
+    "Melbourne",
+    "Perth"
+   ]
+  }
+ ]
+}
