@@ -29,6 +29,7 @@ generation:
   contre_verification: true       # plan IA, IA1.4 : le modèle répond à chaque question sans voir la réponse (~2,5 s par question, hors calculs vérifiés par N4)
 interface:                        # phase 3 : python -m generateur.interface.api → http://127.0.0.1:8000
   port: 8000                      # l'adresse est toujours 127.0.0.1, sans réglage possible ; connexion obligatoire (E1)
+  port_entrainement: 8002         # plan IA, IA3 : l'interface du lot d'entraînement (--entrainement), à côté de l'autre
   analyse_par_modele: true        # le modèle complète l'analyse d'une phrase quand les règles n'ont pas trouvé la matière ou la notion
   file_max: 5                     # générations en attente au plus
   decharger_apres_min: 10         # libérer le modèle (~6 Go) après 10 min sans génération ; 0 = le garder chargé

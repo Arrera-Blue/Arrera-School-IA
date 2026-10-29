@@ -59,6 +59,28 @@ def test_decisions_gardees_dans_l_historique(dossiers):
         banque.decider("qcm-pythagore-4e-20261013-100000", "publier")
 
 
+def test_rejeter_en_cochant_pourquoi(dossiers):
+    """Plan IA, IA3 : les motifs cochés au rejet (ce que le modèle doit éviter), rangés dans l'ordre de la liste."""
+    banque.ecrire(exercice())
+    instance = banque.decider("qcm-pythagore-4e-20261013-100000", "rejeter", "« 7 cm » ne trompe personne",
+                              ["distracteurs_faciles", "explication_fausse"])
+    assert instance["meta"]["decisions"][-1]["motifs"] == ["explication_fausse", "distracteurs_faciles"]
+    with pytest.raises(ValueError, match="motif de rejet inconnu"):
+        banque.decider("qcm-pythagore-4e-20261013-100000", "rejeter", motifs=["trop_long"])
+    with pytest.raises(ValueError, match="accompagne un rejet"):
+        banque.decider("qcm-pythagore-4e-20261013-100000", "accepter", motifs=["reponse_fausse"])
+    assert "motifs" not in banque.decider("qcm-pythagore-4e-20261013-100000", "rejeter")["meta"]["decisions"][-1]
+
+
+def test_les_signalements_dans_la_liste(dossiers):
+    banque.ecrire(exercice())
+    faux = exercice("qcm-pythagore-4e-20261013-100001")
+    faux["questions"][1]["index_correct"] = 0  # 3² + 4² = 25 : « 7 cm » est faux
+    banque.ecrire(faux)
+    assert {l["id"]: l["signalements"] for l in banque.lister()} == {"qcm-pythagore-4e-20261013-100000": 1,
+                                                                     "qcm-pythagore-4e-20261013-100001": 2}
+
+
 def test_lister_filtrer_et_trier(dossiers):
     banque.ecrire(exercice("qcm-ancien-4e-20261001-100000", "2026-10-01T10:00:00"))
     banque.ecrire(exercice("qcm-recent-4e-20261013-100000", "2026-10-13T10:00:00", statut="accepte"))

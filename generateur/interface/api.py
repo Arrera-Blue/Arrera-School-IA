@@ -70,11 +70,19 @@ voit que les siens :
                                                      fichier en base64 dans le JSON, comme toute requête)
     GET  /api/cours/{id} · DELETE /api/cours/{id}    le texte extrait, passage par passage · le retirer
     POST /api/generations avec « cours » : true      générer à partir de ses cours (les passages les plus proches)
+
+Le lot d'entraînement (plan IA, IA3) : la même interface, lancée à part, sur le lot généré la nuit
+(donnees/entrainement/) au lieu de la banque ; elle ne sert qu'à relire (`ENTRAINEMENT` : tout le reste est refusé,
+publier compris) :
+    python -m generateur.interface.api --entrainement   # http://127.0.0.1:8002
+    GET  /api/entrainement                           où en est la relecture, l'ordre de relecture, les motifs de rejet
+    POST /api/exercices/{id}/decision avec « motifs »   rejeter en cochant ce qui ne va pas
 """
 
 import argparse
 import base64
 import binascii
+import re
 import sqlite3
 import threading
 import time
@@ -90,11 +98,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from generateur import procedural, programmes
+from generateur import entrainement, procedural, programmes
 from generateur.classe import serveur as serveur_classe
 from generateur.donnees import classes, codes, comptes, journal, publications, sessions, suivi
 from generateur.donnees import cours as cours_enseignant
 from generateur.donnees.base import Base
+from generateur.entrainement import relecture as relecture_du_lot
 from generateur.interface.taches import DejaFinie, File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre, securite
 from generateur.moteur.fournisseurs import ErreurFournisseur, llamacpp
@@ -117,6 +126,13 @@ PUBLIQUES = {("POST", "/api/session")}
 # avec un mot de passe provisoire : le changer, et rien d'autre
 AVANT_CHANGEMENT = {("GET", "/api/session"), ("DELETE", "/api/session"), ("POST", "/api/session/mot-de-passe")}
 ENTRETIEN_S = 3600
+# l'interface du lot d'entraînement (plan IA, IA3) ne sert qu'à relire : ces routes seulement, tout le reste refusé
+# (refus par défaut : ni publier, ni générer, ni les classes, ni les cours, ni les comptes)
+ENTRAINEMENT = [re.compile(motif) for motif in (
+    r"(GET|POST|DELETE) /api/session", r"POST /api/session/mot-de-passe",
+    r"GET /api/(types|programmes|entrainement)", r"GET /api/generations(/[^/]+)?", r"POST /api/generations/[^/]+/annuler",
+    r"GET /api/exercices(/[^/]+(/apercu|/telecharger)?)?", r"DELETE /api/exercices/[^/]+",
+    r"POST /api/exercices/[^/]+/(decision|questions/\d+/regenerer)", r"PUT /api/exercices/[^/]+/questions/\d+")]
 
 
 # --- les corps de requête ------------------------------------------------------------------------
@@ -145,6 +161,7 @@ class Demande(BaseModel):
 class Decision(BaseModel):
     decision: Literal["accepter", "rejeter"]
     motif: str | None = Field(None, max_length=500)
+    motifs: list[str] | None = Field(None, max_length=len(banque.MOTIFS_DE_REJET))  # plan IA, IA3 : cochés au rejet
 
 
 class NouveauCours(BaseModel):
@@ -367,7 +384,11 @@ def _entretenir_chaque_heure(base: Base, dossier_sauvegardes: Path, arret: threa
 
 # --- l'application -------------------------------------------------------------------------------
 
-def creer_application(file: File | None = None, base: Base | None = None) -> FastAPI:
+def creer_application(file: File | None = None, base: Base | None = None, entrainement: bool = False,
+                      banque_enseignant: Path | None = None) -> FastAPI:
+    """`entrainement` : l'interface du lot d'entraînement (plan IA, IA3), qui ne sert qu'à relire ; les dossiers de la
+    banque sont alors ceux du lot (`entrainement.utiliser()`, avant), et `banque_enseignant` la vraie banque, lue
+    seulement pour compter ce qui pourra entrer dans le jeu de données."""
     reglages = config.charger().get("interface") or {}
     file = file or File(int(reglages.get("file_max", 5)), decrire_erreur)
     base = base or Base(config.chemin("base"))  # créée et migrée à la première utilisation
@@ -396,6 +417,7 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
                   openapi_url="/api/openapi.json")
     app.state.file = file
     app.state.base = base
+    app.state.entrainement = entrainement
 
     async def refuser(request: Request) -> Response | None:
         """Une réponse de refus, ou None si la requête peut passer.
@@ -425,6 +447,9 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
         if compte["doit_changer"] and route not in AVANT_CHANGEMENT:
             return JSONResponse({"detail": "mot de passe provisoire : choisissez d'abord le vôtre",
                                  "doit_changer": True}, status_code=403)
+        if entrainement and not any(m.fullmatch(f"{request.method} {request.url.path}") for m in ENTRAINEMENT):
+            return JSONResponse({"detail": "pas dans l'interface du lot d'entraînement : elle ne sert qu'à relire"},
+                                status_code=404)
         request.state.compte = compte
         return None
 
@@ -483,11 +508,11 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
             raise HTTPException(401, str(e)) from None
         # pas de Secure : l'interface est en HTTP sur 127.0.0.1 ; le serveur de classe (E8), en HTTPS, l'aura
         response.set_cookie(COOKIE, jeton, httponly=True, samesite="strict", path="/")
-        return {"compte": compte}
+        return {"compte": compte, "entrainement": entrainement}
 
     @app.get("/api/session")
     def compte_connecte(request: Request):
-        return {"compte": request.state.compte}
+        return {"compte": request.state.compte, "entrainement": entrainement}
 
     @app.delete("/api/session")
     def deconnexion(request: Request, response: Response):
@@ -883,8 +908,17 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
     @app.get("/api/exercices")
     def exercices(matiere: str | None = None, niveau: str | None = None, statut: str | None = None,
                   recherche: str | None = None, attendu: str | None = None):
-        return {"exercices": banque.lister(matiere or None, niveau or None, statut or None, (recherche or "")[:200],
-                                           (attendu or "")[:80] or None)}
+        lignes = banque.lister(matiere or None, niveau or None, statut or None, (recherche or "")[:200],
+                               (attendu or "")[:80] or None)
+        return {"exercices": relecture_du_lot.ordonner(lignes) if entrainement else lignes}
+
+    @app.get("/api/entrainement")
+    def relecture_du_lot_d_entrainement():
+        """Où en est la relecture du lot, l'ordre de relecture, les motifs de rejet (interface du lot seulement)."""
+        if not entrainement:
+            raise HTTPException(404, "le lot d'entraînement se relit dans son interface : python -m "
+                                     "generateur.interface.api --entrainement")
+        return relecture_du_lot.etat(config.chemin("banque"), banque_enseignant)
 
     @app.get("/api/programmes")
     def programmes_officiels(matiere: str, niveau: str, tous: bool = False):
@@ -917,11 +951,13 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
         if file.occupee_pour(ident):
             raise HTTPException(409, "une question de cet exercice est en cours de régénération : attendre la fin")
         try:
-            instance = banque.decider(ident, corps.decision, corps.motif)
+            instance = banque.decider(ident, corps.decision, corps.motif, corps.motifs)
         except banque.ExerciceInconnu as e:
             raise HTTPException(404, str(e)) from None
         except banque.ExerciceFaux as e:
             raise HTTPException(409, str(e)) from None
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from None
         return {"resume": banque.resume(instance)}
 
     @app.post("/api/exercices/{ident}/questions/{numero}/regenerer", status_code=202)
@@ -991,18 +1027,28 @@ app = creer_application()
 def main() -> None:
     reglages = config.charger().get("interface") or {}
     parser = argparse.ArgumentParser(description="Interface enseignant : générer, relire et accepter des exercices.")
-    parser.add_argument("--port", type=int, default=int(reglages.get("port", 8000)))
+    parser.add_argument("--port", type=int, help="défaut : 8000 (8002 pour le lot d'entraînement)")
     parser.add_argument("--sans-navigateur", action="store_true", help="ne pas ouvrir le navigateur")
+    parser.add_argument("--entrainement", action="store_true",
+                        help="relire le lot d'entraînement (plan IA, IA3) au lieu de la banque")
     args = parser.parse_args()
     import uvicorn
 
-    url = f"http://127.0.0.1:{args.port}/"
-    print(f"Interface enseignant : {url}   (Ctrl-C pour arrêter)", flush=True)
+    application = app
+    if args.entrainement:
+        vraie_banque = config.chemin("banque")
+        entrainement.utiliser()  # les dossiers de la banque sont désormais ceux du lot, pour tout le processus
+        application = creer_application(entrainement=True, banque_enseignant=vraie_banque)
+    port = args.port or int(reglages.get("port_entrainement" if args.entrainement else "port",
+                                         8002 if args.entrainement else 8000))
+    url = f"http://127.0.0.1:{port}/"
+    print(f"{'Lot d’entraînement' if args.entrainement else 'Interface enseignant'} : {url}   (Ctrl-C pour arrêter)",
+          flush=True)
     if not args.sans_navigateur:
         threading.Timer(1.5, webbrowser.open, (url,)).start()
     # toujours 127.0.0.1 : jamais une adresse joignable depuis le réseau de la salle (seul le serveur de
     # classe, application séparée et sans route enseignant, y sera ouvert : E8)
-    uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
+    uvicorn.run(application, host="127.0.0.1", port=port, log_level="warning")
 
 
 if __name__ == "__main__":

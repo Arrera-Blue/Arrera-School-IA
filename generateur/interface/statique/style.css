@@ -376,6 +376,28 @@ dialog .erreur { margin: 1rem 0 0; }
 .source-cours blockquote { margin: .5rem 0 0; padding: .6rem .9rem; border-left: 3px solid var(--filet-fort);
   background: var(--surface); border-radius: 0 10px 10px 0; color: var(--texte); }
 
+/* --- le lot d'entraînement (plan IA, IA3) : où en est la relecture, rejeter en disant pourquoi --------------- */
+
+.lot-etat { background: var(--surface); border-radius: 16px; padding: 1.1rem 1.4rem; margin: 1.5rem 0 2rem;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .6rem 2rem; align-items: center; }
+.lot-etat h2 { margin: 0; font-weight: 400; font-size: 1.25rem; }
+.lot-etat h2 strong { font-weight: 700; }
+.lot-etat progress { grid-column: 1; height: 6px; }
+.lot-etat progress::-webkit-progress-value { background: var(--focus); }
+.lot-etat progress::-moz-progress-bar { background: var(--focus); }
+.lot-etat .actions { grid-column: 2; grid-row: 1 / span 3; margin: 0; }
+.lot-etat p { grid-column: 1; margin: 0; color: var(--doux); font-size: .95rem; }
+.lot-etat.atteint progress::-webkit-progress-value { background: var(--reussi); }
+.lot-etat.atteint progress::-moz-progress-bar { background: var(--reussi); }
+.lot-etat.atteint button { background: transparent; }
+.lot-etat.atteint button:hover { background: var(--surface-2); }
+@media (max-width: 760px) { .lot-etat { grid-template-columns: 1fr; } .lot-etat .actions { grid-column: 1; grid-row: auto; } }
+.signalements { color: var(--attention); font-size: .92rem; white-space: nowrap; }
+.rang { color: var(--doux); font-size: .95rem; margin: .2rem 0 0; }
+.motifs { border: 0; padding: 0; margin: 1rem 0 0; display: grid; gap: .45rem; min-width: 0; }
+#lot-jeu { margin-top: 2.5rem; }
+.jeu td:last-child { width: 7rem; }
+
 /* --- suivi des élèves : la couleur n'est jamais seule (symbole et pourcentage dans chaque case) -------------- */
 
 .interrupteur { display: inline-flex; align-items: center; gap: .7rem; color: var(--doux); font-size: 1rem; margin: 0; cursor: pointer; }

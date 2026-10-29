@@ -12,7 +12,8 @@
 // accepté pour un groupe et pour la classe, le retirer, débloquer un élève bloqué au serveur de classe (E8), déposer un
 // cours, voir son texte, refuser un cours piégé, l'offrir au formulaire, montrer la source d'une question, le retirer
 // (plan IA, IA2), créer un compte,
-// se déconnecter, changer un mot de passe provisoire, affichage sur téléphone ; aucune erreur JavaScript ni
+// se déconnecter, changer un mot de passe provisoire, affichage sur téléphone, relire le lot d'entraînement dans son
+// interface (au suivant, passer, rejeter en cochant pourquoi, l'échantillon relu : plan IA, IA3) ; aucune erreur JavaScript ni
 // violation de CSP. Captures d'écran et copie de la banque : dans le dossier affiché à la fin.
 // Code de sortie : 0 si tous les contrôles passent, 1 sinon.
 import { spawn, spawnSync } from "node:child_process";
@@ -33,7 +34,8 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 const serveur = spawn(python, ["tests/navigateur/serveur_copie.py", dossier, String(PORT)], { stdio: "inherit" });
 const chrome = spawn(CHROMES.find(existsSync), ["--headless=new", `--remote-debugging-port=${DEBOGAGE}`,
   `--user-data-dir=${join(dossier, "profil")}`, "--window-size=1280,1600", "about:blank"], { stdio: "ignore" });
-const arreter = () => { chrome.kill(); serveur.kill(); };
+let serveurLot = null; // l'interface du lot d'entraînement (section 10)
+const arreter = () => { chrome.kill(); serveur.kill(); if (serveurLot) serveurLot.kill(); };
 process.on("exit", arreter);
 
 async function prete(url) {
@@ -587,6 +589,86 @@ open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(ex, ensure_ascii=False
   await jusqua(`!document.querySelector("#vue-generer").hidden`);
   verifier("mot de passe provisoire : changé, l'interface s'ouvre (sans « Comptes » : enseignant)",
     await js(`document.querySelector("#lien-comptes").hidden`) && await statutApi() === 200);
+
+  // 10. relire le lot d'entraînement (plan IA, IA3) : l'interface lancée à part (--entrainement), sur un lot d'essai de 5
+  // exercices et un échantillon de 2 (serveur_copie.py) ; elle ne sert qu'à relire
+  const LOT = `http://127.0.0.1:${PORT + 2}/`;
+  serveurLot = spawn(python, ["tests/navigateur/serveur_copie.py", dossier, String(PORT + 2), "--entrainement"], { stdio: "inherit" });
+  await prete(LOT + "api/types");
+  await cdp("Network.clearBrowserCookies");
+  await cdp("Page.navigate", { url: LOT });
+  await jusqua(`!document.querySelector("#vue-connexion").hidden`);
+  await saisir("#connexion-identifiant", ESSAI.identifiant);
+  await saisir("#connexion-mot-de-passe", ESSAI.motDePasse);
+  await cliquer("#btn-connexion");
+  await jusqua(`location.hash === "#/banque" && document.querySelectorAll("#table-banque tbody tr").length === 5
+    && document.querySelector("#lot-relus").textContent !== ""`);
+  verifier("lot : une seule rubrique, la relecture à 0 sur 2", await js(`(() => {
+    const visibles = [...document.querySelectorAll("#nav-principale a")].filter((a) => !a.hidden);
+    return visibles.length === 1 && visibles[0].textContent === "Lot d'entraînement"
+      && document.querySelector("#titre-banque").textContent === "Lot d'entraînement" && !document.querySelector("#lot-intro").hidden
+      && document.querySelector("#lot-relus").textContent === "Relus : 0 sur 2" && document.querySelector("#lot-jeu").hidden; })()`));
+  verifier("lot : l'ordre de relecture, les matières en alternance, le procédural en dernier", await js(`
+    [...document.querySelectorAll("#table-banque tbody tr a")].map((a) => a.getAttribute("href").slice(11)).join(",")
+    === "qcm-lot-francais-1,qcm-lot-maths-1,qcm-lot-francais-2,qcm-lot-maths-2,qcm-lot-procedural"`));
+  // depuis l'essai (avec le cookie de la page) : un refus attendu ne doit pas passer pour une erreur dans la console
+  const { result: { cookies } } = await cdp("Network.getCookies", { urls: [LOT] });
+  const session = cookies.find((c) => c.name === "session");
+  const statutLot = async (methode, chemin, corps) => (await fetch(LOT + chemin.slice(1), { method: methode,
+    headers: { Cookie: `session=${session && session.value}`, "Content-Type": "application/json" },
+    body: corps ? JSON.stringify(corps) : undefined })).status;
+  verifier("lot : publier, générer, les classes et les cours refusés par le serveur",
+    await statutLot("POST", "/api/exercices/qcm-lot-maths-1/publications", { classe_id: 1 }) === 404
+    && await statutLot("POST", "/api/generations", { notion: "les fractions" }) === 404
+    && await statutLot("GET", "/api/classes") === 404 && await statutLot("GET", "/api/cours") === 404
+    && await statutLot("GET", "/api/entrainement") === 200);
+  await capture("15-lot");
+  await cliquer("#btn-lot-suivant");
+  await jusqua(`location.hash === "#/exercice/qcm-lot-francais-1" && !document.querySelector("#ex-rang").hidden`);
+  verifier("lot : relire le suivant, sans « Publier… », avec « Passer » et le rang", await js(`document.querySelector("#btn-publier").hidden
+    && document.querySelector("#btn-accepter").textContent === "Accepter et passer au suivant" && !document.querySelector("#btn-passer").hidden
+    && document.querySelector("#ex-rang").textContent === "1er exercice relu sur 2."
+    && document.querySelector("#ex-retour").textContent === "← Lot d'entraînement"`));
+  await capture("16-lot-relire");
+  await cliquer("#btn-passer");
+  await jusqua(`location.hash === "#/exercice/qcm-lot-maths-1" && document.querySelector("#ex-titre").textContent === "Le théorème de Pythagore (1)"`);
+  verifier("lot : passer ouvre le suivant, sans décision", true);
+  await jusqua(`!document.querySelector("#btn-accepter").disabled`);
+  await cliquer("#btn-accepter");
+  // l'ordre est refait après chaque décision : les maths et le français restent en alternance
+  await jusqua(`location.hash === "#/exercice/qcm-lot-maths-2" && document.querySelector("#ex-rang").textContent === "2e exercice relu sur 2."
+    && document.querySelector("#ex-titre").textContent === "Le théorème de Pythagore (2)"`);
+  verifier("lot : accepter et passer au suivant (l'alternance refaite, le passé gardé pour la fin)", await js(`document.querySelector("#ex-message").textContent
+    === "Exercice accepté. Voici le suivant."`) && (await js(`fetch("/api/exercices/qcm-lot-maths-1").then((r) => r.json())
+    .then((d) => d.resume.statut)`)) === "accepte");
+  await cliquer("#btn-rejeter");
+  await jusqua(`document.querySelector("#dialogue-rejeter").open && document.querySelectorAll("#rej-motifs input").length === 6`);
+  await capture("17-lot-rejeter");
+  await js(`(() => { for (const c of document.querySelectorAll("#rej-motifs input")) {
+    if (c.value === "explication_fausse" || c.value === "distracteurs_faciles") c.checked = true; } })()`);
+  await saisir("#rej-precisions", "« ediffe » ne trompe personne.");
+  await cliquer("#rej-ok");
+  await jusqua(`location.hash === "#/exercice/qcm-lot-francais-2" && document.querySelector("#ex-titre").textContent === "Les classes de mots (2)"`);
+  const decision = await js(`fetch("/api/exercices/qcm-lot-maths-2").then((r) => r.json()).then((d) => d.exercice.meta.decisions.at(-1))`);
+  verifier("lot : rejeter en cochant pourquoi, les motifs enregistrés", decision.statut === "rejete"
+    && decision.motifs.join(",") === "explication_fausse,distracteurs_faciles" && decision.motif === "« ediffe » ne trompe personne.",
+    JSON.stringify(decision));
+  await cdp("Page.navigate", { url: LOT + "#/banque" });
+  await jusqua(`!document.querySelector("#lot-jeu").hidden && document.querySelectorAll("#table-jeu tbody tr").length === 6`);
+  verifier("lot : l'échantillon relu, ce qui pourra entrer dans le jeu de données", await js(`(() => {
+    const lignes = [...document.querySelectorAll("#table-jeu tbody tr")].map((tr) => tr.lastElementChild.textContent);
+    return document.querySelector("#lot-relus").textContent === "Échantillon relu : 2 sur 2 ✓"
+      && document.querySelector("#lot-etat").classList.contains("atteint")
+      && document.querySelector("#lot-detail").textContent.startsWith("1 accepté, 1 rejeté ; 0 question corrigée.")
+      && lignes[0] === "1" && lignes[1] === "1"; })()`));
+  await capture("18-lot-echantillon");
+  await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  for (const chemin of ["#/banque", "#/exercice/qcm-lot-francais-2"]) {
+    await cdp("Page.navigate", { url: LOT + chemin });
+    await attendre(800);
+    verifier(`téléphone lot ${chemin.split("/")[1]} : pas de défilement horizontal`, await js(`document.documentElement.scrollWidth <= window.innerWidth`));
+  }
+  await cdp("Emulation.clearDeviceMetricsOverride");
 } catch (e) {
   verifier("parcours interrompu", false, e.message);
 }

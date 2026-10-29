@@ -36,9 +36,13 @@
   // cartes : les cartes à imprimer (les codes en clair : effacées dès qu'on quitte la page des cartes) (E3)
   // tableau : le suivi de la classe ouverte ; fiche : celle de l'élève ouvert ; masquer : « Masquer les noms » (E4)
   // cours : ses cours, déposés (plan IA, IA2) ; coursOuvert : celui dont le texte est affiché
+  // entrainement : l'interface du lot d'entraînement (plan IA, IA3, --entrainement), qui ne sert qu'à relire ; lot : où
+  // en est la relecture (/api/entrainement) ; passes : les exercices passés sans décision ; annonceLot : le message
+  // à montrer sur l'exercice suivant (« Exercice accepté. »)
   const etat = { compte: null, programmes: {}, classe: null, listeLue: null, cartes: null, tableau: null, fiche: null,
     masquer: false, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
-    statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null, cours: null, coursOuvert: null };
+    statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null, cours: null, coursOuvert: null,
+    entrainement: false, lot: null, passes: new Set(), annonceLot: null };
   const $ = (selecteur) => document.querySelector(selecteur);
 
   // --- outils -----------------------------------------------------------------------------------
@@ -131,6 +135,10 @@
     }
     if (location.hash !== "#/cartes") oublierCartes(); // les codes en clair ne restent pas en mémoire
     const m = location.hash.match(/^#\/exercice\/([a-z0-9_-]+)$/);
+    if (etat.entrainement && !m && location.hash !== "#/banque" && location.hash !== "#/compte") {
+      location.hash = "#/banque"; // l'interface du lot ne sert qu'à relire (plan IA, IA3)
+      return;
+    }
     const c = location.hash.match(/^#\/classe\/(\d+)(\/publies)?$/);
     const s = location.hash.match(/^#\/suivi\/(\d+)$/);
     const f = location.hash.match(/^#\/suivi-eleve\/(\d+)$/);
@@ -203,6 +211,9 @@
     etat.fiche = null;
     etat.cours = null;  // les cours d'un enseignant ne restent pas sous les yeux du suivant
     etat.coursOuvert = null;
+    etat.lot = null;
+    etat.passes.clear();
+    $("#table-jeu tbody").replaceChildren();
     $("#ex-apercu").removeAttribute("src");
     $("#provisoire").hidden = true;
     $("#provisoire-valeur").textContent = "";
@@ -231,12 +242,13 @@
     remplirSelect($("#filtre-niveau"), premier.niveaux, {}, "Toutes");
   }
 
-  async function ouvrirSession(compte) {
+  async function ouvrirSession(compte, entrainement = etat.entrainement) {
     etat.compte = compte;
+    if (entrainement && !etat.entrainement) preparerEntrainement();
     $("#entete-nom").textContent = compte.nom;
     $("#entete-initiales").textContent = initiales(compte.nom);
     $("#titre-generer").textContent = `Bonjour ${compte.nom}`;
-    $("#lien-comptes").hidden = compte.role !== "admin";
+    $("#lien-comptes").hidden = compte.role !== "admin" || etat.entrainement;
     $("#nav-principale").hidden = false;
     $("#entete-compte").hidden = false;
     $("#connexion-info").hidden = true;
@@ -271,9 +283,9 @@
     }
     $("#btn-connexion").disabled = true;
     try {
-      const { compte } = await api("/api/session", { identifiant, mot_de_passe: motDePasse.value });
+      const { compte, entrainement } = await api("/api/session", { identifiant, mot_de_passe: motDePasse.value });
       motDePasse.value = "";
-      await ouvrirSession(compte);
+      await ouvrirSession(compte, entrainement);
     } catch (e) {
       motDePasse.value = "";
       erreur.textContent = e.message.charAt(0).toUpperCase() + e.message.slice(1);
@@ -1700,6 +1712,7 @@
     }
     const message = $("#banque-etat");
     message.textContent = "Chargement…";
+    if (etat.entrainement) chargerLot();
     try {
       const { exercices } = await api(`/api/exercices?${parametres}`);
       const lignes = exercices.map((x) => el("tr", {},
@@ -1710,10 +1723,13 @@
         el("td", { texte: x.niveau || "—" }),
         el("td", { class: "nombre", texte: String(x.questions) }),
         el("td", { texte: x.origine === "procedural" ? "programme" : "modèle" }),
-        el("td", {}, controles(x)),
+        el("td", {}, etat.entrainement ? signalements(x) : controles(x)),
         el("td", {}, badgeStatut(x.statut))));
       $("#table-banque tbody").replaceChildren(...lignes);
-      const compte = exercices.length ? `${exercices.length} exercice(s).` : "Aucun exercice ne correspond.";
+      const compte = !exercices.length ? "Aucun exercice ne correspond."
+        : etat.entrainement && $("#filtre-statut").value === "genere"
+          ? `${exercices.length} exercice(s) à relire, dans l'ordre de relecture : les matières et les classes en alternance.`
+          : `${exercices.length} exercice(s).`;
       message.textContent = etat.annonce ? `${etat.annonce} ${compte}` : compte;
       etat.annonce = null;
     } catch (e) {
@@ -1746,6 +1762,129 @@
     return el("span", { class: "badge n4-verifie", texte: "✔" });
   }
 
+  function signalements(x) {
+    if (!x.signalements) return el("span", { class: "infos", texte: "—" });
+    return el("span", { class: "signalements", texte: x.signalements > 1 ? `${x.signalements} signalements` : "1 signalement" });
+  }
+
+  // --- le lot d'entraînement (plan IA, IA3) : relire, au suivant, rejeter en disant pourquoi ------------------
+
+  function preparerEntrainement() {
+    etat.entrainement = true;
+    document.title = "Lot d'entraînement — Générateur d'exercices";
+    for (const lien of document.querySelectorAll("#nav-principale a[data-vue]")) lien.hidden = lien.dataset.vue !== "banque";
+    $('#nav-principale a[data-vue="banque"] .menu-nom').textContent = "Lot d'entraînement";
+    $("#titre-banque").textContent = "Lot d'entraînement";
+    $("#table-banque caption").textContent = "Les exercices du lot, dans l'ordre de relecture";
+    $("#lot-intro").hidden = false;
+    $("#lot-etat").hidden = false;
+    $("#filtre-statut").value = "genere";
+    $("#btn-accepter").textContent = "Accepter et passer au suivant";
+    $("#btn-passer").hidden = false;
+    $("#btn-telecharger").hidden = true;
+  }
+
+  async function chargerLot() {
+    try {
+      etat.lot = await api("/api/entrainement");
+    } catch (e) {
+      $("#lot-detail").textContent = `Relecture illisible : ${e.message}`;
+      return null;
+    }
+    afficherLot();
+    return etat.lot;
+  }
+
+  function afficherLot() {
+    const l = etat.lot;
+    const atteint = l.relus >= l.objectif_relus;
+    $("#lot-etat").classList.toggle("atteint", atteint);
+    $("#lot-relus").replaceChildren(atteint ? "Échantillon relu : " : "Relus : ", el("strong", { texte: String(l.relus) }),
+      ` sur ${l.objectif_relus}` + (atteint ? " ✓" : ""));
+    $("#lot-progression").max = l.objectif_relus;
+    $("#lot-progression").value = Math.min(l.relus, l.objectif_relus);
+    $("#lot-progression").textContent = `${l.relus} sur ${l.objectif_relus}`;
+    const accord = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
+    $("#lot-detail").textContent = `${accord(l.acceptes, "accepté")}, ${accord(l.rejetes, "rejeté")} ; `
+      + `${accord(l.corrections, "question")} ${l.corrections > 1 ? "corrigées" : "corrigée"}. `
+      + (atteint ? "Vous pouvez continuer : chaque exercice accepté compte."
+        : "Corriger une question (Modifier, Régénérer) est ce qui apprend le plus au modèle.");
+    $("#btn-lot-suivant").disabled = !l.ordre.length;
+    $("#lot-jeu").hidden = !atteint;
+    const j = l.jeu;
+    $("#table-jeu tbody").replaceChildren(...[
+      ["Relus et acceptés dans le lot", j.acceptes_lot],
+      ["Générateur procédural, sans erreur (calculs justes par construction, non relus)", j.proceduraux],
+      ["Vos exercices acceptés dans la banque", j.acceptes_banque],
+      [el("span", {}, el("strong", { texte: "Total" }), el("span", { class: "sous-titre", texte: `objectif avant d'entraîner : ${j.objectif}` })),
+        el("strong", { texte: String(j.total) })],
+      ["Questions corrigées (paires avant, après)", j.paires],
+      ["Rejets avec un motif (ce qu'il faut éviter)", j.motifs],
+    ].map(([source, nombre]) => el("tr", {}, el("td", {}, source), el("td", { class: "nombre" }, typeof nombre === "number" ? String(nombre) : nombre))));
+  }
+
+  // le prochain exercice à relire, dans l'ordre de relecture : ni celui qu'on quitte, ni ceux passés (sauf s'il ne
+  // reste qu'eux)
+  function suivantDuLot(quitte) {
+    const ordre = ((etat.lot && etat.lot.ordre) || []).filter((id) => id !== quitte);
+    return ordre.find((id) => !etat.passes.has(id)) || ordre[0] || null;
+  }
+
+  async function allerAuSuivant(quitte) {
+    if (!etat.lot) await chargerLot();
+    const suivant = suivantDuLot(quitte);
+    if (suivant) {
+      location.hash = `#/exercice/${suivant}`;
+    } else {
+      etat.annonce = "Plus aucun exercice à relire.";
+      etat.annonceLot = null;
+      location.hash = "#/banque";
+    }
+  }
+
+  async function deciderDansLeLot(decision, motif = null, motifs = null) {
+    const quitte = etat.exercice;
+    if (!quitte) return;
+    try {
+      await api(`/api/exercices/${quitte}/decision`, { decision, motif, motifs });
+    } catch (e) {
+      $("#ex-message").textContent = `Décision non enregistrée : ${e.message}`;
+      return;
+    }
+    etat.passes.delete(quitte);
+    etat.annonceLot = decision === "accepter" ? "Exercice accepté." : "Exercice rejeté, avec votre motif.";
+    await chargerLot();
+    allerAuSuivant(quitte);
+  }
+
+  // la boîte « Rejeter : pourquoi ? » : {motifs, precisions}, ou null si annulé
+  function demanderPourquoi() {
+    const dialogue = $("#dialogue-rejeter");
+    $("#rej-motifs").replaceChildren(el("legend", { class: "visuellement-cache", texte: "Ce qui ne va pas" }),
+      ...((etat.lot && etat.lot.motifs_de_rejet) || []).map((m) => el("label", { class: "case" },
+        el("input", { type: "checkbox", value: m.code }), ` ${m.libelle}`)));
+    $("#rej-precisions").value = "";
+    return new Promise((resoudre) => {
+      const fermer = (valeur) => {
+        $("#form-rejeter").onsubmit = null;
+        $("#rej-annuler").onclick = null;
+        dialogue.onclose = null;
+        if (dialogue.open) dialogue.close();
+        resoudre(valeur);
+      };
+      $("#form-rejeter").onsubmit = (e) => {
+        e.preventDefault();
+        fermer({ motifs: [...$("#rej-motifs").querySelectorAll("input:checked")].map((c) => c.value),
+          precisions: $("#rej-precisions").value.trim() });
+      };
+      $("#rej-annuler").onclick = () => fermer(null);
+      dialogue.onclose = () => { if (!dialogue.open) fermer(null); };
+      dialogue.showModal();
+      const premiere = $("#rej-motifs input");
+      if (premiere) premiere.focus();
+    });
+  }
+
   function badgeStatut(statut) {
     return el("span", { class: `badge statut-${statut}`, texte: STATUTS[statut] || statut });
   }
@@ -1754,6 +1893,12 @@
 
   async function ouvrirExercice(ident, garderMessage = false) {
     if (!garderMessage) $("#ex-message").textContent = "";
+    if (etat.exercice !== ident) {
+      // un autre exercice : aucune décision tant qu'il n'est pas chargé (« Accepter et passer au suivant », cliqué deux
+      // fois vite, accepterait sinon celui qu'on vient de quitter)
+      etat.exercice = null;
+      for (const b of document.querySelectorAll("#ex-actions button")) b.disabled = true;
+    }
     let donnees;
     try {
       donnees = await api(`/api/exercices/${ident}`);
@@ -1794,7 +1939,9 @@
     $("#btn-telecharger").href = `/api/exercices/${ident}/telecharger`;
     $("#btn-telecharger").setAttribute("download", `${ident}.html`);
     $("#ex-retour").href = `#/${etat.origine}`;
-    $("#ex-retour").textContent = etat.origine === "generer" ? "← Créer un exercice" : "← Banque";
+    $("#ex-retour").textContent = etat.entrainement ? "← Lot d'entraînement"
+      : etat.origine === "generer" ? "← Créer un exercice" : "← Banque";
+    afficherRang(resume.statut);
     afficherVue("exercice"); // la rubrique du menu suit l'origine
     etat.statut = resume.statut;
     etat.valide = relecture.valide;
@@ -1804,8 +1951,32 @@
     if (donnees.occupe && !etat.regeneration) reprendreRegeneration(ident);
   }
 
+  // plan IA, IA3 : « 38e exercice relu sur 150 », pour un exercice du lot pas encore relu ; le message de la décision
+  // prise sur le précédent
+  async function afficherRang(statut) {
+    const rang = $("#ex-rang");
+    rang.hidden = true;
+    if (!etat.entrainement) return;
+    if (etat.annonceLot) {
+      $("#ex-message").textContent = `${etat.annonceLot} Voici le suivant.`;
+      etat.annonceLot = null;
+    }
+    const ident = etat.exercice;
+    const lot = etat.lot || await chargerLot();
+    if (!lot || etat.exercice !== ident || statut !== "genere") return;
+    const n = lot.relus + 1;
+    rang.textContent = `${n === 1 ? "1er" : `${n}e`} exercice relu sur ${lot.objectif_relus}.`;
+    rang.hidden = false;
+  }
+
   // E8 : un exercice accepté se publie ; la ligne dit où il l'est déjà
   async function afficherPublication(ident) {
+    if (etat.entrainement) { // le lot d'entraînement ne se publie jamais
+      $("#btn-accepter").hidden = false;
+      $("#btn-publier").hidden = true;
+      $("#ex-publie").hidden = true;
+      return;
+    }
     const accepte = etat.statut === "accepte";
     $("#btn-accepter").hidden = accepte;
     $("#btn-publier").hidden = !accepte;
@@ -2100,11 +2271,14 @@
     $("#btn-rejeter").disabled = etat.occupe || etat.statut === "rejete";
     $("#btn-supprimer").disabled = etat.occupe || etat.statut === "accepte";
     $("#btn-publier").disabled = etat.occupe;
+    $("#btn-passer").disabled = false;
     $("#btn-accepter").title = etat.valide ? "" : "L'exercice contient une erreur : modifiez ou régénérez la question concernée";
     $("#btn-supprimer").title = etat.statut === "accepte" ? "Un exercice accepté doit d'abord être rejeté" : "";
   }
 
   async function decider(decision, motif = null) {
+    if (etat.entrainement) { deciderDansLeLot(decision, motif); return; }
+    if (!etat.exercice) return;
     const message = $("#ex-message");
     try {
       const { resume } = await api(`/api/exercices/${etat.exercice}/decision`, { decision, motif });
@@ -2343,11 +2517,24 @@
     $("#pub-classe").addEventListener("change", choisirClassePublication);
     for (const r of document.querySelectorAll('input[name="pub-pour"]')) r.addEventListener("change", pourPublication);
     $("#btn-rejeter").addEventListener("click", async () => {
+      if (etat.entrainement) {
+        if (!etat.lot) await chargerLot();
+        const pourquoi = await demanderPourquoi();
+        if (pourquoi !== null) deciderDansLeLot("rejeter", pourquoi.precisions || null, pourquoi.motifs.length ? pourquoi.motifs : null);
+        return;
+      }
       const motif = await demander({ titre: "Rejeter l'exercice", label: "Motif (facultatif)", ok: "Rejeter",
         texte: "L'exercice restera dans la banque, marqué « rejeté ». Votre motif aide à améliorer le générateur." });
       if (motif !== null) decider("rejeter", motif || null);
     });
     $("#btn-supprimer").addEventListener("click", supprimer);
+    $("#btn-passer").addEventListener("click", () => {
+      if (!etat.exercice) return;
+      etat.passes.add(etat.exercice);
+      etat.annonceLot = null;
+      allerAuSuivant(etat.exercice);
+    });
+    $("#btn-lot-suivant").addEventListener("click", () => allerAuSuivant(null));
     $("#btn-annuler-generation").addEventListener("click", async () => {
       if (!etat.generation) return;
       $("#btn-annuler-generation").disabled = true;
@@ -2402,8 +2589,8 @@
 
     // déjà connecté (page rechargée) ? sinon, l'écran de connexion (affiché par api() sur le 401)
     try {
-      const { compte } = await api("/api/session");
-      await ouvrirSession(compte);
+      const { compte, entrainement } = await api("/api/session");
+      await ouvrirSession(compte, entrainement);
     } catch (e) {
       if ($("#vue-connexion").hidden) afficherConnexion(`Le serveur ne répond pas : ${e.message}`);
     }
