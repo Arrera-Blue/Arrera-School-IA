@@ -86,7 +86,7 @@ from generateur.classe import serveur as serveur_classe
 from generateur.donnees import classes, codes, comptes, journal, publications, sessions, suivi
 from generateur.donnees.base import Base
 from generateur.interface.taches import DejaFinie, File, FilePleine
-from generateur.moteur import analyse, banque, config, generation, registre
+from generateur.moteur import analyse, banque, config, generation, registre, securite
 from generateur.moteur.fournisseurs import ErreurFournisseur, llamacpp
 from generateur.moteur.validation import ErreurValidation
 from generateur.moteur.validation.fond import controler
@@ -737,10 +737,22 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
                              "difficultes": difficultes})
         return {"types": resultat}
 
+    # --- sécurité de l'IA (plan IA, IA1) : une demande refusée n'atteint jamais le modèle -----------------
+
+    ETIQUETTES_REFUS = {"injection": "consigne adressée au modèle", "contenu_interdit": "contenu interdit",
+                        "fausse_reponse": "réponse fausse imposée", "lien": "lien",
+                        "donnees_personnelles": "données personnelles", "hors_sujet": "pas un exercice"}
+
+    def refuser_demande(compte: dict, categorie: str, message: str):
+        """Le refus au journal (la catégorie seulement, jamais le texte : il peut contenir un nom), puis 422."""
+        with base.ecrire() as conn:
+            journal.noter(conn, "demande_refusee", compte, detail=ETIQUETTES_REFUS.get(categorie, categorie))
+        raise HTTPException(422, message)
+
     @app.post("/api/analyser")
-    def analyser(corps: Phrase):
+    def analyser(corps: Phrase, request: Request):
         """Règles d'abord ; le modèle complète la matière ou la notion s'il est libre (jamais pendant une
-        génération : il ne sert qu'une demande à la fois)."""
+        génération : il ne sert qu'une demande à la fois). Une phrase refusée par la sécurité de l'IA : 422."""
         par_le_modele = bool(reglages.get("analyse_par_modele", True))
         pris = par_le_modele and file.modele.acquire(blocking=False)
         try:
@@ -750,24 +762,32 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
                     fournisseur = generation.creer_fournisseur()
                 except ErreurFournisseur:
                     fournisseur = None
-            resultat = analyse.analyser(corps.phrase, fournisseur).en_dict()
+            resultat = analyse.analyser(corps.phrase, fournisseur,
+                                        classes.noms_des_eleves(base, request.state.compte)).en_dict()
         finally:
             if pris:
                 file.noter_activite()
                 file.modele.release()
+        if resultat["refus"]:
+            refuser_demande(request.state.compte, resultat["refus"]["categorie"], resultat["refus"]["message"])
         if par_le_modele and not pris and {"matiere", "notion"} & set(resultat["a_verifier"]):
             resultat["remarques"].append("le modèle est occupé par une génération : analyse par les règles seules")
         resultat["procedural"] = _procedural(resultat["requete"])
         return resultat
 
     @app.post("/api/generations", status_code=202)
-    def lancer(corps: Demande):
-        demande = _verifier(corps)
+    def lancer(corps: Demande, request: Request):
+        noms = classes.noms_des_eleves(base, request.state.compte)
+        try:  # avant la file : la génération refuserait aussi, mais l'enseignant attendrait pour rien
+            demande = securite.controler_demande(_verifier(corps), noms)
+        except securite.DemandeRefusee as e:
+            refuser_demande(request.state.compte, e.categorie, e.message)
         sujet = demande.get("notion") or demande.get("demande_enseignant", "")[:60]
         description = f"{corps.type.upper()} — {sujet}" + (f" ({demande['niveau']})" if demande.get("niveau") else "")
 
         def executer(suivi):
-            instance = generation.generer(demande, corps.type, corps.fournisseur, corps.mode, suivi=suivi)
+            instance = generation.generer(demande, corps.type, corps.fournisseur, corps.mode, suivi=suivi,
+                                          noms_proteges=noms)
             banque.enregistrer(instance)
             return {"exercice": instance["meta"]["id"]}
 
@@ -844,8 +864,13 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
         return {"resume": banque.resume(instance)}
 
     @app.post("/api/exercices/{ident}/questions/{numero}/regenerer", status_code=202)
-    def regenerer(ident: str, numero: int, corps: Regeneration):
+    def regenerer(ident: str, numero: int, corps: Regeneration, request: Request):
         instance = _charger(ident)
+        noms = classes.noms_des_eleves(base, request.state.compte)
+        try:  # le motif de l'enseignant va au modèle : mêmes contrôles que sa phrase
+            securite.controler_texte(securite.nettoyer(corps.motif), noms)
+        except securite.DemandeRefusee as e:
+            refuser_demande(request.state.compte, e.categorie, e.message)
         if not 1 <= numero <= len(instance.get("questions") or []):
             raise HTTPException(422, f"question {numero} inexistante")
         if file.occupee_pour(ident):
@@ -853,7 +878,7 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
 
         def executer(suivi):
             actuelle = banque.charger(ident)  # relu au moment du travail : une décision a pu passer entre-temps
-            nouvelle = generation.regenerer_question(actuelle, numero, corps.motif, suivi=suivi)
+            nouvelle = generation.regenerer_question(actuelle, numero, corps.motif, suivi=suivi, noms_proteges=noms)
             banque.ecrire(nouvelle)
             return {"exercice": ident, "question": numero}
 

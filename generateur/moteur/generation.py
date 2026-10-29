@@ -24,11 +24,11 @@ from datetime import datetime
 from pathlib import Path
 
 from generateur import procedural, programmes
-from generateur.moteur import banque, config, machine, registre
+from generateur.moteur import banque, config, contre_verification, machine, registre, securite
 from generateur.moteur.analyse import QUESTIONS_MAX, QUESTIONS_MIN, lire_classe, lire_nombre_de_questions
 from generateur.moteur.fournisseurs import ErreurFournisseur, Fournisseur, creer
 from generateur.moteur.validation import ErreurValidation, n3_pedagogie, n4_calcul, numero_de_question
-from generateur.moteur.validation.fond import tolerant, valider_le_fond
+from generateur.moteur.validation.fond import controler, tolerant, valider_le_fond
 from generateur.moteur.validation.n1_syntaxe import extraire_json
 from generateur.moteur.validation.n2_schema import valider
 from generateur.procedural import habillage
@@ -117,7 +117,7 @@ def construire_messages(type_exo: registre.TypeExercice, demande: dict) -> list[
     du message est le même pour toutes les demandes, et son traitement est réutilisé d'une génération à
     l'autre (cache d'Ollama tant que le modèle est chargé, cache sur disque de llama.cpp). Le schéma resserré
     sur la demande (nombre de questions, classe) n'est pas écrit ici : il est imposé à la génération."""
-    pour_le_modele = dict(demande)
+    pour_le_modele = {k: v for k, v in demande.items() if k != "demande_enseignant"}
     if demande.get("attendu") and programmes.existe(demande["attendu"]):
         pour_le_modele["attendu"] = decrire_attendu(demande["attendu"])  # le texte officiel, pas un identifiant
     utilisateur = (
@@ -128,13 +128,16 @@ def construire_messages(type_exo: registre.TypeExercice, demande: dict) -> list[
         "Demande :\n"
         f"{json.dumps(pour_le_modele, ensure_ascii=False, indent=2)}"
     )
+    if demande.get("demande_enseignant"):
+        # sa phrase à part, entre deux marques tirées au sort (plan IA, IA1.2) : une donnée, jamais une consigne
+        utilisateur += "\n\n" + securite.encadrer(demande["demande_enseignant"])
     if demande.get("demande_enseignant") and (champs := [c for c in CHAMPS_DU_FORMULAIRE if demande.get(c)]):
         # essai du 17/10 : phrase « la Révolution française, 4e », formulaire corrigé « les châteaux forts, 5e » ;
         # le modèle suivait la phrase 2 fois sur 3. Rappelé en fin de message, là où il le suit le mieux.
         valeurs = {c: programmes.libelle(demande[c]) if c == "attendu" else demande[c] for c in champs}
         utilisateur += ("\n\nRappel : " + ", ".join(f"{c} = « {valeurs[c]} »" for c in champs) +
-                        ". Ces champs ont été vérifiés par l'enseignant et priment sur sa phrase "
-                        "(« demande_enseignant ») : si elle les contredit, suis les champs.")
+                        ". Ces champs ont été vérifiés par l'enseignant et priment sur sa phrase : si elle les "
+                        "contredit, suis les champs.")
     return [{"role": "system", "content": type_exo.prompt}, {"role": "user", "content": utilisateur}]
 
 
@@ -364,8 +367,46 @@ def _generer_et_reprendre(fournisseur: Fournisseur, messages: list[dict], schema
     return etat
 
 
+def sans_noms(noms_proteges) -> Callable[[dict], None] | None:
+    """Le contrôle « aucun nom d'élève de l'enseignant dans l'exercice » (plan IA, IA1.3) : une question qui en
+    contient un est renvoyée au modèle, comme un défaut de N3."""
+    noms = list(noms_proteges or ())
+    if not noms:
+        return None
+
+    def controle(instance: dict) -> None:
+        trouves = []
+        for n, q in enumerate(instance["questions"], start=1):
+            texte = " ".join([q["enonce"], q["explication"], *q["propositions"]])
+            if nom := securite.nom_d_eleve(texte, noms):
+                trouves.append((n, nom))
+        entete = " ".join([instance.get("titre") or "", instance.get("notion") or "", instance.get("consigne") or ""])
+        if nom := securite.nom_d_eleve(entete, noms):
+            trouves.append((0, nom))
+        if trouves:
+            raise ErreurValidation("N3", [f"{f'question {n}' if n else 'exercice'} : contient le nom d'une personne "
+                                          f"(« {nom} ») ; un exercice ne nomme jamais d'élève" for n, nom in trouves],
+                                   tuple(n for n, _ in trouves if n))
+    return controle
+
+
+def contre_verifier(fournisseur: Fournisseur, instance: dict, statuts_n4: list[str] | None,
+                    numeros: list[int] | None = None, suivi: Suivi | None = None) -> list[dict] | None:
+    """La contre-vérification (IA1.4), si elle est activée (`generation.contre_verification`, oui par défaut)."""
+    if fournisseur.nom == "maquette" or not config.charger()["generation"].get("contre_verification", True):
+        return None  # la maquette n'a pas de modèle à qui reposer la question
+    verdicts = contre_verification.verifier(fournisseur, instance, statuts_n4, numeros, suivi)
+    desaccords = [v["numero"] for v in verdicts if v.get("accord") is False]
+    if desaccords:
+        print(f"→ contre-vérification : réponse non retrouvée pour {_enumerer(desaccords)}", flush=True)
+    return verdicts
+
+
+CONTRE_VERIFIER = contre_verifier  # l'original (les tests remplacent `contre_verifier`)
+
+
 def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = None, mode: str = "auto",
-            graine: int | None = None, suivi: Suivi | None = None) -> dict:
+            graine: int | None = None, suivi: Suivi | None = None, noms_proteges=()) -> dict:
     """Génère l'exercice, puis reprend les questions refusées par N3 ou N4 sans regénérer les autres.
 
     La reprise prolonge la conversation : le modèle revoit sa réponse, lit les messages de la validation et
@@ -374,9 +415,13 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
 
     `mode` : « auto » confie au générateur procédural les demandes qu'il couvre, « ia » ne passe jamais par lui,
     « procedural » l'exige. `graine` rend un exercice procédural reproductible. `suivi` reçoit les étapes de la
-    génération (interface enseignant).
+    génération (interface enseignant). `noms_proteges` : les noms des élèves de l'enseignant (prénom, nom), qui ne
+    doivent apparaître ni dans la demande ni dans l'exercice ; ils ne sont jamais envoyés au modèle.
+
+    Sécurité (plan IA, IA1) : la demande est d'abord nettoyée et contrôlée (lève securite.DemandeRefusee) ; après
+    validation, la contre-vérification repose au modèle les questions que N4 n'a pas vérifiées.
     """
-    demande = completer_demande(demande)
+    demande = completer_demande(securite.controler_demande(demande, noms_proteges))
     notion = procedural.aiguiller(demande) if mode != "ia" and type_ == "qcm" else None
     if mode == "procedural" and notion is None:
         raise AucunGenerateur(f"aucun générateur procédural ne couvre cette demande (disponibles : "
@@ -392,7 +437,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     messages = construire_messages(type_exo, demande)
 
     print(f"→ génération par {fournisseur.nom} ({fournisseur.modele})… cela peut prendre plusieurs minutes", flush=True)
-    etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, _Etat(), suivi)
+    etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, _Etat(), suivi, sans_noms(noms_proteges))
 
     if etat.defauts is not None:
         # on garde la réponse fautive : c'est elle qu'il faut regarder pour corriger le prompt, et elle
@@ -407,6 +452,9 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         raise etat.defauts
 
     instance = etat.instance
+    debut = time.monotonic()
+    verdicts = contre_verifier(fournisseur, instance, etat.bilan_n4.get("n4_questions"), suivi=suivi)
+    duree_cv = round(time.monotonic() - debut, 1)
     instance["meta"] = {
         "id": identifiant(type_, instance),
         "fournisseur": fournisseur.nom,
@@ -424,6 +472,9 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         "prompt_origine": demande.get("demande_enseignant") or demande,
         "demande": demande,
     }
+    if verdicts is not None:
+        instance["meta"]["contre_verification"] = verdicts
+        instance["meta"]["contre_verification_s"] = duree_cv
     if programme := programme_de(demande):
         instance["meta"]["programme"] = programme
     return instance
@@ -537,7 +588,7 @@ def _demande_d_origine(instance: dict) -> dict:
 
 
 def regenerer_question(instance: dict, numero: int, motif: str | None = None, nom_fournisseur: str | None = None,
-                       suivi: Suivi | None = None) -> dict:
+                       suivi: Suivi | None = None, noms_proteges=()) -> dict:
     """Remplace la question `numero` (à partir de 1) à la demande de l'enseignant, sans toucher aux autres.
 
     Exercice écrit par le modèle : la conversation de la génération est reconstituée (même demande, l'exercice
@@ -551,7 +602,8 @@ def regenerer_question(instance: dict, numero: int, motif: str | None = None, no
     questions = instance.get("questions") or []
     if not 1 <= numero <= len(questions):
         raise ValueError(f"question {numero} inexistante : l'exercice en compte {len(questions)}")
-    motif = (motif or "").strip()[:200] or None
+    motif = (securite.nettoyer(motif) or "")[:200] or None
+    securite.controler_texte(motif, noms_proteges)  # lève securite.DemandeRefusee : le motif va aussi au modèle
     meta = copy.deepcopy(instance.get("meta") or {})
     ancienne = questions[numero - 1]
     debut = time.monotonic()
@@ -559,7 +611,12 @@ def regenerer_question(instance: dict, numero: int, motif: str | None = None, no
     if meta.get("origine") == "procedural":
         nouvelle, trace = _retirer_question(instance, numero, meta, valider_fond, suivi)
     else:
-        nouvelle, trace = _reecrire_question(instance, numero, motif, nom_fournisseur, valider_fond, suivi)
+        nouvelle, trace = _reecrire_question(instance, numero, motif, nom_fournisseur, valider_fond, suivi,
+                                             noms_proteges)
+        bilan = controler(nouvelle)
+        if (verdicts := contre_verifier(trace.pop("fournisseur_objet"), nouvelle, bilan["n4_questions"], [numero],
+                                        suivi)) is not None:
+            meta["contre_verification"] = contre_verification.fusionner(meta.get("contre_verification"), verdicts)
     meta.setdefault("regenerations", []).append({
         "question": numero, "date": datetime.now().isoformat(timespec="seconds"), "motif": motif,
         "duree_s": round(time.monotonic() - debut, 1), "ancienne": ancienne, **trace})
@@ -573,7 +630,7 @@ def regenerer_question(instance: dict, numero: int, motif: str | None = None, no
 
 
 def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fournisseur: str | None,
-                       valider_fond: Callable, suivi: Suivi | None) -> tuple[dict, dict]:
+                       valider_fond: Callable, suivi: Suivi | None, noms_proteges=()) -> tuple[dict, dict]:
     demande = _demande_d_origine(instance)
     type_exo = registre.charger(instance.get("type", "qcm"))
     schema = schema_de_sortie(type_exo.schema, demande)
@@ -587,11 +644,15 @@ def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fourn
     tentatives_max = max(1, int(config.charger()["generation"].get("tentatives_max", 1)))
     ancienne = n3_pedagogie.normaliser(instance["questions"][numero - 1]["enonce"])
 
+    noms = sans_noms(noms_proteges)
+
     def differente(candidate: dict) -> None:
         # le modèle peut récrire à l'identique la question que l'enseignant veut voir partir
         if n3_pedagogie.normaliser(candidate["questions"][numero - 1]["enonce"]) == ancienne:
             raise ErreurValidation("N3", [f"question {numero} : c'est la question que l'enseignant a demandé de "
                                           "remplacer ; écris une question différente"], (numero,))
+        if noms is not None:
+            noms(candidate)
 
     print(f"→ régénération de la question {numero} par {fournisseur.nom} ({fournisseur.modele})…", flush=True)
     etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, etat, suivi, differente, valider_fond)
@@ -603,7 +664,7 @@ def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fourn
                                         f"tentative(s)"] + erreurs, (numero,))
     trace = {"origine": "modele", "fournisseur": fournisseur.nom, "modele": fournisseur.modele,
              "machine": machine.decrire(), "tentatives": etat.tentative, "appels": etat.appels,
-             "reprises": etat.reprises}
+             "reprises": etat.reprises, "fournisseur_objet": fournisseur}  # retiré avant d'enregistrer la trace
     return etat.instance, trace
 
 

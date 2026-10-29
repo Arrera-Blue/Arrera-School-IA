@@ -21,6 +21,7 @@
     tentative_annulee: "Exercice d'un élève annulé", tentative_retablie: "Exercice d'un élève rétabli",
     groupe_cree: "Groupe créé", groupe_modifie: "Groupe modifié", groupe_supprime: "Groupe supprimé",
     propositions_validees: "Exercices à travailler validés", proposition_retiree: "Exercice à travailler retiré",
+    demande_refusee: "Demande refusée (sécurité de l'IA)",
   };
   const INTERVALLE_MS = 1000;
   const ATTENTE_RECHERCHE_MS = 250;

@@ -15,6 +15,14 @@ def charger(nom: str) -> dict:
     return json.loads((banc_ia.BANCS / nom).read_text(encoding="utf-8"))
 
 
+def test_le_banc_de_controle_20_detournements_et_20_demandes_normales():
+    demandes = charger("attaque_controle.json")["demandes"]
+    assert len({d["cle"] for d in demandes}) == len(demandes) == 40
+    assert sum(d["attendu"] == "bloquee" for d in demandes) == 20
+    assert all(d["matiere"] in MATIERES and d["niveau"] in NIVEAUX for d in demandes)
+    assert not {d["cle"] for d in demandes} & {d["cle"] for d in charger("attaque.json")["demandes"]}
+
+
 def test_le_banc_d_attaque_30_detournements_et_30_demandes_normales():
     demandes = charger("attaque.json")["demandes"]
     assert len({d["cle"] for d in demandes}) == len(demandes) == 60
@@ -74,7 +82,14 @@ def test_le_bilan_d_un_banc_d_attaque(tmp_path):
     (tmp_path / "verdicts.json").write_text(json.dumps({"a01": {"verdict": "bloquee"}, "a02": {"verdict": "reussie"},
                                                         "l01": {"verdict": "ok"}}), encoding="utf-8")
     assert banc_ia.bilan(tmp_path) == {"detournements": 2, "bloques": 1, "demandes_normales": 2, "faux_refus": 0,
-                                       "hors_sujet": 0, "sans_verdict": 1}
+                                       "hors_sujet": 0, "refusees": 0, "sans_verdict": 1}
+    # une demande refusée par la sécurité de l'IA (IA1) a son verdict automatique
+    (tmp_path / "a03.json").write_text(json.dumps({"demande": {"cle": "a03", "attendu": "bloquee"},
+                                                   "refus": {"categorie": "injection"}, "verdict_auto": "bloquee"}))
+    (tmp_path / "l03.json").write_text(json.dumps({"demande": {"cle": "l03", "attendu": "exercice"},
+                                                   "refus": {"categorie": "hors_sujet"}, "verdict_auto": "faux_refus"}))
+    assert banc_ia.bilan(tmp_path) | {} == {"detournements": 3, "bloques": 2, "demandes_normales": 3, "faux_refus": 1,
+                                            "hors_sujet": 0, "refusees": 2, "sans_verdict": 1}
 
 
 def test_le_bilan_d_un_banc_de_generation(tmp_path):
@@ -85,3 +100,8 @@ def test_le_bilan_d_un_banc_de_generation(tmp_path):
                                                         "rome-6e-2": {"fausses": []}}), encoding="utf-8")
     assert banc_ia.bilan(tmp_path) == {"exercices": 3, "rejetes": 1, "questions": 6, "reponses_cochees_fausses": 1,
                                        "ambigues": 2}
+    # avec la contre-vérification : ses alertes face à la relecture
+    (tmp_path / "rome-6e-2.json").write_text(json.dumps({"instance": exercice("q1", "q2", "q3"), "alertes": [3]}))
+    (tmp_path / "rome-6e-1.json").write_text(json.dumps({"instance": exercice("q1", "q2", "q3"), "alertes": [2]}))
+    assert banc_ia.bilan(tmp_path) | {} == {"exercices": 3, "rejetes": 1, "questions": 6, "reponses_cochees_fausses": 1,
+                                            "ambigues": 2, "alertes": 2, "defauts_signales": 1, "fausses_alertes": 1}

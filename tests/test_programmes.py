@@ -185,7 +185,7 @@ def test_le_modele_lit_le_texte_officiel():
     demande = {"type": "qcm", "matiere": "maths", "niveau": "5e", "notion": "nombres relatifs",
                "attendu": "maths.5e.nombres-relatifs.07", "demande_enseignant": "des additions simples"}
     utilisateur = generation.construire_messages(type_exo, demande)[1]["content"]
-    lue = json.loads(utilisateur.split("Demande :\n")[1].split("\n\nRappel")[0])
+    lue = json.loads(utilisateur.split("Demande :\n")[1].split("\n\nPhrase de l'enseignant")[0])
     assert lue["attendu"] == {"libelle": "Additionner deux nombres décimaux relatifs.", "theme": "Nombres relatifs",
                               "classe": "5e", "programme": "programme officiel (BO n° 10 du 5 mars 2026)"}
     assert "attendu = « Additionner deux nombres décimaux relatifs. »" in utilisateur  # le rappel, en clair
