@@ -108,6 +108,13 @@ def libelle(ident: str) -> str:
     return f"Tout le thème : {t['theme']}" if t else ident
 
 
+def notion_de(ident: str, longueur: int = 120) -> str:
+    """La notion d'un exercice qui vise `ident` sans notion écrite : le libellé de l'attendu ou le nom du thème, coupé
+    à la longueur permise par le schéma."""
+    texte = libelle(ident).removeprefix("Tout le thème : ")
+    return texte if len(texte) <= longueur else texte[:longueur - 3].rsplit(" ", 1)[0] + "…"
+
+
 def couvre(cible: str, ident: str) -> bool:
     """`ident` (un attendu ou un thème) relève-t-il de `cible` (un attendu ou un thème) ?"""
     return ident == cible or ident.startswith(cible + ".") or cible.startswith(ident + ".")
