@@ -25,7 +25,7 @@ from datetime import datetime
 from pathlib import Path
 
 from generateur import programmes
-from generateur.moteur import config, contre_verification, registre, rendu
+from generateur.moteur import ancrage, config, contre_verification, registre, rendu
 from generateur.moteur.validation import ErreurValidation, numero_de_question
 from generateur.moteur.validation.fond import controler, tolerant
 from generateur.moteur.validation.n2_schema import valider as valider_le_format
@@ -258,7 +258,9 @@ def relecture(instance: dict, fond: dict | None = None) -> dict:
     plus « à relire » : l'enseignant l'a écrite.
 
     La contre-vérification (plan IA, IA1.4), faite une fois à la génération, s'ajoute aux avertissements : une question
-    dont le modèle n'a pas retrouvé la réponse cochée est « à relire », tant qu'elle n'a pas changé."""
+    dont le modèle n'a pas retrouvé la réponse cochée est « à relire », tant qu'elle n'a pas changé. Un exercice écrit à
+    partir des cours de l'enseignant (IA2) : chaque question montre sa source (cours, page, extrait), et une source qui
+    ne justifie pas la réponse cochée s'ajoute aux avertissements."""
     meta = instance.get("meta") or {}
     fond = fond or controler(instance)
     procedural = meta.get("origine") == "procedural"
@@ -279,6 +281,10 @@ def relecture(instance: dict, fond: dict | None = None) -> dict:
     desaccords = contre_verification.alertes(instance)
     for n, message in desaccords.items():
         par_question.setdefault(n, []).append(message)
+    non_ancrees = ancrage.alertes(instance)
+    for n, message in non_ancrees.items():
+        par_question.setdefault(n, []).append(message)
+    sources = ancrage.sources(instance)
     questions = []
     for n, _ in enumerate(instance.get("questions") or [], start=1):
         origine = origines[n - 1] if origines and n <= len(origines) else {}
@@ -297,9 +303,10 @@ def relecture(instance: dict, fond: dict | None = None) -> dict:
             "avertissements": par_question.get(n, []),
             "regeneree": derniers.get(n) == "regeneration",
             "modifiee": modifiee,
+            "source": sources.get(n),
         })
     return {"questions": questions, "avertissements": generaux, "erreurs": erreurs_generales,
             "procedural": procedural, "valide": not fond["erreurs"],
             "a_corriger": sorted(erreurs), "niveau": fond["niveau"],
             "a_relire": sum(q["n4"] == "a_relire" and q["calcul"] == "modele" for q in questions),
-            "contre_verification": sorted(desaccords)}
+            "contre_verification": sorted(desaccords), "ancrage": sorted(non_ancrees)}

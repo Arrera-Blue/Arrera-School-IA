@@ -1,0 +1,16 @@
+Les fractions (6e)
+
+1. Qu'est-ce qu'une fraction ?
+Une fraction est un nombre qui s'écrit a/b, où a et b sont des nombres entiers et où b n'est jamais égal à zéro. Le nombre a, écrit au-dessus du trait de fraction, s'appelle le numérateur. Le nombre b, écrit en dessous, s'appelle le dénominateur. La fraction a/b est le nombre qui, multiplié par b, donne a : c'est le quotient de a par b. Par exemple, 3/4 se lit « trois quarts » et 3/4 = 3 ÷ 4 = 0,75. Une fraction peut aussi représenter un partage : si l'on coupe une pizza en 8 parts égales et que l'on en mange 3, on a mangé 3/8 de la pizza. Le dénominateur dit en combien de parts égales on partage l'unité, le numérateur combien de parts on prend.
+
+2. Placer une fraction sur une demi-droite graduée
+Pour placer 3/4 sur une demi-droite graduée, on partage l'unité, c'est-à-dire le segment entre 0 et 1, en 4 parts égales, puis on compte 3 parts à partir de 0. Une fraction dont le numérateur est plus petit que le dénominateur est comprise entre 0 et 1. Une fraction dont le numérateur est plus grand que le dénominateur, comme 7/4, est plus grande que 1 : 7/4 = 1 + 3/4.
+
+3. Fractions égales
+On ne change pas une fraction quand on multiplie ou que l'on divise son numérateur et son dénominateur par un même nombre non nul. Ainsi 3/4 = 6/8 = 9/12 et 10/15 = 2/3. Simplifier une fraction, c'est écrire une fraction égale avec des nombres plus petits : on divise le numérateur et le dénominateur par un diviseur commun. Pour simplifier 12/18, on divise par 6 et on obtient 2/3. Une fraction qu'on ne peut plus simplifier est dite irréductible.
+
+4. Comparer des fractions
+Quand deux fractions ont le même dénominateur, la plus grande est celle qui a le plus grand numérateur : 5/7 est plus grande que 3/7. Quand les dénominateurs sont différents, on écrit d'abord les deux fractions avec le même dénominateur : pour comparer 2/3 et 3/4, on écrit 2/3 = 8/12 et 3/4 = 9/12, donc 2/3 est plus petite que 3/4. Une fraction est plus grande que 1 quand son numérateur est plus grand que son dénominateur.
+
+5. Prendre une fraction d'une quantité
+Prendre les 3/4 de 20, c'est partager 20 en 4 parts égales puis prendre 3 parts : 20 ÷ 4 = 5, puis 5 × 3 = 15. On peut aussi calculer 3 × 20 ÷ 4 = 60 ÷ 4 = 15. Exemple : dans une classe de 24 élèves, les 2/3 sont demi-pensionnaires ; cela fait 24 ÷ 3 × 2 = 16 élèves.

@@ -1,0 +1,165 @@
+{
+ "description": "Banc de la recherche dans les cours (plan IA, IA2.4) : 4 cours fictifs (bancs/cours/), 20 demandes ; pour chacune, le cours attendu et un mot (forme sans accents) qui doit être dans le passage trouvé. Mesure : le bon passage dans les 3 premiers (rappel@3 ; le plan demande au moins 80 %, sinon une recherche par le sens) et en premier (rappel@1). r19 et r20 reformulent sans les mots du cours (« débuts », « gens de la campagne »).",
+ "demandes": [
+  {
+   "cle": "r01",
+   "demande": "un QCM sur le numérateur et le dénominateur en 6e",
+   "cours": "fractions-6e.txt",
+   "dans_le_passage": "denominateur",
+   "matiere": "maths",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r02",
+   "demande": "placer une fraction sur une demi-droite graduée",
+   "cours": "fractions-6e.txt",
+   "dans_le_passage": "demi-droite",
+   "matiere": "maths",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r03",
+   "demande": "simplifier une fraction, fraction irréductible",
+   "cours": "fractions-6e.txt",
+   "dans_le_passage": "irreductible",
+   "matiere": "maths",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r04",
+   "demande": "un QCM pour comparer deux fractions",
+   "cours": "fractions-6e.txt",
+   "dans_le_passage": "comparer",
+   "matiere": "maths",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r05",
+   "demande": "calculer une fraction d'une quantité",
+   "cours": "fractions-6e.txt",
+   "dans_le_passage": "d'une quantite",
+   "matiere": "maths",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r06",
+   "demande": "la légende de Romulus et Remus",
+   "cours": "rome-6e.txt",
+   "dans_le_passage": "louve",
+   "matiere": "histoire-geo",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r07",
+   "demande": "la fondation de Rome en 753 avant J.-C.",
+   "cours": "rome-6e.txt",
+   "dans_le_passage": "753",
+   "matiere": "histoire-geo",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r08",
+   "demande": "le site de Rome au bord du Tibre : ce que montrent les fouilles",
+   "cours": "rome-6e.txt",
+   "dans_le_passage": "fouilles",
+   "matiere": "histoire-geo",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r09",
+   "demande": "les consuls et le Sénat sous la République romaine",
+   "cours": "rome-6e.txt",
+   "dans_le_passage": "consuls",
+   "matiere": "histoire-geo",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r10",
+   "demande": "Auguste, premier empereur romain",
+   "cours": "rome-6e.txt",
+   "dans_le_passage": "premier empereur",
+   "matiere": "histoire-geo",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r11",
+   "demande": "les dieux des Romains",
+   "cours": "rome-6e.txt",
+   "dans_le_passage": "polytheistes",
+   "matiere": "histoire-geo",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r12",
+   "demande": "la cérémonie de l'hommage entre le vassal et son suzerain",
+   "cours": "feodalite-5e.txt",
+   "dans_le_passage": "hommage",
+   "matiere": "histoire-geo",
+   "niveau": "5e"
+  },
+  {
+   "cle": "r13",
+   "demande": "le château fort et le donjon",
+   "cours": "feodalite-5e.txt",
+   "dans_le_passage": "donjon",
+   "matiere": "histoire-geo",
+   "niveau": "5e"
+  },
+  {
+   "cle": "r14",
+   "demande": "les serfs et les corvées",
+   "cours": "feodalite-5e.txt",
+   "dans_le_passage": "corvees",
+   "matiere": "histoire-geo",
+   "niveau": "5e"
+  },
+  {
+   "cle": "r15",
+   "demande": "les trois ordres : ceux qui prient, combattent et travaillent",
+   "cours": "feodalite-5e.txt",
+   "dans_le_passage": "trois ordres",
+   "matiere": "histoire-geo",
+   "niveau": "5e"
+  },
+  {
+   "cle": "r16",
+   "demande": "l'accord du participe passé avec l'auxiliaire être",
+   "cours": "participe-passe-5e.txt",
+   "dans_le_passage": "auxiliaire etre",
+   "matiere": "francais",
+   "niveau": "5e"
+  },
+  {
+   "cle": "r17",
+   "demande": "l'accord avec avoir quand le COD est placé avant le verbe",
+   "cours": "participe-passe-5e.txt",
+   "dans_le_passage": "place avant",
+   "matiere": "francais",
+   "niveau": "5e"
+  },
+  {
+   "cle": "r18",
+   "demande": "les erreurs fréquentes d'accord du participe passé",
+   "cours": "participe-passe-5e.txt",
+   "dans_le_passage": "erreurs frequentes",
+   "matiere": "francais",
+   "niveau": "5e"
+  },
+  {
+   "cle": "r19",
+   "demande": "les débuts de la ville de Rome",
+   "cours": "rome-6e.txt",
+   "dans_le_passage": "fondee",
+   "matiere": "histoire-geo",
+   "niveau": "6e"
+  },
+  {
+   "cle": "r20",
+   "demande": "la vie des gens de la campagne au Moyen Âge",
+   "cours": "feodalite-5e.txt",
+   "dans_le_passage": "paysans",
+   "matiere": "histoire-geo",
+   "niveau": "5e"
+  }
+ ]
+}

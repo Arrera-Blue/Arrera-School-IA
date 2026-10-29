@@ -105,3 +105,13 @@ def test_le_bilan_d_un_banc_de_generation(tmp_path):
     (tmp_path / "rome-6e-1.json").write_text(json.dumps({"instance": exercice("q1", "q2", "q3"), "alertes": [2]}))
     assert banc_ia.bilan(tmp_path) | {} == {"exercices": 3, "rejetes": 1, "questions": 6, "reponses_cochees_fausses": 1,
                                             "ambigues": 2, "alertes": 2, "defauts_signales": 1, "fausses_alertes": 1}
+
+
+def test_le_banc_de_la_recherche_dans_les_cours(tmp_path):
+    """Plan IA, IA2.4 : le bon passage dans les 3 premiers pour au moins 80 % des demandes (sinon, une recherche par
+    le sens) ; sans le modèle, rejoué à chaque fois comme garde-fou."""
+    demandes = charger("recherche.json")["demandes"]
+    assert len(demandes) == 20 and {d["cours"] for d in demandes} == set(banc_ia.COURS)
+    assert all((banc_ia.BANCS / "cours" / nom).exists() for nom in banc_ia.COURS)
+    bilan = banc_ia.recherche(tmp_path)
+    assert bilan["rappel_3"] >= 0.8 and bilan["tous_les_cours_rappel_3"] >= 0.8

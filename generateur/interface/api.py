@@ -63,9 +63,18 @@ application séparée (generateur/classe/) :
     POST /api/eleves/{id}/debloquer                  après 5 codes faux
     GET  /api/eleves/bloques                         les élèves bloqués, pour « À faire »
     GET  /api/serveur-classe                         le serveur de classe répond-il ? son adresse
+
+Les cours des enseignants (plan IA, IA2) : le modèle les lit pour générer ; seul leur texte est gardé ; chacun ne
+voit que les siens :
+    GET  /api/cours · POST /api/cours                ses cours · en déposer un (PDF avec du texte, DOCX, ODT, TXT ; le
+                                                     fichier en base64 dans le JSON, comme toute requête)
+    GET  /api/cours/{id} · DELETE /api/cours/{id}    le texte extrait, passage par passage · le retirer
+    POST /api/generations avec « cours » : true      générer à partir de ses cours (les passages les plus proches)
 """
 
 import argparse
+import base64
+import binascii
 import sqlite3
 import threading
 import time
@@ -84,6 +93,7 @@ from starlette.concurrency import run_in_threadpool
 from generateur import procedural, programmes
 from generateur.classe import serveur as serveur_classe
 from generateur.donnees import classes, codes, comptes, journal, publications, sessions, suivi
+from generateur.donnees import cours as cours_enseignant
 from generateur.donnees.base import Base
 from generateur.interface.taches import DejaFinie, File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre, securite
@@ -127,11 +137,21 @@ class Demande(BaseModel):
     attendu: str | None = Field(None, max_length=80, pattern=r"^[a-z0-9.-]+$")
     mode: Literal["auto", "ia", "procedural"] = "auto"
     fournisseur: Literal["llamacpp", "ollama", "maquette"] | None = None
+    # plan IA, IA2.5 : « M'appuyer sur mes cours » ; tous ses cours, ou ceux-ci seulement
+    cours: bool = False
+    cours_ids: list[int] | None = Field(None, max_length=50)
 
 
 class Decision(BaseModel):
     decision: Literal["accepter", "rejeter"]
     motif: str | None = Field(None, max_length=500)
+
+
+class NouveauCours(BaseModel):
+    nom: str = Field(min_length=1, max_length=200)
+    contenu: str = Field(max_length=28_000_000)  # le fichier en base64 (20 Mo au plus une fois décodé)
+    matiere: str | None = Field(None, max_length=40)
+    niveau: str | None = Field(None, max_length=10)
 
 
 class Regeneration(BaseModel):
@@ -720,6 +740,39 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
     def etat_serveur_classe():
         return serveur_classe.etat()
 
+    # --- les cours des enseignants (plan IA, IA2) ---------------------------------------------------------
+
+    @app.get("/api/cours")
+    def lister_cours(request: Request):
+        return {"cours": cours_enseignant.lister(base, request.state.compte), "formats": ["pdf", "docx", "odt", "txt"],
+                "taille_max_mo": 20}
+
+    @app.post("/api/cours", status_code=201)
+    def deposer_cours(corps: NouveauCours, request: Request):
+        proprietes = registre.charger("qcm").schema.get("properties", {})
+        for champ in ("matiere", "niveau"):
+            valeur = getattr(corps, champ)
+            if valeur and valeur not in proprietes.get(champ, {}).get("enum", []):
+                raise HTTPException(422, f"{champ} « {valeur} » inconnue")
+        try:
+            contenu = base64.b64decode(corps.contenu, validate=True)
+        except (binascii.Error, ValueError):
+            raise HTTPException(422, "le fichier n'a pas été transmis correctement (base64 attendu)") from None
+        try:
+            return {"cours": cours_enseignant.deposer(base, request.state.compte, corps.nom, contenu, corps.matiere,
+                                                      corps.niveau)}
+        except cours_enseignant.CoursRefuse as e:
+            raise HTTPException(422, str(e)) from None
+
+    @app.get("/api/cours/{cours_id}")
+    def lire_cours(cours_id: int, request: Request):
+        return {"cours": faire(cours_enseignant.lire, base, request.state.compte, cours_id)}
+
+    @app.delete("/api/cours/{cours_id}")
+    def retirer_cours(cours_id: int, request: Request):
+        faire(cours_enseignant.retirer, base, request.state.compte, cours_id)
+        return {"retire": cours_id}
+
     # --- génération et banque (phase 3) -------------------------------------------------------------
 
     @app.get("/api/types")
@@ -784,10 +837,20 @@ def creer_application(file: File | None = None, base: Base | None = None) -> Fas
             refuser_demande(request.state.compte, e.categorie, e.message)
         sujet = demande.get("notion") or demande.get("demande_enseignant", "")[:60]
         description = f"{corps.type.upper()} — {sujet}" + (f" ({demande['niveau']})" if demande.get("niveau") else "")
+        passages = None
+        if corps.cours:  # plan IA, IA2.5 : les passages de ses cours les plus proches de la demande
+            cherche = " ".join(filter(None, [demande.get("notion"), demande.get("demande_enseignant"),
+                                             programmes.libelle(demande["attendu"]) if demande.get("attendu") else None]))
+            passages = cours_enseignant.chercher(base, request.state.compte, cherche, corps.cours_ids,
+                                                 demande.get("matiere"), demande.get("niveau"))
+            if not passages:
+                raise HTTPException(422, "aucun passage de vos cours ne correspond à cette demande : déposez le cours "
+                                         "(rubrique « Mes cours »), ou décochez « M'appuyer sur mes cours »")
+            description += " — d'après vos cours"
 
         def executer(suivi):
             instance = generation.generer(demande, corps.type, corps.fournisseur, corps.mode, suivi=suivi,
-                                          noms_proteges=noms)
+                                          noms_proteges=noms, passages=passages)
             banque.enregistrer(instance)
             return {"exercice": instance["meta"]["id"]}
 
