@@ -26,6 +26,7 @@ generation:
   tentatives_max: 3               # appels au modèle : la génération, puis 2 reprises des seules questions refusées
   temperature: 0.5
   habillage_min: 2                # générateur procédural : le modèle réécrit les énoncés s'il y en a au moins 2 à réécrire (≈ 60 s par appel)
+  contre_verification: true       # plan IA, IA1.4 : le modèle répond à chaque question sans voir la réponse (~2,5 s par question, hors calculs vérifiés par N4)
 interface:                        # phase 3 : python -m generateur.interface.api → http://127.0.0.1:8000
   port: 8000                      # l'adresse est toujours 127.0.0.1, sans réglage possible ; connexion obligatoire (E1)
   analyse_par_modele: true        # le modèle complète l'analyse d'une phrase quand les règles n'ont pas trouvé la matière ou la notion

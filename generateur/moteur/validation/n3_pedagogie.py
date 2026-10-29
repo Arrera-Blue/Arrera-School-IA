@@ -7,16 +7,22 @@ Deux gravités :
   à la même place…) → l'exercice passe, marqué « à relire » pour l'enseignant.
 
 Ce que N3 ne fait pas : vérifier qu'un calcul est juste. C'est le rôle de N4.
+
+N3 contrôle aussi la sortie du modèle pour la sécurité de l'IA (plan IA, IA1.3 : moteur/securite.py) : jeton spécial
+du modèle, mot grossier, phrase recopiée du prompt système (bloquants) ; nom écrit comme dans une liste d'élèves
+(avertissement).
 """
 
 import math
 import re
+from functools import lru_cache
 import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from fractions import Fraction
 
+from generateur.moteur import securite
 from generateur.moteur.validation import ErreurValidation
 
 
@@ -443,11 +449,18 @@ TELEPHONE = re.compile(r"(?:\+33\s?|\b0)[1-9](?:[\s.-]?\d{2}){4}\b")
 ADRESSE_WEB = re.compile(r"https?://|\bwww\.", re.IGNORECASE)
 
 
-def donnees_personnelles(instance: dict) -> list[Constat]:
-    """Adresses électroniques, numéros de téléphone et liens : interdits, même inventés."""
-    textes = [(None, instance.get("titre", "")), (None, instance.get("consigne") or "")]
+def _textes(instance: dict) -> list[tuple[int | None, str]]:
+    """Tous les textes de l'exercice, avec le numéro de leur question (None : titre, notion, consigne)."""
+    textes = [(None, instance.get("titre") or ""), (None, instance.get("notion") or ""),
+              (None, instance.get("consigne") or "")]
     for n, q in enumerate(instance["questions"], start=1):
         textes += [(n, q["enonce"]), (n, q["explication"])] + [(n, p) for p in q["propositions"]]
+    return textes
+
+
+def donnees_personnelles(instance: dict) -> list[Constat]:
+    """Adresses électroniques, numéros de téléphone et liens : interdits, même inventés."""
+    textes = _textes(instance)
     constats = []
     for n, texte in textes:
         for motif, nature in ((COURRIEL, "une adresse électronique"), (TELEPHONE, "un numéro de téléphone"),
@@ -455,6 +468,43 @@ def donnees_personnelles(instance: dict) -> list[Constat]:
             if motif.search(texte):
                 ou = f"question {n}" if n else "exercice"
                 constats.append(Constat(f"{ou} : contient {nature}, interdit dans un exercice", True, n))
+    return constats
+
+
+# --- sécurité de la sortie (plan IA, IA1.3) -------------------------------------------------------------
+
+FUITE_MOTS = 10  # une suite de 10 mots du prompt système dans l'exercice : il le recopie (banc d'IA0, a03)
+
+
+@lru_cache(maxsize=8)
+def _suites_du_prompt(type_: str) -> frozenset[tuple[str, ...]]:
+    from generateur.moteur import registre  # pas au chargement : registre importe la validation
+
+    try:
+        mots = re.findall(r"\w+", securite.forme(registre.charger(type_).prompt))
+    except Exception:  # un type inconnu (tests) : rien à comparer
+        return frozenset()
+    return frozenset(tuple(mots[i:i + FUITE_MOTS]) for i in range(len(mots) - FUITE_MOTS + 1))
+
+
+def securite_de_la_sortie(instance: dict) -> list[Constat]:
+    suites = _suites_du_prompt(instance.get("type", "qcm"))
+    constats, deja = [], set()
+    for n, texte in _textes(instance):
+        ou = f"question {n}" if n else "exercice"
+        if jeton := securite.jetons(texte):
+            constats.append(Constat(f"{ou} : contient un jeton spécial du modèle (« {jeton} »)", True, n))
+        if mot := securite.mots_grossiers(texte):
+            constats.append(Constat(f"{ou} : contient un mot grossier (« {mot} »), interdit dans un exercice", True, n))
+        mots = re.findall(r"\w+", securite.forme(texte))
+        if suites and (n, "fuite") not in deja and any(tuple(mots[i:i + FUITE_MOTS]) in suites
+                                                       for i in range(len(mots) - FUITE_MOTS + 1)):
+            deja.add((n, "fuite"))
+            constats.append(Constat(f"{ou} : recopie les consignes du modèle ; écris seulement l'exercice", True, n))
+        if (n, "nom") not in deja and (nom := securite.nom_ecrit_comme_un_eleve(texte)):
+            deja.add((n, "nom"))
+            constats.append(Constat(f"{ou} : contient un nom écrit comme dans une liste d'élèves (« {nom} ») : "
+                                    "vérifiez qu'il ne s'agit pas d'un élève", False, n))
     return constats
 
 
@@ -466,6 +516,7 @@ def verifier(instance: dict) -> list[Constat]:
     constats = [c for n, q in enumerate(questions, start=1) for regle in REGLES_PAR_QUESTION for c in regle(n, q)]
     constats += enonces_dupliques(questions)
     constats += donnees_personnelles(instance)
+    constats += securite_de_la_sortie(instance)
     constats += position_constante(questions) + toujours_la_plus_longue(questions)
     return sorted(constats, key=lambda c: c.question or 0)
 

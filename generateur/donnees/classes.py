@@ -288,6 +288,15 @@ def debloquer(base: Base, compte: dict, eleve_id: int) -> dict:
         return _vue_eleve(conn.execute("SELECT * FROM eleve WHERE id = ?", (eleve_id,)).fetchone())
 
 
+def noms_des_eleves(base: Base, compte: dict) -> list[tuple[str, str]]:
+    """(prénom, nom) de tous les élèves de l'enseignant : ils ne doivent apparaître ni dans une demande au modèle, ni
+    dans un exercice (plan IA, IA1). Ils ne quittent jamais le PC et ne sont jamais envoyés au modèle."""
+    with base.lire() as conn:
+        return [(l["prenom"], l["nom"]) for l in conn.execute(
+            "SELECT e.prenom, e.nom FROM eleve e JOIN classe c ON c.id = e.classe_id WHERE c.enseignant_id = ?",
+            (compte["id"],))]
+
+
 def bloques(base: Base, compte: dict) -> list[dict]:
     """Les élèves bloqués des classes (non archivées) de l'enseignant : « À faire », sur son accueil."""
     with base.lire() as conn:
