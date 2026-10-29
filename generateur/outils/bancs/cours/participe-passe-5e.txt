@@ -1,0 +1,10 @@
+L'accord du participe passé (5e)
+
+1. Le participe passé employé avec l'auxiliaire être
+Employé avec l'auxiliaire être, le participe passé s'accorde en genre et en nombre avec le sujet du verbe. Exemples : « Elle est partie. » « Ils sont arrivés. » « Les fleurs sont tombées. » Pour trouver l'accord, on cherche le sujet en posant la question « qui est-ce qui ? » devant le verbe, puis on regarde son genre (masculin ou féminin) et son nombre (singulier ou pluriel). « Les enfants sont partis » : le sujet « les enfants » est masculin pluriel, donc « partis » prend un s. Les verbes de mouvement comme aller, venir, partir, arriver, tomber, et les verbes pronominaux se conjuguent avec être aux temps composés. Le participe passé employé avec être à la voix passive s'accorde aussi avec le sujet : « Les lettres ont été envoyées. »
+
+2. Le participe passé employé avec l'auxiliaire avoir
+Employé avec l'auxiliaire avoir, le participe passé ne s'accorde jamais avec le sujet. « Elles ont mangé. » « Nous avons fini. » Il s'accorde avec le complément d'objet direct (COD) seulement si ce COD est placé avant le verbe. « J'ai cueilli des fleurs » : le COD « des fleurs » est placé après le verbe, le participe reste invariable. « Les fleurs que j'ai cueillies sont belles » : le COD « que », mis pour « les fleurs », est placé avant le verbe, donc « cueillies » s'accorde au féminin pluriel. « Je les ai vues » : le COD « les » est placé avant le verbe.
+
+3. Les erreurs fréquentes
+On n'accorde pas le participe passé employé avec avoir avec le sujet : on écrit « elles ont chanté » et non « elles ont chantées ». On vérifie toujours la place du COD : s'il n'y a pas de COD, ou s'il est placé après le verbe, le participe passé employé avec avoir ne change pas. Pour entendre l'accord, on peut remplacer le verbe par un verbe du troisième groupe : « la porte qu'il a ouverte », « la lettre qu'il a écrite ».

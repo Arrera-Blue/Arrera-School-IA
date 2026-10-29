@@ -89,6 +89,12 @@ INJECTION = [re.compile(m) for m in (
     r"\bregles (?:de contenu )?(?:sont )?desactivees\b", r"\bnouvelles regles\b",
     rf"\b(?:reponds?|ecris|write|answer|respond)\w*\s+{_MOT}{{0,3}}(?:en texte libre|autrement qu'en json|sans json|"
     r"pas en json|in plain text|not in json|without json)\b",
+    # un texte qui s'adresse à une IA : l'injection indirecte, cachée dans un document (banc des cours, 29/10)
+    r"\b(?:notes?|messages?|consignes?|instructions?|remarques?) (?:pour|a|au|aux|destinee?s? a) (?:une |l'|l )?"
+    r"(?:ia|intelligence artificielle|modele|assistant|chatgpt|gemma|llm)\b",
+    r"\bsi tu es (?:une|un) (?:ia|intelligence artificielle|modele|assistant|llm)\b",
+    r"\b(?:a|pour) (?:l'|l )?(?:ia|intelligence artificielle) qui (?:lit|lira|traite)\b",
+    r"\b(?:note|message) (?:to|for) (?:the )?(?:ai|assistant|model|llm)\b", r"\bif you are an? (?:ai|language model)\b",
 )]
 INJECTION_CASSE = re.compile(r"\bDAN\b")  # « Do Anything Now » : en capitales seulement (Dan est un prénom)
 

@@ -5,6 +5,7 @@ attrs==26.1.0
 certifi==2026.7.22
 cffi==2.1.1
 click==8.5.0
+defusedxml==0.7.1  # lire le XML des cours DOCX et ODT sans entités externes (plan IA, IA2) ; licence PSF
 diskcache==5.6.3
 fastapi==0.141.1
 flatbuffers==25.12.19
@@ -31,6 +32,7 @@ pycparser==3.12
 pydantic==2.13.5
 pydantic_core==2.46.5
 Pygments==2.21.0
+pypdf==6.21.3  # lire le texte des cours en PDF (plan IA, IA2), dans un processus limité ; licence BSD-3
 pytest==9.1.1
 python-dotenv==1.2.3
 PyYAML==6.0.3

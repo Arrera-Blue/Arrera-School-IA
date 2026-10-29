@@ -31,7 +31,7 @@ def test_la_base_est_privee_en_wal_avec_les_cles_etrangeres(tmp_path):
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert [tuple(r) for r in conn.execute("SELECT numero, nom FROM migration")] == [(1, "001_comptes"),
                                                                                          (2, "002_classes"), (3, "003_suivi"),
-                                                                                         (4, "004_classe")]
+                                                                                         (4, "004_classe"), (5, "005_cours")]
 
 
 def test_une_base_existante_est_remise_en_600(tmp_path):
