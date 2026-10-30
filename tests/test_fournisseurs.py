@@ -1,6 +1,7 @@
 """Fournisseurs Ollama et llama-cpp-python, sans réseau ni modèle : ce qu'on envoie, ce qu'on garde."""
 
 import contextlib
+import hashlib
 import json
 import sys
 import types
@@ -81,11 +82,11 @@ def test_ollama_erreurs_lisibles(monkeypatch):
 class FauxLlama:
     charges = 0
 
-    def __init__(self, model_path, n_ctx, n_threads, verbose, swa_full=False):
+    def __init__(self, model_path, n_ctx, n_threads, verbose, swa_full=False, lora_path=None):
         self.verbose = verbose
         FauxLlama.charges += 1
         self.model_path, self.n_ctx, self.cache, self.recu = model_path, n_ctx, None, None
-        self.swa_full = swa_full
+        self.swa_full, self.lora_path = swa_full, lora_path
 
     def set_cache(self, cache):
         self.cache = cache
@@ -159,3 +160,34 @@ def test_llamacpp_options_transmises(faux_llama_cpp):
     assert next(iter(llamacpp._CHARGES.values())).swa_full is True
     with pytest.raises(ErreurFournisseur, match="option de llamacpp.options inconnue"):
         creer("llamacpp", {"modele": str(faux_llama_cpp), "cache": None, "options": {"inconnue": 1}}).generer([], {})
+
+
+def test_llamacpp_pose_l_adaptateur_et_le_decrit(faux_llama_cpp, tmp_path):
+    # plan IA, IA4.2 : l'adaptateur LoRA passe à llama.cpp (lora_path) ; chaque exercice note lequel (nom, empreinte)
+    adaptateur = tmp_path / "20261031-0900.gguf"
+    adaptateur.write_bytes(b"GGUF adaptateur")
+    base = creer("llamacpp", {"modele": str(faux_llama_cpp), "cache": None})
+    adapte = creer("llamacpp", {"modele": str(faux_llama_cpp), "cache": None, "adaptateur": str(adaptateur)})
+    assert base.adaptateur is None
+    assert adapte.adaptateur == {"nom": "20261031-0900.gguf",
+                                 "sha256": hashlib.sha256(b"GGUF adaptateur").hexdigest()}
+    base.generer([], {})
+    adapte.generer([], {})
+    assert FauxLlama.charges == 2  # le modèle de base et le modèle adapté : deux chargements distincts
+    assert sorted(llm.lora_path or "" for llm in llamacpp._CHARGES.values()) == ["", str(adaptateur)]
+
+
+def test_llamacpp_adaptateur_absent(faux_llama_cpp, tmp_path):
+    with pytest.raises(ErreurFournisseur, match="adaptateur introuvable"):
+        creer("llamacpp", {"modele": str(faux_llama_cpp), "adaptateur": str(tmp_path / "absent.gguf")}).generer([], {})
+
+
+def test_llamacpp_un_cache_par_adaptateur(faux_llama_cpp, tmp_path):
+    # l'état du modèle après lecture du prompt dépend de l'adaptateur : jamais celui du modèle de base pour un autre
+    adaptateur = tmp_path / "a.gguf"
+    adaptateur.write_bytes(b"GGUF a")
+    f = creer("llamacpp", {"modele": str(faux_llama_cpp), "cache": str(tmp_path / "cache"), "adaptateur": str(adaptateur)})
+    f.generer([], {})
+    dossier = tmp_path / "cache" / f"adaptateur-{hashlib.sha256(b'GGUF a').hexdigest()[:16]}"
+    assert next(iter(llamacpp._CHARGES.values())).cache[1] == str(dossier)
+    assert (dossier.stat().st_mode & 0o777) == 0o700 and ((tmp_path / "cache").stat().st_mode & 0o777) == 0o700

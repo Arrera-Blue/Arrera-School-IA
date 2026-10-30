@@ -1,4 +1,4 @@
-"""python -m generateur.entrainement nuit | bilan | jeu (plan IA, IA3)."""
+"""python -m generateur.entrainement nuit | bilan | jeu (plan IA, IA3) | entrainer | convertir (IA4)."""
 
 import argparse
 import os
@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from generateur import entrainement
-from generateur.entrainement import bilan, jeu, nuit
+from generateur.entrainement import adaptateur, bilan, jeu, nuit
 from generateur.moteur import config
 
 
@@ -38,6 +38,17 @@ def main() -> None:
     j.add_argument("--part-procedurale", type=float, default=jeu.PART_PROCEDURALE, metavar="P",
                    help="part du jeu laissée aux exercices du générateur procédural non relus (défaut : un tiers)")
     j.add_argument("--graine", type=int, default=jeu.GRAINE)
+    e = sous.add_parser("entrainer", help="entraîner un adaptateur LoRA sur un jeu figé (mlx-lm) et l'écrire pour "
+                                          "llama.cpp (plan IA, IA4)")
+    e.add_argument("--jeu", type=Path, help="le dossier du jeu (défaut : le dernier fait)")
+    e.add_argument("--epoques", type=int, metavar="N", help="défaut : entrainement.epoques de config.yaml")
+    e.add_argument("--nom", help="défaut : la date et l'heure (AAAAMMJJ-HHMM)")
+    c = sous.add_parser("convertir", help="écrire pour llama.cpp (GGUF) un adaptateur de mlx-lm")
+    c.add_argument("dossier", type=Path, help="le dossier de l'adaptateur de mlx-lm (adapter_config.json, ses poids)")
+    c.add_argument("--poids", default=adaptateur.POIDS,
+                   help=f"un point d'étape à la place de l'adaptateur final (défaut : {adaptateur.POIDS})")
+    c.add_argument("--sortie", type=Path, help="défaut : à côté du dossier, <dossier>.gguf (<dossier>-<itération>.gguf "
+                                               "pour un point d'étape)")
     args = parser.parse_args()
 
     if args.commande == "nuit":
@@ -56,6 +67,27 @@ def main() -> None:
         print(f"Jeu de données : {sum(tailles.values())} exercices (entraînement {tailles['train']}, validation "
               f"{tailles['valid']}, test {tailles['test']}), {m['paires']} paire(s) avant → après, {m['a_eviter']} "
               f"exercice(s) à éviter, {len(m['ecartes'])} écarté(s).\nDossier : {dossier}\nFiche : {dossier / 'fiche.md'}")
+    elif args.commande == "entrainer":
+        _rester_eveille()
+        jeux = entrainement.dossier() / "jeux"
+        try:
+            jeu_ = args.jeu or adaptateur.dernier_jeu(jeux)
+            print(f"Entraînement sur {jeu_} ; jusqu'à ~19 Go de mémoire : fermer les autres applications.", flush=True)
+            b = adaptateur.entrainer(jeu_, config.chemin("adaptateurs"), args.epoques, args.nom)
+        except ValueError as erreur:
+            sys.exit(f"Erreur : {erreur}")
+        print(f"\nAdaptateur entraîné en {b['duree_s'] // 60} min ({b['epoques']} époque(s) sur {b['exemples']['train']} "
+              f"exercices) : {b['adaptateur']}\nPour s'en servir, dans config.yaml : llamacpp.adaptateur: "
+              f"\"{b['adaptateur']}\" (null : le modèle de base).")
+    elif args.commande == "convertir":
+        iteration = args.poids.split("_", 1)[0] if args.poids != adaptateur.POIDS else None
+        sortie = args.sortie or args.dossier.parent / f"{args.dossier.name}{'-' + iteration if iteration else ''}.gguf"
+        try:
+            r = adaptateur.convertir(args.dossier, sortie, args.poids)
+        except (ValueError, FileNotFoundError) as erreur:
+            sys.exit(f"Erreur : {erreur}")
+        print(f"{sortie} : {r['tenseurs']} tenseurs, rang {r['rang']}, alpha {r['alpha']:g}, "
+              f"{r['octets'] / 1e6:.1f} Mo.")
     else:
         texte = bilan.bilan(entrainement.chemins()["banque"], nuit.lire_journal(), config.chemin("banque"))
         print(texte)

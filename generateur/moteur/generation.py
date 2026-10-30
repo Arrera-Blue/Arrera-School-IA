@@ -234,6 +234,12 @@ def creer_fournisseur(nom: str | None = None) -> Fournisseur:
     return creer(nom, reglages)
 
 
+def _modele(fournisseur: Fournisseur) -> str:
+    """Le modèle, et l'adaptateur posé dessus s'il y en a un (plan IA, IA4) : qu'on voie avec quoi l'on génère."""
+    adaptateur = fournisseur.adaptateur
+    return f"{fournisseur.modele} + l'adaptateur {adaptateur['nom']}" if adaptateur else fournisseur.modele
+
+
 def _signaler(suivi: Suivi | None, **evenement) -> None:
     """Prévient l'interface (phase 3) : `evenement` porte au moins `etape` et un `message` lisible."""
     if suivi is not None:
@@ -489,7 +495,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     schema = schema_de_sortie(type_exo.schema, demande, len(passages or []))
     messages = construire_messages(type_exo, demande, passages)
 
-    print(f"→ génération par {fournisseur.nom} ({fournisseur.modele})… cela peut prendre plusieurs minutes", flush=True)
+    print(f"→ génération par {fournisseur.nom} ({_modele(fournisseur)})… cela peut prendre plusieurs minutes", flush=True)
     etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, _Etat(), suivi, sans_noms(noms_proteges))
 
     if etat.defauts is not None:
@@ -514,6 +520,7 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
         "id": identifiant(type_, instance),
         "fournisseur": fournisseur.nom,
         "modele": fournisseur.modele,
+        "adaptateur": fournisseur.adaptateur,
         "machine": machine.decrire(),
         "date": datetime.now().isoformat(timespec="seconds"),
         "duree_s": round(etat.duree_totale, 1),
@@ -613,6 +620,7 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
         "id": identifiant("qcm", instance),
         "fournisseur": fournisseur.nom if appels else "procedural",
         "modele": fournisseur.modele if appels else None,
+        "adaptateur": fournisseur.adaptateur if appels else None,
         "machine": machine.decrire(),
         "date": datetime.now().isoformat(timespec="seconds"),
         "duree_s": round(time.monotonic() - debut, 1),
@@ -728,7 +736,7 @@ def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fourn
         if noms is not None:
             noms(candidate)
 
-    print(f"→ régénération de la question {numero} par {fournisseur.nom} ({fournisseur.modele})…", flush=True)
+    print(f"→ régénération de la question {numero} par {fournisseur.nom} ({_modele(fournisseur)})…", flush=True)
     etat = _generer_et_reprendre(fournisseur, messages, schema, tentatives_max, etat, suivi, differente, valider_fond)
     if etat.defauts is not None:
         # jamais remplacée : le dernier défaut est celui de la réponse illisible, ou celui de N3/N4
@@ -737,6 +745,7 @@ def _reecrire_question(instance: dict, numero: int, motif: str | None, nom_fourn
         raise ErreurValidation(niveau, [f"la question {numero} n'a pas pu être remplacée après {etat.tentative} "
                                         f"tentative(s)"] + erreurs, (numero,))
     trace = {"origine": "modele", "fournisseur": fournisseur.nom, "modele": fournisseur.modele,
+             "adaptateur": fournisseur.adaptateur,
              "machine": machine.decrire(), "tentatives": etat.tentative, "appels": etat.appels,
              "reprises": etat.reprises, "fournisseur_objet": fournisseur}  # retiré avant d'enregistrer la trace
     return etat.instance, trace
@@ -792,6 +801,7 @@ def enregistrer_rejet(erreur: ErreurValidation, brut: str, instance: dict | None
         "date": datetime.now().isoformat(timespec="seconds"),
         "fournisseur": fournisseur.nom,
         "modele": fournisseur.modele,
+        "adaptateur": fournisseur.adaptateur,
         "machine": machine.decrire(),
         "duree_s": duree,
         "tentatives": tentatives,

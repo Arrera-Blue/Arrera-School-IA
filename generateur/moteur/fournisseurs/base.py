@@ -15,6 +15,12 @@ class Fournisseur(ABC):
     # (llama.cpp) : l'interface en tire la question en cours d'écriture
     au_fil: Callable[[str], None] | None = None
 
+    @property
+    def adaptateur(self) -> dict | None:
+        """L'adaptateur LoRA posé sur le modèle (plan IA, IA4), noté dans chaque exercice : {"nom", "sha256"} ; None :
+        le modèle de base."""
+        return None
+
     @abstractmethod
     def generer(self, messages: list[dict], schema: dict) -> str:
         """Envoie les messages au modèle et renvoie sa réponse brute, contrainte par `schema`."""
