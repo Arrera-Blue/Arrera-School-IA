@@ -50,6 +50,31 @@ def test_exercice_accepte_meta_complet(dossiers):
     assert not (dossiers / "rejets").exists()  # rien n'est rejeté
     # phase 2 : sans la machine, les durées ne se comparent pas (395 s sur le VPS, 32 s sur le Mac)
     assert set(instance["meta"]["machine"]) == {"systeme", "processeur", "coeurs", "ram_go"}
+    assert instance["meta"]["adaptateur"] is None  # le modèle de base (plan IA, IA4.2)
+
+
+class RejoueAdapte(Rejoue):
+    @property
+    def adaptateur(self):
+        return {"nom": "20261031-0900.gguf", "sha256": "ab" * 32}
+
+
+def test_l_adaptateur_est_note_dans_l_exercice_et_dans_le_rejet(dossiers, monkeypatch):
+    # plan IA, IA4.2 : savoir, pour chaque exercice (accepté ou rejeté), s'il vient du modèle de base ou d'un adaptateur
+    bon = json.loads((DONNEES / "qcm-fractions-6e-reel.json").read_text(encoding="utf-8"))
+    del bon["meta"]
+    bon["questions"] = bon["questions"][1:2]
+    monkeypatch.setattr(generation, "creer", lambda nom, reglages: RejoueAdapte(json.dumps(bon, ensure_ascii=False)))
+    monkeypatch.setattr(generation, "contre_verifier", lambda *a, **k: None)
+    instance = generation.generer({"type": "qcm", "demande_enseignant": "fractions 6e", "nb_questions": 1}, "qcm",
+                                  "rejoue", mode="ia")
+    assert instance["meta"]["adaptateur"] == {"nom": "20261031-0900.gguf", "sha256": "ab" * 32}
+    fautif = json.loads((DONNEES / "qcm-fractions-6e-reel.json").read_text(encoding="utf-8"))
+    del fautif["meta"]
+    monkeypatch.setattr(generation, "creer", lambda nom, reglages: RejoueAdapte(json.dumps(fautif, ensure_ascii=False)))
+    with pytest.raises(ErreurValidation) as e:
+        generation.generer({"type": "qcm", "demande_enseignant": "fractions 6e"}, "qcm", "rejoue", mode="ia")
+    assert json.loads(e.value.rejet.read_text(encoding="utf-8"))["adaptateur"]["nom"] == "20261031-0900.gguf"
 
 
 def test_un_rejet_est_conserve_avec_son_instance(dossiers, monkeypatch):

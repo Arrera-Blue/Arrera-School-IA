@@ -8,9 +8,12 @@ mémoire et le début commun des conversations n'est relu qu'une fois.
 
 Le modèle est un fichier GGUF (config.yaml : `llamacpp.modele`), le même Gemma 4 E4B QAT qu'avec Ollama.
 `llama_cpp` n'est importé qu'à la première génération : les tests et le reste du code s'en passent.
+Un adaptateur LoRA (plan IA, IA4 ; `llamacpp.adaptateur`, un autre fichier GGUF) peut être posé sur le modèle :
+llama.cpp l'applique au chargement, sans toucher au fichier du modèle.
 """
 
 import gc
+import hashlib
 import os
 import sys
 import time
@@ -21,6 +24,7 @@ from generateur.moteur.fournisseurs.base import ErreurFournisseur, Fournisseur
 
 # un modèle chargé par fichier et par processus : le charger coûte plusieurs secondes et ~5 Go de mémoire
 _CHARGES: dict[tuple, object] = {}
+_EMPREINTES: dict[tuple, str] = {}  # (adaptateur, taille, date) → sha256 : calculée une fois par fichier
 GIGA = 1024 ** 3
 PROGRESSION_S = 2  # une ligne de progression toutes les 2 s, dans un terminal seulement
 
@@ -45,9 +49,11 @@ class LlamaCpp(Fournisseur):
 
     def __init__(self, modele: str, n_ctx: int = 8192, n_threads: int | None = None, temperature: float = 0.5,
                  cache: str | None = "cache/llamacpp", cache_max_go: float = 2.0, options: dict | None = None,
-                 verbose: bool = False):
+                 adaptateur: str | None = None, verbose: bool = False):
         self.chemin = Path(modele) if Path(modele).is_absolute() else config.RACINE / modele
         self.modele = self.chemin.name
+        self.chemin_adaptateur = ((Path(adaptateur) if Path(adaptateur).is_absolute() else config.RACINE / adaptateur)
+                                  if adaptateur else None)
         self.n_ctx, self.n_threads, self.temperature = n_ctx, n_threads, temperature
         self.cache = (Path(cache) if Path(cache).is_absolute() else config.RACINE / cache) if cache else None
         self.cache_max_go = cache_max_go
@@ -56,14 +62,32 @@ class LlamaCpp(Fournisseur):
         self.verbose = verbose  # les journaux de llama.cpp, dont ses propres mesures de vitesse, sur la sortie d'erreur
         self.chargement_s = 0.0  # compté au premier appel seulement, comme le « chargement » d'Ollama
 
+    @property
+    def adaptateur(self) -> dict | None:
+        if self.chemin_adaptateur is None:
+            return None
+        if not self.chemin_adaptateur.is_file():
+            return {"nom": self.chemin_adaptateur.name, "sha256": None}
+        etat = self.chemin_adaptateur.stat()
+        cle = (str(self.chemin_adaptateur), etat.st_size, etat.st_mtime_ns)
+        if cle not in _EMPREINTES:
+            _EMPREINTES[cle] = hashlib.sha256(self.chemin_adaptateur.read_bytes()).hexdigest()
+        return {"nom": self.chemin_adaptateur.name, "sha256": _EMPREINTES[cle]}
+
     def _llama(self):
-        cle = (str(self.chemin), self.n_ctx, self.n_threads, self.verbose, tuple(sorted(self.options.items())))
+        options = dict(self.options)
+        if self.chemin_adaptateur:
+            options["lora_path"] = str(self.chemin_adaptateur)
+        cle = (str(self.chemin), self.n_ctx, self.n_threads, self.verbose, tuple(sorted(options.items())))
         if cle in _CHARGES:
             return _CHARGES[cle]
         if not self.chemin.is_file():
             raise ErreurFournisseur(
                 f"modèle introuvable : {self.chemin} ; le télécharger (docs/etapes/migration-llamacpp.md, étape 2) "
                 "ou corriger llamacpp.modele dans config.yaml")
+        if self.chemin_adaptateur and not self.chemin_adaptateur.is_file():
+            raise ErreurFournisseur(f"adaptateur introuvable : {self.chemin_adaptateur} ; corriger llamacpp.adaptateur "
+                                    "dans config.yaml (null : le modèle de base)")
         try:
             import llama_cpp
         except ImportError as e:
@@ -72,17 +96,21 @@ class LlamaCpp(Fournisseur):
         debut = time.monotonic()
         try:
             llm = llama_cpp.Llama(model_path=str(self.chemin), n_ctx=self.n_ctx, n_threads=self.n_threads,
-                                  verbose=self.verbose, **self.options)
+                                  verbose=self.verbose, **options)
         except TypeError as e:
             raise ErreurFournisseur(f"option de llamacpp.options inconnue de cette version de llama-cpp-python : {e}") from e
         except (ValueError, RuntimeError) as e:
-            raise ErreurFournisseur(f"llama.cpp ne sait pas charger {self.chemin.name} : {e}") from e
+            quoi = self.chemin.name + (f" avec l'adaptateur {self.chemin_adaptateur.name}" if self.chemin_adaptateur else "")
+            raise ErreurFournisseur(f"llama.cpp ne sait pas charger {quoi} : {e}") from e
         if self.cache:
             # diskcache relit ses entrées avec pickle : qui peut écrire dans ce dossier peut faire exécuter du
             # code au serveur (CVE-2025-69872, sans correctif ; relevé par pip-audit, E1). Dossier privé, donc.
-            self.cache.mkdir(parents=True, exist_ok=True)
+            # Un adaptateur change l'état du modèle après lecture du prompt : un cache à part pour chacun.
+            dossier = self.cache / f"adaptateur-{self.adaptateur['sha256'][:16]}" if self.chemin_adaptateur else self.cache
+            dossier.mkdir(parents=True, exist_ok=True)
             os.chmod(self.cache, 0o700)
-            llm.set_cache(llama_cpp.LlamaDiskCache(cache_dir=str(self.cache),
+            os.chmod(dossier, 0o700)
+            llm.set_cache(llama_cpp.LlamaDiskCache(cache_dir=str(dossier),
                                                    capacity_bytes=int(self.cache_max_go * GIGA)))
         self.chargement_s = round(time.monotonic() - debut, 1)
         _CHARGES[cle] = llm

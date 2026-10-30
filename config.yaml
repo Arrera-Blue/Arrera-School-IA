@@ -8,7 +8,9 @@ fournisseurs:
     think: false                  # Qwen 3 : le mode « raisonnement » coûte des minutes pour rien ici
   llamacpp:                       # le modèle dans le processus Python (docs/etapes/migration-llamacpp.md)
     modele: "modeles/gemma-4-E4B_q4_0-it.gguf"   # relatif à la racine du dépôt (/app) ; le même Gemma 4 E4B QAT qu'Ollama
-    n_ctx: 6144                   # prompt ~3 300 tokens + réponse 800 à 2 000 ; chaque token de contexte coûte de la mémoire
+    adaptateur: null              # plan IA, IA4 : l'adaptateur LoRA posé sur le modèle (.gguf, relatif à la racine), fait
+                                  # par `python -m generateur.entrainement entrainer` ; null : le modèle de base
+    n_ctx: 6144                  # prompt ~3 300 tokens + réponse 800 à 2 000 ; chaque token de contexte coûte de la mémoire
     n_threads: 8                  # les 8 cœurs performance du M4 Pro (le calcul lui-même passe par Metal)
     # état du modèle après lecture du prompt, réutilisé d'une génération à l'autre ; DÉSACTIVÉ le 08/10 :
     # chaque sauvegarde recopie trois fois l'état du modèle en mémoire, et le VPS a débordé sur le swap.
@@ -45,7 +47,19 @@ chemins:                          # relatifs à la racine du dépôt (/app dans 
   lecture: "cache/lecture"        # les morceaux de voix déjà fabriqués (E5) : un aperçu refait ne refait pas la voix
   entrainement: "donnees/entrainement"  # plan IA, IA3 : le lot d'entraînement (sa banque, ses rejets) et les jeux de
                                   # données ; jamais versionné, jamais publié, à part de la vraie banque
-lecture:                          # E5 : la voix des exercices, fabriquée ici par Piper et rangée dans la page (MP3)
+  adaptateurs: "modeles/adaptateurs"  # plan IA, IA4 : les adaptateurs LoRA entraînés (<nom>.gguf, et <nom>/ : l'adaptateur
+                                  # de mlx-lm, ses réglages, son journal) ; hors git, comme tout modeles/
+entrainement:                     # plan IA, IA4 : entraîner l'adaptateur sur le Mac, avec mlx-lm (etape-IA4-entrainement.md)
+  python: "modeles/mlx/venv/bin/python"     # l'environnement de mlx-lm, à part de celui du projet (il demande transformers 5)
+  modele: "modeles/mlx/gemma-4-e4b-it-4bit" # Gemma 4 E4B en 4 bits pour MLX : les mêmes poids d'origine que le GGUF
+  epoques: 2                      # passages sur le jeu d'entraînement ; à trancher en IA4 (un point d'étape à chaque époque)
+  rang: 8                         # LoRA : la taille de l'adaptateur (6,9 millions de paramètres, 28 Mo)
+  echelle: 20.0                   # LoRA : son poids (llama.cpp : alpha = échelle × rang)
+  couches: 16                     # les 16 dernières couches du modèle (sur 42)
+  taux: 1.0e-5                    # taux d'apprentissage
+  longueur_max: 6144              # tokens par exemple : le prompt complet (~3 600) et l'exercice (600 à 800)
+  graine: 2026
+lecture:                         # E5 : la voix des exercices, fabriquée ici par Piper et rangée dans la page (MP3)
   voix: "modeles/piper/fr_FR-siwis-medium.onnx"  # femme, licence CC BY 4.0 ; vide : la voix du navigateur
   # voix: "modeles/piper/fr_FR-upmc-medium.onnx" # l'autre voix retenue : Pierre (homme, CC BY-SA 4.0), avec
   locuteur: null                  #   locuteur: "pierre" (cette voix en a deux : jessica, pierre)
