@@ -2038,12 +2038,18 @@
     $("#ex-avis-resume").textContent = p.resume || "";
     const jour = p.date ? new Date(p.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : null;
     $("#ex-avis-note").textContent = `Pré-relu${jour ? ` le ${jour}` : ""} par ${p.par || "Claude"}, un autre modèle que `
-      + "celui qui a écrit l'exercice.";
+      + "celui qui a écrit l'exercice." + (p.corrections ? ` Il a appliqué ${p.corrections > 1 ? `ses ${p.corrections} corrections`
+        : "sa correction"} : vérifiez-les avant d'accepter.` : "");
   }
 
   // sous une question : « ✓ Juste. », ou ce qui ne va pas et la correction proposée ; rien de périmé si elle a changé
   function avisQuestion(a) {
     if (!a) return null;
+    if (a.corrigee_par_claude) {
+      return el("div", { class: "avis-question corrigee" },
+        el("p", {}, el("strong", { texte: "Corrigée par Claude d'après son avis." }), " Vérifiez la nouvelle version avant d'accepter."),
+        el("p", { texte: `Sa remarque : ${a.remarque || ""}` }));
+    }
     if (a.modifiee) {
       return el("div", { class: "avis-question juste" },
         el("p", { texte: "Question modifiée depuis l'avis de Claude : sa remarque portait sur l'ancienne version." }));
@@ -2245,7 +2251,7 @@
         badges.append(el("span", { class: "badge", texte: "énoncé réécrit par le modèle" }));
       }
       if (info.regeneree) badges.append(el("span", { class: "badge", texte: "régénérée" }));
-      if (info.modifiee) badges.append(el("span", { class: "badge", texte: "modifiée à la main" }));
+      if (info.modifiee) badges.append(el("span", { class: "badge", texte: info.corrigee_par ? "corrigée par Claude" : "modifiée à la main" }));
       const propositions = el("ul", { class: "propositions" }, ...q.propositions.map((p, j) => {
         const juste = j === q.index_correct;
         return el("li", { class: juste ? "juste" : null },

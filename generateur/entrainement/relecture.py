@@ -84,6 +84,7 @@ def compter(du_lot: list[dict], enseignant: list[dict]) -> dict:
         "objectif_relus": OBJECTIF_RELUS, "acceptes": acceptes,
         "rejetes": sum(banque.statut(i) == banque.REJETE for i in du_lot),
         "motifs": sum(motifs_ecrits(i) for i in du_lot), "corrections": sum(corrections(i) for i in du_lot),
+        "corrections_claude": sum(bool(m.get("par")) for i in du_lot for m in (i.get("meta") or {}).get("modifications") or []),
         "a_relire": len(a_relire), "prerelecture": prerelecture.compter(du_lot),
         "jeu": {"acceptes_lot": acceptes, "proceduraux": len(proceduraux), "acceptes_banque": acceptes_banque,
                 "total": acceptes + len(proceduraux) + acceptes_banque, "objectif": OBJECTIF_ACCEPTES,

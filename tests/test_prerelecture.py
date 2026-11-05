@@ -242,3 +242,73 @@ def test_la_fiche_dit_que_les_decisions_ont_ete_aidees():
     assert "suivi 131 fois. Les décisions restent humaines, mais aidées." in texte
     del m["relecture"]  # un jeu d'avant la pré-relecture
     assert "pas des enseignants en classe.\n" in jeu.fiche(m, [])
+
+
+# --- les corrections de Claude (choix de l'enseignant du 05/11) ---------------------------------------------------
+
+Q2_CORRIGEE = {"enonce": "Un triangle rectangle a pour côtés de l'angle droit 6 cm et 8 cm. Quelle est la longueur de "
+                         "l'hypoténuse ?", "propositions": ["14 cm", "48 cm", "10 cm", "100 cm"], "index_correct": 2,
+               "explication": "6² + 8² = 36 + 64 = 100, et 100 = 10², donc l'hypoténuse mesure 10 cm."}
+
+
+def test_claude_corrige_une_question_jugee_fausse_et_l_enseignant_la_verifie(lot, tmp_path):
+    _ranger(lot, "qcm-a", "accepte", decisions=[{"statut": "accepte", "date": "2026-11-05T12:00:00"}])
+    _ranger(lot, "qcm-b")
+    prerelecture.importer(_paquet(tmp_path / "p.jsonl", _avis("qcm-a"), _avis("qcm-b", "bon", fausses=())))
+    autre = copy.deepcopy(Q2_CORRIGEE)
+    corrections = _paquet(tmp_path / "c.jsonl",
+                          {"id": "qcm-a", "numero": 2, "question": Q2_CORRIGEE},
+                          {"id": "qcm-a", "numero": 1, "question": Q2_CORRIGEE},       # jugée juste : rien à corriger
+                          {"id": "qcm-b", "numero": 2, "question": Q2_CORRIGEE},       # avis « bon »
+                          {"id": "qcm-a", "numero": 2, "question": "à la main"},       # pas une question
+                          {"id": "qcm-a", "numero": 2, "question": autre | {"propositions": ["10 cm"]}})  # N2 la refuse
+    r = prerelecture.corriger(corrections)
+    assert r["appliquees"] == [("qcm-a", 2)]
+    assert len(r["refusees"]) == 4 and "n'est pas jugée fausse" in r["refusees"][0] and "n'est pas jugée fausse" in r["refusees"][1]
+    assert "la question corrigée entière" in r["refusees"][2] and "a changé depuis l'avis" in r["refusees"][3]
+    a = banque.charger("qcm-a")
+    assert a["questions"][1]["propositions"][2] == "10 cm" and a["questions"][1]["difficulte"] == "facile"
+    assert a["meta"]["statut"] == "genere" and prerelecture.en_cours(a)  # de nouveau à vérifier et à accepter
+    assert a["meta"]["modifications"][-1]["par"] == "Claude (Opus 5.5)"
+    v = prerelecture.vue(a)
+    assert [q["corrigee_par_claude"] for q in v["questions"]] == [False, True, False] and v["corrections"] == 1
+    q2 = banque.relecture(a)["questions"][1]
+    assert (q2["modifiee"], q2["corrigee_par"], q2["calcul"]) == (True, "Claude (Opus 5.5)", "claude")
+    banque.decider("qcm-a", "accepter")
+    assert prerelecture.suivi(banque.charger("qcm-a")) is True  # à corriger, corrigé, accepté : l'avis est suivi
+    c = relecture.compter(relecture.instances(lot), [])
+    assert (c["corrections"], c["corrections_claude"]) == (1, 1)
+    paires = jeu.paires(banque.charger("qcm-a"), "lot")
+    assert [p["corrige_par"] for p in paires] == ["Claude (Opus 5.5)"]
+
+
+def test_une_correction_de_l_enseignant_reste_la_sienne(lot, tmp_path):
+    _ranger(lot, "qcm-a")
+    prerelecture.importer(_paquet(tmp_path / "p.jsonl", _avis("qcm-a")))
+    banque.modifier_question("qcm-a", 2, Q2_CORRIGEE)
+    a = banque.charger("qcm-a")
+    assert "par" not in a["meta"]["modifications"][-1] and banque.relecture(a)["questions"][1]["calcul"] == "enseignant"
+    assert (prerelecture.vue(a)["questions"][1]["modifiee"], prerelecture.vue(a)["questions"][1]["corrigee_par_claude"]) == (True, False)
+    assert jeu.paires(a, "lot")[0]["corrige_par"] == "enseignant"
+    # la question a changé : Claude ne la corrige plus
+    r = prerelecture.corriger(_paquet(tmp_path / "c.jsonl", {"id": "qcm-a", "numero": 2, "question": Q2_CORRIGEE}))
+    assert r["appliquees"] == [] and "a changé depuis l'avis" in r["refusees"][0]
+
+
+def test_la_commande_corriger_et_la_fiche(lot, tmp_path, monkeypatch, capsys):
+    entrainement.utiliser()
+    _ranger(config.chemin("banque"), "qcm-a", "accepte", decisions=[{"statut": "accepte"}])
+    prerelecture.importer(_paquet(tmp_path / "p.jsonl", _avis("qcm-a")))
+    monkeypatch.setattr(sys, "argv", ["entrainement", "corriger", str(_paquet(tmp_path / "c.jsonl",
+                                      {"id": "qcm-a", "numero": 2, "question": Q2_CORRIGEE},
+                                      {"id": "qcm-a", "numero": 3, "question": Q2_CORRIGEE}))])
+    cli.main()
+    sortie = capsys.readouterr().out
+    assert sortie.startswith("1 question(s) corrigée(s) dans 1 exercice(s) : ils sont de nouveau en cours de relecture")
+    assert "1 refusée(s) :\n- ligne 2 (qcm-a, question 3) : la question 3 n'est pas jugée fausse" in sortie
+    m = {"date": "2026-11-05T12:00:00", "graine": 1, "part_procedurale": 1 / 3, "objectif": 300, "paires": 3,
+         "paires_claude": 2, "a_eviter": 0, "ecartes": [], "jeux": {"train": [], "valid": [], "test": []}}
+    texte = jeu.fiche(m, [])
+    assert "dont 2 corrections écrites par Claude (Opus 5.5) d'après sa pré-relecture, vérifiées et acceptées" in texte
+    assert "c'est de la distillation, pas un jugement humain." in texte
+    assert "celles de l'enseignant." in jeu.fiche(m | {"paires_claude": 0}, [])
