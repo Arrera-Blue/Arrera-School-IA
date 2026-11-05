@@ -8,7 +8,8 @@
     "maths": "Mathématiques", "francais": "Français", "histoire-geo": "Histoire-géographie", "svt": "SVT",
     "physique-chimie": "Physique-chimie", "anglais": "Anglais", "technologie": "Technologie",
   };
-  const STATUTS = { genere: "À relire", accepte: "Accepté", rejete: "Rejeté" };
+  const STATUTS = { genere: "À relire", prerelu: "En cours de relecture", accepte: "Accepté", rejete: "Rejeté" };
+  const AVIS = { bon: "bon", a_corriger: "à corriger", a_rejeter: "à rejeter" }; // la pré-relecture de Claude (IA3)
   const SOURCES = { modele: "proposé par le modèle : à vérifier", devine: "deviné dans la phrase : à vérifier" };
   const N4 = { verifie: "✔ calcul vérifié", a_relire: "? à relire", faux: "✘ calcul faux" };
   const ROLES = { admin: "Administrateur", enseignant: "Enseignant" };
@@ -38,11 +39,12 @@
   // cours : ses cours, déposés (plan IA, IA2) ; coursOuvert : celui dont le texte est affiché
   // entrainement : l'interface du lot d'entraînement (plan IA, IA3, --entrainement), qui ne sert qu'à relire ; lot : où
   // en est la relecture (/api/entrainement) ; passes : les exercices passés sans décision ; annonceLot : le message
-  // à montrer sur l'exercice suivant (« Exercice accepté. »)
+  // à montrer sur l'exercice suivant (« Exercice accepté. ») ; filtreLot : le filtre du lot a été choisi une fois (« En
+  // cours de relecture » s'il y a des exercices pré-relus par Claude)
   const etat = { compte: null, programmes: {}, classe: null, listeLue: null, cartes: null, tableau: null, fiche: null,
     masquer: false, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
     statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null, cours: null, coursOuvert: null,
-    entrainement: false, lot: null, passes: new Set(), annonceLot: null };
+    entrainement: false, lot: null, passes: new Set(), annonceLot: null, filtreLot: false };
   const $ = (selecteur) => document.querySelector(selecteur);
 
   // --- outils -----------------------------------------------------------------------------------
@@ -1712,7 +1714,17 @@
     }
     const message = $("#banque-etat");
     message.textContent = "Chargement…";
-    if (etat.entrainement) chargerLot();
+    if (etat.entrainement && !etat.filtreLot) {
+      // la première fois : le lot s'ouvre sur les exercices pré-relus par Claude, s'il y en a
+      etat.filtreLot = true;
+      const lot = await chargerLot();
+      if (lot && lot.prerelecture.en_cours && $("#filtre-statut").value === "genere") {
+        $("#filtre-statut").value = "prerelu";
+        parametres.set("statut", "prerelu");
+      }
+    } else if (etat.entrainement) {
+      chargerLot();
+    }
     try {
       const { exercices } = await api(`/api/exercices?${parametres}`);
       const lignes = exercices.map((x) => el("tr", {},
@@ -1724,12 +1736,19 @@
         el("td", { class: "nombre", texte: String(x.questions) }),
         el("td", { texte: x.origine === "procedural" ? "programme" : "modèle" }),
         el("td", {}, etat.entrainement ? signalements(x) : controles(x)),
-        el("td", {}, badgeStatut(x.statut))));
+        el("td", {}, badgeStatut(x.statut, Boolean(x.prerelecture)),
+          x.prerelecture ? el("span", { class: "avis-ligne", texte: avisEnLigne(x.prerelecture) }) : null)));
       $("#table-banque tbody").replaceChildren(...lignes);
+      const statut = $("#filtre-statut").value;
+      const lot = etat.lot && etat.lot.prerelecture;
+      const pasVus = lot ? etat.lot.a_relire - lot.en_cours : 0;
       const compte = !exercices.length ? "Aucun exercice ne correspond."
-        : etat.entrainement && $("#filtre-statut").value === "genere"
-          ? `${exercices.length} exercice(s) à relire, dans l'ordre de relecture : les matières et les classes en alternance.`
-          : `${exercices.length} exercice(s).`;
+        : etat.entrainement && statut === "prerelu"
+          ? `${exercices.length} exercice(s) en cours de relecture, dans l'ordre de relecture.`
+            + (pasVus ? ` Il en reste ${pasVus} à relire, que Claude n'a pas encore vus.` : "")
+          : etat.entrainement && statut === "genere"
+            ? `${exercices.length} exercice(s) à relire, dans l'ordre de relecture : les matières et les classes en alternance.`
+            : `${exercices.length} exercice(s).`;
       message.textContent = etat.annonce ? `${etat.annonce} ${compte}` : compte;
       etat.annonce = null;
     } catch (e) {
@@ -1778,6 +1797,9 @@
     $("#table-banque caption").textContent = "Les exercices du lot, dans l'ordre de relecture";
     $("#lot-intro").hidden = false;
     $("#lot-etat").hidden = false;
+    $("#vue-banque").classList.add("lot");
+    // « En cours de relecture » : pré-relus par Claude, pas encore décidés ; seulement dans le lot
+    $('#filtre-statut option[value="genere"]').after(el("option", { value: "prerelu", texte: STATUTS.prerelu }));
     $("#filtre-statut").value = "genere";
     $("#btn-accepter").textContent = "Accepter et passer au suivant";
     $("#btn-passer").hidden = false;
@@ -1805,10 +1827,30 @@
     $("#lot-progression").value = Math.min(l.relus, l.objectif_relus);
     $("#lot-progression").textContent = `${l.relus} sur ${l.objectif_relus}`;
     const accord = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
-    $("#lot-detail").textContent = `${accord(l.acceptes, "accepté")}, ${accord(l.rejetes, "rejeté")} ; `
-      + `${accord(l.corrections, "question")} ${l.corrections > 1 ? "corrigées" : "corrigée"}. `
-      + (atteint ? "Vous pouvez continuer : chaque exercice accepté compte."
-        : "Corriger une question (Modifier, Régénérer) est ce qui apprend le plus au modèle.");
+    const p = l.prerelecture;
+    const decisions = `${accord(l.acceptes, "accepté")}, ${accord(l.rejetes, "rejeté")} ; `
+      + `${accord(l.corrections, "question")} ${l.corrections > 1 ? "corrigées" : "corrigée"}. `;
+    if (atteint) {
+      $("#lot-detail").textContent = decisions + (p.decides ? `Vous avez suivi l'avis de Claude ${p.suivis} fois sur ${p.decides}.`
+        : "Vous pouvez continuer : chaque exercice accepté compte.");
+    } else if (p.en_cours) {
+      $("#lot-detail").replaceChildren(
+        el("span", { class: "prerelus", texte: p.en_cours > 1 ? `Claude a pré-relu les ${p.en_cours} suivants` : "Claude a pré-relu le suivant" }),
+        ` : ${p.en_cours > 1 ? "ils sont" : "il est"} en cours de relecture et ${p.en_cours > 1 ? "attendent" : "attend"} votre `
+        + "décision. Son avis est un conseil, c'est vous qui acceptez ou rejetez.");
+    } else {
+      $("#lot-detail").textContent = decisions + "Corriger une question (Modifier, Régénérer) est ce qui apprend le plus au modèle.";
+    }
+    // les exercices acceptés avant la pré-relecture, sans avoir vu l'avis : ceux que Claude trouve à corriger ou à rejeter
+    const aRevoir = [[p.acceptes_a_corriger, "à corriger"], [p.acceptes_a_rejeter, "à rejeter"]].filter(([n]) => n);
+    $("#lot-a-revoir").hidden = !aRevoir.length;
+    if (aRevoir.length) {
+      const verbe = aRevoir[0][0] > 1 ? "sont" : "est";
+      $("#lot-a-revoir").replaceChildren(`Il a aussi relu ${p.acceptes_avant > 1
+        ? `les ${p.acceptes_avant} exercices déjà acceptés` : "l'exercice déjà accepté"} : `
+        + aRevoir.map(([n, quoi], i) => (i ? `${n} ${quoi}` : `${n} ${verbe} ${quoi}`)).join(", ") + ". ",
+      el("a", { href: "#/banque", id: "lot-voir-acceptes", texte: "Les voir" }));
+    }
     $("#btn-lot-suivant").disabled = !l.ordre.length;
     $("#lot-jeu").hidden = !atteint;
     const j = l.jeu;
@@ -1864,6 +1906,14 @@
       ...((etat.lot && etat.lot.motifs_de_rejet) || []).map((m) => el("label", { class: "case" },
         el("input", { type: "checkbox", value: m.code }), ` ${m.libelle}`)));
     $("#rej-precisions").value = "";
+    // l'avis de Claude coche les motifs et remplit les précisions, à changer au besoin
+    const avis = etat.donnees && etat.donnees.prerelecture;
+    const repris = Boolean(avis && avis.avis !== "bon" && ((avis.motifs || []).length || avis.precisions));
+    if (repris) {
+      for (const c of $("#rej-motifs").querySelectorAll("input")) c.checked = avis.motifs.includes(c.value);
+      $("#rej-precisions").value = avis.precisions || "";
+    }
+    $("#rej-avis").hidden = !repris;
     return new Promise((resoudre) => {
       const fermer = (valeur) => {
         $("#form-rejeter").onsubmit = null;
@@ -1885,8 +1935,18 @@
     });
   }
 
-  function badgeStatut(statut) {
-    return el("span", { class: `badge statut-${statut}`, texte: STATUTS[statut] || statut });
+  // prerelu : un exercice du lot pré-relu par Claude et pas encore décidé, « En cours de relecture » (plan IA, IA3)
+  function badgeStatut(statut, prerelu = false) {
+    const s = statut === "genere" && prerelu ? "prerelu" : statut;
+    return el("span", { class: `badge statut-${s}`, texte: STATUTS[s] || s });
+  }
+
+  // « Claude : à corriger (questions 2 et 4) »
+  function avisEnLigne(p) {
+    const n = p.questions || [];
+    const liste = n.length > 1 ? `${n.slice(0, -1).join(", ")} et ${n.at(-1)}` : String(n[0]);
+    return `Claude : ${AVIS[p.avis] || p.avis}` + (p.avis === "a_corriger" && n.length
+      ? ` (question${n.length > 1 ? "s" : ""} ${liste})` : "");
   }
 
   // --- exercice : relecture, aperçu, décision ---------------------------------------------------
@@ -1917,7 +1977,8 @@
     const { exercice: x, resume, relecture } = donnees;
     const meta = x.meta || {};
     $("#ex-titre").textContent = x.titre || ident;
-    $("#ex-statut").replaceWith(Object.assign(badgeStatut(resume.statut), { id: "ex-statut" }));
+    $("#ex-statut").replaceWith(Object.assign(badgeStatut(resume.statut, Boolean(donnees.prerelecture)), { id: "ex-statut" }));
+    afficherAvis(donnees.prerelecture);
     const origine = meta.origine === "procedural"
       ? `générateur procédural (${meta.generateur})` + (meta.modele ? `, énoncés réécrits par ${meta.modele}` : "")
       : `modèle ${meta.modele || "?"}`;
@@ -1934,7 +1995,7 @@
         libelles.map((l) => `« ${l} »`).join(" ; ") + (programme.choisi ? "" : " (rattaché par le générateur)");
     }
     afficherValidation(x, relecture);
-    afficherQuestions(x, relecture);
+    afficherQuestions(x, relecture, donnees.prerelecture);
     $("#ex-apercu").src = `/api/exercices/${ident}/apercu?v=${Date.now()}`;
     $("#btn-telecharger").href = `/api/exercices/${ident}/telecharger`;
     $("#btn-telecharger").setAttribute("download", `${ident}.html`);
@@ -1967,6 +2028,35 @@
     const n = lot.relus + 1;
     rang.textContent = `${n === 1 ? "1er" : `${n}e`} exercice relu sur ${lot.objectif_relus}.`;
     rang.hidden = false;
+  }
+
+  // plan IA, IA3 : l'avis de la pré-relecture de Claude, en tête de l'exercice ; l'enseignant décide
+  function afficherAvis(p) {
+    $("#ex-avis").hidden = !p;
+    if (!p) return;
+    $("#ex-avis-titre").textContent = `Avis de Claude : ${p.libelle || p.avis}`;
+    $("#ex-avis-resume").textContent = p.resume || "";
+    const jour = p.date ? new Date(p.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : null;
+    $("#ex-avis-note").textContent = `Pré-relu${jour ? ` le ${jour}` : ""} par ${p.par || "Claude"}, un autre modèle que `
+      + "celui qui a écrit l'exercice.";
+  }
+
+  // sous une question : « ✓ Juste. », ou ce qui ne va pas et la correction proposée ; rien de périmé si elle a changé
+  function avisQuestion(a) {
+    if (!a) return null;
+    if (a.modifiee) {
+      return el("div", { class: "avis-question juste" },
+        el("p", { texte: "Question modifiée depuis l'avis de Claude : sa remarque portait sur l'ancienne version." }));
+    }
+    if (a.juste) {
+      return el("div", { class: "avis-question juste" },
+        el("p", {}, el("strong", { texte: "✓ Juste." }), a.remarque ? ` ${a.remarque}` : null));
+    }
+    // la première phrase en gras : ce qui ne va pas ; la suite : pourquoi
+    const [, premiere, suite] = (a.remarque || "").match(/^(.+?[.!?])(\s[\s\S]*)?$/) || [null, a.remarque || "", ""];
+    return el("div", { class: "avis-question erreur-question" },
+      el("p", {}, el("strong", { texte: premiere }), suite || null),
+      a.proposition ? el("p", { texte: `Proposition : ${a.proposition}` }) : null);
   }
 
   // E8 : un exercice accepté se publie ; la ligne dit où il l'est déjà
@@ -2082,6 +2172,7 @@
     etat.donnees = null;
     for (const id of ["#ex-infos", "#ex-validation", "#ex-avertissements", "#ex-questions"]) $(id).replaceChildren();
     $("#ex-programme").hidden = true;
+    $("#ex-avis").hidden = true;
     $("#ex-publie").hidden = true;
     $("#ex-erreurs").hidden = true;
     $("#ex-actions").hidden = true;
@@ -2137,9 +2228,10 @@
     $("#ex-avertissements").replaceChildren(...avertissements.map((a) => el("p", { class: "avertissement", texte: `⚠ ${a}` })));
   }
 
-  function afficherQuestions(x, relecture) {
+  function afficherQuestions(x, relecture, avis = null) {
     const items = x.questions.map((q, i) => {
       const info = relecture.questions[i] || {};
+      const avisDeQ = avis && (avis.questions || []).find((a) => a.numero === i + 1);
       const badges = el("span", { class: "badges" });
       if (info.erreurs && info.erreurs.length) badges.append(el("span", { class: "badge n4-faux", texte: "✘ à corriger" }));
       if (info.calcul === "programme" && info.n4 !== "faux") {
@@ -2176,6 +2268,7 @@
         info.source ? el("details", { class: "source-cours" },
           el("summary", { texte: `Source : cours « ${info.source.cours} »${info.source.page ? `, page ${info.source.page}` : ""}` }),
           el("blockquote", { texte: info.source.extrait })) : null,
+        avisQuestion(avisDeQ),
         boutons);
     });
     $("#ex-questions").replaceChildren(...items);
@@ -2535,6 +2628,12 @@
       allerAuSuivant(etat.exercice);
     });
     $("#btn-lot-suivant").addEventListener("click", () => allerAuSuivant(null));
+    $("#lot-a-revoir").addEventListener("click", (e) => { // « Les voir » : les exercices acceptés, sur la même page
+      if (!e.target.closest("#lot-voir-acceptes")) return;
+      e.preventDefault();
+      $("#filtre-statut").value = "accepte";
+      chargerBanque();
+    });
     $("#btn-annuler-generation").addEventListener("click", async () => {
       if (!etat.generation) return;
       $("#btn-annuler-generation").disabled = true;

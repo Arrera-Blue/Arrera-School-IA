@@ -473,3 +473,29 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); }
   .demande .actions { flex-direction: column-reverse; align-items: stretch; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* --- la pré-relecture de Claude (plan IA, IA3, maquette prerelecture.html validée le 05/11) ------------------ */
+/* « En cours de relecture » : l'ambre de ce qui attend (la décision reste à prendre), mais un point à moitié plein (la
+   moitié du travail est faite) ; le mot change aussi : la couleur n'est jamais seule */
+.statut-prerelu { padding-left: .6rem; color: var(--attention); background: var(--attention-fond); }
+.statut-prerelu::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%;
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.tableau .avis-ligne { display: block; margin-top: .3rem; font-size: .85rem; color: var(--doux); white-space: nowrap; }
+.lot-etat .prerelus { color: var(--texte); }
+.avis { background: var(--surface); border-radius: 16px; padding: 1.1rem 1.4rem; margin: 1.25rem 0 0; }
+.avis h2 { margin: 0 0 .3rem; }
+.avis p { margin: .3rem 0 0; }
+.avis .note { margin-top: .6rem; }
+.avis-question { margin: 0 0 .6rem; font-size: .95rem; }
+.avis-question p { margin: 0; }
+.avis-question p + p { margin-top: .3rem; }
+.avis-question.juste { color: var(--doux); }
+.avis-question.juste strong { color: var(--reussi); font-weight: 700; }
+.avis-question.erreur-question { color: var(--attention); background: var(--attention-fond); border-radius: 12px; padding: .6rem .9rem; }
+.avis-question.erreur-question strong { font-weight: 700; }
+.coches-avis { margin: .9rem 0 0; color: var(--doux); font-size: .92rem; }
+/* le statut « En cours de relecture » tient en entier dans son filtre (l'interface du lot) */
+.lot .filtres { grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(140px, 1fr)) minmax(210px, 1.3fr); }
+@media (max-width: 900px) { .lot .filtres { grid-template-columns: 1fr 1fr; } }

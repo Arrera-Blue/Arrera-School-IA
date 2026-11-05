@@ -11,6 +11,9 @@ ignore. Un exercice où le contrôle trouve une erreur ne peut pas être accept�
 L'enseignant peut aussi corriger une question à la main (`modifier_question`) : la modification est revalidée
 (N2 → N4) avant d'être enregistrée, et l'ancienne version est gardée dans meta.modifications.
 
+Le lot d'entraînement (plan IA, IA3) se range comme la banque ; ses exercices peuvent porter l'avis d'une pré-relecture
+(meta.prerelecture, `noter` : entrainement/prerelecture.py), que chaque décision garde.
+
 Supprimer un exercice ne l'efface pas : il est déplacé dans banque/supprimes/, d'où on peut le remettre à la main.
 
 Les générations refusées par N1 → N4 ne sont pas dans la banque : elles sont dans banque/rejets/.
@@ -131,10 +134,22 @@ def decider(ident: str, decision: str, motif: str | None = None, motifs: list[st
                                "l'accepter : " + " ; ".join(erreurs))
         meta = instance.setdefault("meta", {"id": ident})
         meta["statut"] = DECISIONS[decision]
+        avis = (meta.get("prerelecture") or {}).get("avis")  # l'avis que l'enseignant avait sous les yeux
         meta.setdefault("decisions", []).append({"statut": meta["statut"], "date": _maintenant(),
                                                  "motif": (motif or "").strip()[:500] or None}
                                                 | ({"motifs": [m for m in MOTIFS_DE_REJET if m in motifs]}
-                                                   if motifs else {}))
+                                                   if motifs else {})
+                                                | ({"avis_prerelecture": avis} if avis else {}))
+        _ecrire_atomique(chemin(ident), json.dumps(instance, ensure_ascii=False, indent=2))
+    return instance
+
+
+def noter(ident: str, cle: str, valeur) -> dict:
+    """Range `valeur` dans meta[cle] (l'avis d'une pré-relecture, plan IA, IA3), sans rien changer d'autre : ni le statut,
+    ni les questions, ni le rendu."""
+    with _VERROU:
+        instance = charger(ident)
+        instance.setdefault("meta", {"id": ident})[cle] = valeur
         _ecrire_atomique(chemin(ident), json.dumps(instance, ensure_ascii=False, indent=2))
     return instance
 
@@ -245,7 +260,17 @@ def resume(instance: dict, fond: dict | None = None) -> dict:
         "avertissements": len(fond["avertissements"]),
         "attendus": list((meta.get("programme") or {}).get("attendus") or []),  # programme officiel (E2.5)
         "difficulte": (meta.get("demande") or {}).get("difficulte"),  # demandée à la génération ; None : mélange
+        "prerelecture": avis_en_bref(meta),
     }
+
+
+def avis_en_bref(meta: dict) -> dict | None:
+    """L'avis de la pré-relecture en bref (le lot d'entraînement, plan IA, IA3) : l'avis, les questions qui ne sont pas
+    justes. None : pas de pré-relecture."""
+    p = meta.get("prerelecture")
+    if not isinstance(p, dict) or not p.get("avis"):
+        return None
+    return {"avis": p["avis"], "questions": [q.get("numero") for q in p.get("questions") or [] if q.get("juste") is False]}
 
 
 def lister(matiere: str | None = None, niveau: str | None = None, statut_voulu: str | None = None,

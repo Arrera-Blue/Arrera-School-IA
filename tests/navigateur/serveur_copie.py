@@ -43,9 +43,11 @@ config.chemin = lambda nom: copie / COPIES[nom] if nom in COPIES else vrai_chemi
 def semer_le_lot(dossier: Path) -> None:
     """5 exercices : 2 de français (6e) et 2 de maths (4e), écrits par « le modèle », dans cet ordre de génération ; un
     du générateur procédural, plus ancien. L'ordre de relecture attendu : français 1, maths 1, français 2, maths 2,
-    puis le procédural."""
+    puis le procédural. Français 1 est pré-relu par Claude (« à rejeter », la consigne de la question 2) : en cours de
+    relecture."""
     import json
 
+    from generateur.entrainement import prerelecture
     from generateur.moteur import registre
     exemple = registre.charger("qcm").exemple
     grammaire = [("Quel mot est un nom commun ?", ["maison", "rapide", "courir", "très"], "« maison » désigne une chose."),
@@ -68,6 +70,13 @@ def semer_le_lot(dossier: Path) -> None:
         x["meta"] = {"id": ident, "statut": "genere", "date": f"2026-10-29T{heure}:00", "fournisseur": "llamacpp",
                      "modele": "gemma-4-E4B_q4_0-it.gguf", "entrainement": {"lot": "nuit-20261029", "passe": 1},
                      **({"origine": "procedural", "generateur": "pythagore"} if origine == "procedural" else {})}
+        if ident == "qcm-lot-francais-1":
+            x["meta"]["prerelecture"] = prerelecture.preparer({
+                "avis": "a_rejeter", "resume": "La consigne de la question 2 est trop vague.", "motifs": ["enonce_ambigu"],
+                "precisions": "Q2 : la consigne est ambiguë.",
+                "questions": [{"numero": 1, "juste": True}, {"numero": 3, "juste": True},
+                              {"numero": 2, "juste": False, "remarque": "La consigne est trop vague. Le verbe est à l'infinitif.",
+                               "proposition": "écrire « Quel mot est un verbe à l'infinitif ? »"}]}, x, "2026-11-05T10:00:00")
         (dossier / f"{ident}.json").write_text(json.dumps(x, ensure_ascii=False), encoding="utf-8")
 
 

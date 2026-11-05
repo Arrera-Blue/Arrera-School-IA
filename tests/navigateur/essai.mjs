@@ -13,7 +13,8 @@
 // cours, voir son texte, refuser un cours piégé, l'offrir au formulaire, montrer la source d'une question, le retirer
 // (plan IA, IA2), créer un compte,
 // se déconnecter, changer un mot de passe provisoire, affichage sur téléphone, relire le lot d'entraînement dans son
-// interface (au suivant, passer, rejeter en cochant pourquoi, l'échantillon relu : plan IA, IA3) ; aucune erreur JavaScript ni
+// interface (au suivant, passer, rejeter en cochant pourquoi, l'échantillon relu : plan IA, IA3 ; l'avis de la pré-relecture
+// de Claude, « En cours de relecture ») ; aucune erreur JavaScript ni
 // violation de CSP. Captures d'écran et copie de la banque : dans le dossier affiché à la fin.
 // Code de sortie : 0 si tous les contrôles passent, 1 sinon.
 import { spawn, spawnSync } from "node:child_process";
@@ -601,16 +602,29 @@ open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(ex, ensure_ascii=False
   await saisir("#connexion-identifiant", ESSAI.identifiant);
   await saisir("#connexion-mot-de-passe", ESSAI.motDePasse);
   await cliquer("#btn-connexion");
-  await jusqua(`location.hash === "#/banque" && document.querySelectorAll("#table-banque tbody tr").length === 5
-    && document.querySelector("#lot-relus").textContent !== ""`);
+  // le lot s'ouvre sur les exercices pré-relus par Claude (« En cours de relecture ») : français 1
+  await jusqua(`location.hash === "#/banque" && document.querySelectorAll("#table-banque tbody tr").length === 1
+    && document.querySelector("#lot-relus").textContent !== "" && document.querySelector("#banque-etat").textContent.includes("cours")`);
+  verifier("lot : s'ouvre sur « En cours de relecture », l'avis de Claude en une ligne", await js(`(() => {
+    const ligne = document.querySelector("#table-banque tbody tr");
+    return document.querySelector("#filtre-statut").value === "prerelu"
+      && ligne.querySelector(".statut-prerelu").textContent === "En cours de relecture"
+      && ligne.querySelector(".avis-ligne").textContent === "Claude : à rejeter"
+      && document.querySelector("#banque-etat").textContent === "1 exercice(s) en cours de relecture, dans l'ordre de relecture. "
+        + "Il en reste 4 à relire, que Claude n'a pas encore vus."
+      && document.querySelector("#lot-detail").textContent.startsWith("Claude a pré-relu le suivant : il est en cours de relecture"); })()`));
+  await capture("15-lot-prerelus");
+  await js(`(() => { const s = document.querySelector("#filtre-statut"); s.value = "genere";
+    s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+  await jusqua(`document.querySelectorAll("#table-banque tbody tr").length === 4`);
   verifier("lot : une seule rubrique, la relecture à 0 sur 2", await js(`(() => {
     const visibles = [...document.querySelectorAll("#nav-principale a")].filter((a) => !a.hidden);
     return visibles.length === 1 && visibles[0].textContent === "Lot d'entraînement"
       && document.querySelector("#titre-banque").textContent === "Lot d'entraînement" && !document.querySelector("#lot-intro").hidden
       && document.querySelector("#lot-relus").textContent === "Relus : 0 sur 2" && document.querySelector("#lot-jeu").hidden; })()`));
-  verifier("lot : l'ordre de relecture, les matières en alternance, le procédural en dernier", await js(`
+  verifier("lot : à relire, ceux que Claude n'a pas vus, les matières en alternance, le procédural en dernier", await js(`
     [...document.querySelectorAll("#table-banque tbody tr a")].map((a) => a.getAttribute("href").slice(11)).join(",")
-    === "qcm-lot-francais-1,qcm-lot-maths-1,qcm-lot-francais-2,qcm-lot-maths-2,qcm-lot-procedural"`));
+    === "qcm-lot-francais-2,qcm-lot-maths-1,qcm-lot-maths-2,qcm-lot-procedural"`));
   // depuis l'essai (avec le cookie de la page) : un refus attendu ne doit pas passer pour une erreur dans la console
   const { result: { cookies } } = await cdp("Network.getCookies", { urls: [LOT] });
   const session = cookies.find((c) => c.name === "session");
@@ -629,7 +643,23 @@ open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(ex, ensure_ascii=False
     && document.querySelector("#btn-accepter").textContent === "Accepter et passer au suivant" && !document.querySelector("#btn-passer").hidden
     && document.querySelector("#ex-rang").textContent === "1er exercice relu sur 2."
     && document.querySelector("#ex-retour").textContent === "← Lot d'entraînement"`));
+  verifier("lot : l'avis de Claude en tête, sous chaque question", await js(`(() => {
+    const q = (n) => document.querySelector("#question-" + n + " .avis-question");
+    return !document.querySelector("#ex-avis").hidden && document.querySelector("#ex-avis-titre").textContent === "Avis de Claude : à rejeter"
+      && document.querySelector("#ex-avis-note").textContent === "Pré-relu le 5 novembre par Claude (Opus 5.5), un autre modèle que celui qui a écrit l'exercice."
+      && document.querySelector("#ex-statut").textContent === "En cours de relecture"
+      && q(1).classList.contains("juste") && q(1).textContent === "✓ Juste."
+      && q(2).classList.contains("erreur-question") && q(2).querySelector("strong").textContent === "La consigne est trop vague."
+      && q(2).textContent.endsWith("Proposition : écrire « Quel mot est un verbe à l'infinitif ? »"); })()`));
   await capture("16-lot-relire");
+  await cliquer("#btn-rejeter");
+  await jusqua(`document.querySelector("#dialogue-rejeter").open && document.querySelectorAll("#rej-motifs input").length === 6`);
+  verifier("lot : rejeter, les motifs et les précisions repris de l'avis", await js(`(() => {
+    const coches = [...document.querySelectorAll("#rej-motifs input:checked")].map((c) => c.value).join(",");
+    return coches === "enonce_ambigu" && document.querySelector("#rej-precisions").value === "Q2 : la consigne est ambiguë."
+      && !document.querySelector("#rej-avis").hidden; })()`));
+  await cliquer("#rej-annuler");
+  await jusqua(`!document.querySelector("#dialogue-rejeter").open`);
   await cliquer("#btn-passer");
   await jusqua(`location.hash === "#/exercice/qcm-lot-maths-1" && document.querySelector("#ex-titre").textContent === "Le théorème de Pythagore (1)"`);
   verifier("lot : passer ouvre le suivant, sans décision", true);
@@ -643,6 +673,8 @@ open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(ex, ensure_ascii=False
     .then((d) => d.resume.statut)`)) === "accepte");
   await cliquer("#btn-rejeter");
   await jusqua(`document.querySelector("#dialogue-rejeter").open && document.querySelectorAll("#rej-motifs input").length === 6`);
+  verifier("lot : rejeter sans avis de Claude, rien de coché d'avance", await js(`!document.querySelector("#rej-motifs input:checked")
+    && document.querySelector("#rej-precisions").value === "" && document.querySelector("#rej-avis").hidden`));
   await capture("17-lot-rejeter");
   await js(`(() => { for (const c of document.querySelectorAll("#rej-motifs input")) {
     if (c.value === "explication_fausse" || c.value === "distracteurs_faciles") c.checked = true; } })()`);
@@ -663,7 +695,7 @@ open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(ex, ensure_ascii=False
       && lignes[0] === "1" && lignes[1] === "1"; })()`));
   await capture("18-lot-echantillon");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-  for (const chemin of ["#/banque", "#/exercice/qcm-lot-francais-2"]) {
+  for (const chemin of ["#/banque", "#/exercice/qcm-lot-francais-2", "#/exercice/qcm-lot-francais-1"]) {
     await cdp("Page.navigate", { url: LOT + chemin });
     await attendre(800);
     verifier(`téléphone lot ${chemin.split("/")[1]} : pas de défilement horizontal`, await js(`document.documentElement.scrollWidth <= window.innerWidth`));

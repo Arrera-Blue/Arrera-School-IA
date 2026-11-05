@@ -1,4 +1,4 @@
-"""python -m generateur.entrainement nuit | bilan | jeu (plan IA, IA3) | entrainer | convertir (IA4)."""
+"""python -m generateur.entrainement nuit | bilan | prerelecture | jeu (plan IA, IA3) | entrainer | convertir (IA4)."""
 
 import argparse
 import os
@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from generateur import entrainement
-from generateur.entrainement import adaptateur, bilan, jeu, nuit
+from generateur.entrainement import adaptateur, bilan, jeu, nuit, prerelecture
 from generateur.moteur import config
 
 
@@ -34,6 +34,9 @@ def main() -> None:
                    help=f"passes sur les attendus des programmes (défaut : {nuit.PASSES})")
     b = sous.add_parser("bilan", help="ce qui est généré, relu, et ce qui pourra entrer dans le jeu de données")
     b.add_argument("--sortie", type=Path, help="écrire aussi le bilan dans ce fichier (Markdown)")
+    p = sous.add_parser("prerelecture", help="enregistrer dans le lot les avis d'un paquet de pré-relecture (Claude), "
+                                             "que l'enseignant verra en relisant")
+    p.add_argument("paquet", type=Path, help="le fichier JSONL des avis, une ligne par exercice (prerelecture.py)")
     j = sous.add_parser("jeu", help="mettre en forme le jeu de données, le séparer par notion, le figer et le décrire")
     j.add_argument("--part-procedurale", type=float, default=jeu.PART_PROCEDURALE, metavar="P",
                    help="part du jeu laissée aux exercices du générateur procédural non relus (défaut : un tiers)")
@@ -58,6 +61,15 @@ def main() -> None:
             nuit.nuit(nuit.plan(args.passes), fin, args.nombre, args.fournisseur)
         except KeyboardInterrupt:
             print("\nArrêtée (Ctrl-C) : la demande en cours sera refaite à la prochaine génération.")
+    elif args.commande == "prerelecture":
+        entrainement.utiliser()  # les avis vont aux exercices du lot, jamais à la vraie banque
+        try:
+            c = prerelecture.importer(args.paquet)
+        except (ValueError, OSError) as erreur:
+            sys.exit(f"Erreur : {erreur}")
+        print(f"{sum(c[a] for a in prerelecture.AVIS)} avis enregistrés : {c['bon']} bon(s), {c['a_corriger']} à "
+              f"corriger, {c['a_rejeter']} à rejeter" + (f" ; dont {c['deja_decides']} sur des exercices déjà décidés "
+                                                         "(leur statut ne change pas)" if c["deja_decides"] else "") + ".")
     elif args.commande == "jeu":
         lot = entrainement.chemins()
         dossier = entrainement.dossier() / "jeux" / f"{datetime.now():%Y%m%d-%H%M%S}"

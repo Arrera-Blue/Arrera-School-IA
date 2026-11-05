@@ -77,6 +77,9 @@ publier compris) :
     python -m generateur.interface.api --entrainement   # http://127.0.0.1:8002
     GET  /api/entrainement                           où en est la relecture, l'ordre de relecture, les motifs de rejet
     POST /api/exercices/{id}/decision avec « motifs »   rejeter en cochant ce qui ne va pas
+    GET  /api/exercices?statut=prerelu               en cours de relecture : pré-relus par Claude, pas encore décidés
+                                                     (statut=genere : ceux qu'il n'a pas encore vus) ; l'avis de chacun
+                                                     dans GET /api/exercices/{id} (« prerelecture »)
 """
 
 import argparse
@@ -103,6 +106,7 @@ from generateur.classe import serveur as serveur_classe
 from generateur.donnees import classes, codes, comptes, journal, publications, sessions, suivi
 from generateur.donnees import cours as cours_enseignant
 from generateur.donnees.base import Base
+from generateur.entrainement import prerelecture
 from generateur.entrainement import relecture as relecture_du_lot
 from generateur.interface.taches import DejaFinie, File, FilePleine
 from generateur.moteur import analyse, banque, config, generation, registre, securite
@@ -908,8 +912,11 @@ def creer_application(file: File | None = None, base: Base | None = None, entrai
     @app.get("/api/exercices")
     def exercices(matiere: str | None = None, niveau: str | None = None, statut: str | None = None,
                   recherche: str | None = None, attendu: str | None = None):
-        lignes = banque.lister(matiere or None, niveau or None, statut or None, (recherche or "")[:200],
-                               (attendu or "")[:80] or None)
+        a_decider = entrainement and statut in (banque.GENERE, "prerelu")  # le lot : vus par Claude ou pas encore
+        lignes = banque.lister(matiere or None, niveau or None, banque.GENERE if a_decider else statut or None,
+                               (recherche or "")[:200], (attendu or "")[:80] or None)
+        if a_decider:
+            lignes = [l for l in lignes if bool(l["prerelecture"]) == (statut == "prerelu")]
         return {"exercices": relecture_du_lot.ordonner(lignes) if entrainement else lignes}
 
     @app.get("/api/entrainement")
@@ -932,7 +939,8 @@ def creer_application(file: File | None = None, base: Base | None = None, entrai
         instance = _charger(ident)
         fond = controler(instance)  # avec les règles du jour, pas le verdict enregistré à la génération
         return {"exercice": instance, "resume": banque.resume(instance, fond),
-                "relecture": banque.relecture(instance, fond), "occupe": file.occupee_pour(ident)}
+                "relecture": banque.relecture(instance, fond), "occupe": file.occupee_pour(ident),
+                "prerelecture": prerelecture.vue(instance)}
 
     @app.get("/api/exercices/{ident}/apercu", response_class=HTMLResponse)
     def apercu(ident: str):

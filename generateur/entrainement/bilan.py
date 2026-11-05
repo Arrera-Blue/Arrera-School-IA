@@ -48,6 +48,8 @@ def bilan(lot: Path, journal: list[dict], banque_enseignant: Path) -> str:
                f"- Relus : {c['relus']} sur {c['objectif_relus']} visés ; acceptés {c['acceptes']}, rejetés "
                f"{c['rejetes']} (dont {c['motifs']} motif(s) de rejet écrit(s)).",
                f"- Corrections (questions corrigées à la main ou régénérées) : {c['corrections']}.",
+               f"- Pré-relecture (Claude) : {c['prerelecture']['en_cours']} en cours de relecture, à décider ; "
+               f"{c['prerelecture']['decides']} décidé(s) après son avis, suivi {c['prerelecture']['suivis']} fois.",
                f"- À relire : {c['a_relire']}, dont {sum(bool(banque.signalements(i)) for i in a_relire)} avec un "
                "signalement (contre-vérification, ancrage, calcul à relire, avertissement)."]
     jeu = c["jeu"]
