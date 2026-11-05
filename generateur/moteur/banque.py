@@ -9,7 +9,9 @@ génération : un exercice accepté avant une amélioration de N3 ou N4 peut con
 ignore. Un exercice où le contrôle trouve une erreur ne peut pas être accepté.
 
 L'enseignant peut aussi corriger une question à la main (`modifier_question`) : la modification est revalidée
-(N2 → N4) avant d'être enregistrée, et l'ancienne version est gardée dans meta.modifications.
+(N2 → N4) avant d'être enregistrée, et l'ancienne version est gardée dans meta.modifications. Dans le lot
+d'entraînement (plan IA, IA3), Claude peut appliquer les corrections de sa pré-relecture par le même chemin : la
+modification note alors qui l'a faite (« par »), et l'exercice revient à l'enseignant, qui l'accepte de nouveau.
 
 Le lot d'entraînement (plan IA, IA3) se range comme la banque ; ses exercices peuvent porter l'avis d'une pré-relecture
 (meta.prerelecture, `noter` : entrainement/prerelecture.py), que chaque décision garde.
@@ -154,13 +156,14 @@ def noter(ident: str, cle: str, valeur) -> dict:
     return instance
 
 
-def modifier_question(ident: str, numero: int, question: dict) -> dict:
+def modifier_question(ident: str, numero: int, question: dict, par: str | None = None) -> dict:
     """Remplace la question `numero` (à partir de 1) par la version écrite par l'enseignant.
 
     La modification est revalidée comme une régénération : format (N2) sur tout l'exercice, puis fond (N3, N4) ;
     seuls les défauts NOUVEAUX bloquent (ceux d'autres questions, déjà là avant, restent affichés à la relecture).
     Lève ErreurValidation si elle est refusée : l'exercice reste alors tel qu'il était.
-    L'ancienne question est gardée dans meta.modifications ; l'exercice repasse « à relire »."""
+    L'ancienne question est gardée dans meta.modifications ; l'exercice repasse « à relire ». `par` : qui a écrit la
+    correction, si ce n'est pas l'enseignant (Claude, pour le lot d'entraînement) ; noté dans la modification."""
     with _VERROU:
         instance = charger(ident)
         questions = list(instance.get("questions") or [])
@@ -177,7 +180,8 @@ def modifier_question(ident: str, numero: int, question: dict) -> dict:
         valider_le_format(modifiee, registre.charger(instance.get("type", "qcm")).schema, meta_autorise=True)
         avertissements, bilan_n4 = tolerant(instance, numero)({k: v for k, v in modifiee.items() if k != "meta"})
         meta = json.loads(json.dumps(instance.get("meta") or {"id": ident}))
-        meta.setdefault("modifications", []).append({"question": numero, "date": _maintenant(), "ancienne": ancienne})
+        meta.setdefault("modifications", []).append({"question": numero, "date": _maintenant(), "ancienne": ancienne}
+                                                    | ({"par": par} if par else {}))
         meta["validation"] = {"n1": True, "n2": True, "n3": True, **bilan_n4}
         meta["avertissements"] = avertissements
         meta["statut"] = GENERE  # l'exercice a changé : l'enseignant doit l'accepter de nouveau
@@ -241,7 +245,7 @@ def signalements(instance: dict, releve: dict | None = None) -> list[int]:
     maths = instance.get("matiere") == "maths"
     return [0] * bool(releve["avertissements"] or releve["erreurs"]) + \
         [q["numero"] for q in releve["questions"] if q["avertissements"] or q["erreurs"]
-         or (maths and q["n4"] == "a_relire" and q["calcul"] == "modele")]
+         or (maths and q["n4"] == "a_relire" and q["calcul"] in ("modele", "claude"))]
 
 
 def resume(instance: dict, fond: dict | None = None) -> dict:
@@ -320,7 +324,7 @@ def relecture(instance: dict, fond: dict | None = None) -> dict:
     procedural = meta.get("origine") == "procedural"
     statuts = fond["n4_questions"]
     origines = meta.get("questions") if procedural else None
-    derniers = {e.get("question"): e["nature"] for e in historique(instance)}  # le plus récent l'emporte
+    derniers = {e.get("question"): e for e in historique(instance)}  # le plus récent l'emporte
 
     def ranger(messages: list[str]) -> tuple[dict[int, list[str]], list[str]]:
         par_question: dict[int, list[str]] = {}
@@ -342,9 +346,11 @@ def relecture(instance: dict, fond: dict | None = None) -> dict:
     questions = []
     for n, _ in enumerate(instance.get("questions") or [], start=1):
         origine = origines[n - 1] if origines and n <= len(origines) else {}
-        modifiee = derniers.get(n) == "modification"
+        dernier = derniers.get(n) or {}
+        modifiee = dernier.get("nature") == "modification"
         if modifiee:
-            calcul = enonce = "enseignant"
+            # corrigée par Claude (lot d'entraînement) : un modèle l'a écrite, l'enseignant doit la vérifier
+            calcul = enonce = "claude" if dernier.get("par") else "enseignant"
         else:
             calcul = "programme" if procedural else "modele"
             enonce = ("modele" if origine.get("habillage") == "modele" else "programme") if procedural else "modele"
@@ -355,12 +361,13 @@ def relecture(instance: dict, fond: dict | None = None) -> dict:
             "enonce": enonce,
             "erreurs": erreurs.get(n, []),
             "avertissements": par_question.get(n, []),
-            "regeneree": derniers.get(n) == "regeneration",
+            "regeneree": dernier.get("nature") == "regeneration",
             "modifiee": modifiee,
+            "corrigee_par": dernier.get("par") if modifiee else None,
             "source": sources.get(n),
         })
     return {"questions": questions, "avertissements": generaux, "erreurs": erreurs_generales,
             "procedural": procedural, "valide": not fond["erreurs"],
             "a_corriger": sorted(erreurs), "niveau": fond["niveau"],
-            "a_relire": sum(q["n4"] == "a_relire" and q["calcul"] == "modele" for q in questions),
+            "a_relire": sum(q["n4"] == "a_relire" and q["calcul"] in ("modele", "claude") for q in questions),
             "contre_verification": sorted(desaccords), "ancrage": sorted(non_ancrees)}

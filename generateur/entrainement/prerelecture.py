@@ -13,7 +13,19 @@ donnees/entrainement/prerelecture/ (la trace de ce qu'il a dit) :
      "motifs": ["plusieurs_justes"], "precisions": "…"}
 
 Chaque question est relue (une ligne par question, `juste` ou non) ; `motifs` et `precisions` remplissent d'avance la
-boîte « Rejeter : pourquoi ? ». Un paquet où une ligne ne va pas n'est pas enregistré du tout. Chaque remarque garde
+boîte « Rejeter : pourquoi ? ».
+
+Claude peut aussi appliquer ses corrections (choix de l'enseignant du 05/11, après une relecture où 81 exercices « à
+corriger » avaient été acceptés sans correction), un fichier JSONL d'une ligne par question :
+
+    python -m generateur.entrainement corriger donnees/entrainement/prerelecture/corrections-01.jsonl
+
+    {"id": "qcm-…", "numero": 2, "question": {"enonce": "…", "propositions": […], "index_correct": 1, "explication": "…"}}
+
+Seule une question que son avis dit fausse, et qui n'a pas changé depuis, peut être corrigée. La correction passe par
+le chemin de l'enseignant (`banque.modifier_question` : N2 → N4 de nouveau), note qu'elle est de Claude, et renvoie
+l'exercice « en cours de relecture » : l'enseignant vérifie la nouvelle version et l'accepte de nouveau. La fiche du jeu
+dit combien de paires « avant → après » sont des corrections de Claude. Un paquet où une ligne ne va pas n'est pas enregistré du tout. Chaque remarque garde
 l'empreinte de la question relue : si l'enseignant la modifie ou la régénère, l'interface le dit au lieu de montrer une
 remarque qui ne vaut plus. Chaque décision note l'avis du moment (`banque.decider`) : la fiche du jeu dit combien de
 fois l'enseignant l'a suivi.
@@ -25,6 +37,7 @@ from datetime import datetime
 from pathlib import Path
 
 from generateur.moteur import banque
+from generateur.moteur.validation import ErreurValidation
 
 PAR = "Claude (Opus 5.5)"
 AVIS = {"bon": "bon", "a_corriger": "à corriger", "a_rejeter": "à rejeter"}
@@ -116,6 +129,34 @@ def importer(fichier: Path) -> dict:
     return comptes
 
 
+def corriger(fichier: Path) -> dict:
+    """Applique les corrections d'un fichier (les dossiers de la banque doivent être ceux du lot). Chaque correction est
+    indépendante : celles que N2 → N4 refusent, ou qui ne visent pas une question jugée fausse et inchangée depuis
+    l'avis, ne sont pas appliquées et sont rapportées. Renvoie {"appliquees": [(id, numéro)], "refusees": [message]}."""
+    appliquees, refusees = [], []
+    for rang, texte in enumerate(fichier.read_text(encoding="utf-8").splitlines(), start=1):
+        if not texte.strip():
+            continue
+        ligne = None
+        try:
+            ligne = json.loads(texte)
+            ident, numero, question = ligne.get("id"), ligne.get("numero"), ligne.get("question")
+            if not isinstance(question, dict):
+                raise ValueError("« question » : la question corrigée entière (enonce, propositions, index_correct, explication)")
+            instance = banque.charger(ident)
+            avis = {q["numero"]: q for q in (vue(instance) or {}).get("questions") or []}.get(numero)
+            if avis is None or avis.get("juste") is not False:
+                raise ValueError(f"la question {numero!r} n'est pas jugée fausse par la pré-relecture : rien à corriger")
+            if avis.get("modifiee"):
+                raise ValueError(f"la question {numero} a changé depuis l'avis : la correction n'est plus la bonne")
+            banque.modifier_question(ident, numero, question, par=PAR)
+            appliquees.append((ident, numero))
+        except (json.JSONDecodeError, ValueError, ErreurValidation, banque.ExerciceInconnu) as e:
+            refusees.append(f"ligne {rang} ({ligne.get('id') if isinstance(ligne, dict) else '?'}, question "
+                            f"{ligne.get('numero') if isinstance(ligne, dict) else '?'}) : {e}")
+    return {"appliquees": appliquees, "refusees": refusees}
+
+
 def en_cours(instance: dict) -> bool:
     """Pré-relu, pas encore décidé : « en cours de relecture »."""
     return banque.statut(instance) == banque.GENERE and bool((instance.get("meta") or {}).get("prerelecture"))
@@ -128,11 +169,16 @@ def vue(instance: dict) -> dict | None:
     if not p:
         return None
     questions = instance.get("questions") or []
+    # la dernière modification de chaque question : par Claude (sa correction), ou par l'enseignant
+    corrigees = {e.get("question"): e.get("par") == PAR for e in banque.historique(instance)}
+    lues = [{**{k: v for k, v in q.items() if k != "empreinte"},
+             "modifiee": q["numero"] > len(questions) or q.get("empreinte") != empreinte(questions[q["numero"] - 1])}
+            for q in p.get("questions") or []]
+    for q in lues:
+        q["corrigee_par_claude"] = q["modifiee"] and corrigees.get(q["numero"], False)
     return {"par": p.get("par"), "date": p.get("date"), "avis": p.get("avis"), "libelle": AVIS.get(p.get("avis")),
             "resume": p.get("resume"), "motifs": p.get("motifs") or [], "precisions": p.get("precisions"),
-            "questions": [{**{k: v for k, v in q.items() if k != "empreinte"},
-                           "modifiee": q["numero"] > len(questions) or q.get("empreinte") != empreinte(questions[q["numero"] - 1])}
-                          for q in p.get("questions") or []]}
+            "questions": lues, "corrections": sum(q["corrigee_par_claude"] for q in lues)}
 
 
 def _derniere_decision(instance: dict) -> dict:

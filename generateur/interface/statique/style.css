@@ -496,6 +496,9 @@ dialog::backdrop { background: rgb(0 0 0 / 50%); }
 .avis-question.erreur-question { color: var(--attention); background: var(--attention-fond); border-radius: 12px; padding: .6rem .9rem; }
 .avis-question.erreur-question strong { font-weight: 700; }
 .coches-avis { margin: .9rem 0 0; color: var(--doux); font-size: .92rem; }
+/* une question corrigée par Claude : à vérifier par l'enseignant (le mot en ambre, ce qui attend) */
+.avis-question.corrigee { color: var(--doux); }
+.avis-question.corrigee strong { color: var(--attention); font-weight: 700; }
 /* le statut « En cours de relecture » tient en entier dans son filtre (l'interface du lot) */
 .lot .filtres { grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(140px, 1fr)) minmax(210px, 1.3fr); }
 @media (max-width: 900px) { .lot .filtres { grid-template-columns: 1fr 1fr; } }

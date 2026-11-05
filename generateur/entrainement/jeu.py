@@ -208,6 +208,7 @@ def paires(instance: dict, source: str) -> list[dict]:
             continue
         resultat.append({"exercice": (instance.get("meta") or {}).get("id"), "source": source, "question": n,
                          "nature": evenement["nature"], "motif": evenement.get("motif"),
+                         "corrige_par": evenement.get("par") or "enseignant",  # Claude : sa pré-relecture (IA3)
                          "demande": generation._demande_d_origine(instance),
                          "rejete": _q(evenement["ancienne"]), "choisi": _q(questions[n - 1])})
     return resultat
@@ -294,6 +295,7 @@ def construire(lot: Path, banque_enseignant: Path | None, rejets: list[Path], no
         "jeux": {nom: [{"id": e.id, "source": e.source, "notion": e.notion, "matiere": e.instance.get("matiere"),
                         "niveau": e.instance.get("niveau")} for e in liste] for nom, liste in jeux.items()},
         "paires": len(toutes_paires), "a_eviter": len(a_eviter), "ecartes": ecartes,
+        "paires_claude": sum(p["corrige_par"] == prerelecture.PAR for p in toutes_paires),
         "relecture": {"relus": sum(bool((i.get("meta") or {}).get("decisions")) for i in du_lot),
                       **{cle: n for cle, n in prerelecture.compter(du_lot).items() if cle in ("decides", "suivis")}},
         "empreintes": {f: hashlib.sha256((dossier / f).read_bytes()).hexdigest() for f in FICHIERS},
@@ -358,7 +360,9 @@ def fiche(m: dict, a_eviter: list[dict]) -> str:
         "## À côté", "",
         f"- `paires.jsonl` : {m['paires']} paire(s) « avant → après » (une question corrigée à la main ou régénérée, "
         "face à la version acceptée), pour une 2e passe qui apprend à préférer la version corrigée (IA4, si la 1re "
-        "est adoptée).",
+        "est adoptée)" + (f" ; dont {m['paires_claude']} corrections écrites par {prerelecture.PAR} d'après sa "
+                          "pré-relecture, vérifiées et acceptées par l'enseignant (`corrige_par`)."
+                          if m.get("paires_claude") else "."),
         f"- `a_eviter.jsonl` : {len(a_eviter)} exercice(s) à éviter : "
         f"{sum(1 for a in a_eviter if a['source'] != 'rejet automatique')} rejeté(s) par l'enseignant (dont "
         f"{sum(1 for a in a_eviter if a.get('motifs') or a.get('motif'))} avec un motif), "
@@ -382,7 +386,10 @@ def fiche(m: dict, a_eviter: list[dict]) -> str:
         f"- **Les matières** : {maths} exercice(s) de maths sur {total}" + (f" ({_pourcent(maths / total)})" if total else "")
         + " ; pas d'autre matière que les maths et le français dans le lot (les programmes du référentiel).",
         "- **Une partie est écrite par le modèle lui-même**, puis relue : elle lui apprend surtout la forme ; ce sont les "
-        "corrections humaines qui le font progresser (`paires.jsonl`).",
+        "corrections qui le font progresser (`paires.jsonl`)" + (
+            f" : celles de l'enseignant, et {m['paires_claude']} de {prerelecture.PAR}, qu'il a vérifiées. Ces dernières "
+            "apprennent au modèle à corriger comme Claude, un autre modèle : c'est de la distillation, pas un jugement "
+            "humain." if m.get("paires_claude") else ", celles de l'enseignant."),
         "- **Les procéduraux** ne couvrent que quatre notions (calcul mental, fractions, pourcentages, Pythagore) : "
         "plafonnés pour ne pas déséquilibrer le jeu.",
         "- **L'échantillon relu alterne les matières et les classes** : le français y pèse plus que dans le lot.",

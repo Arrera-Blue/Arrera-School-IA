@@ -1,4 +1,4 @@
-"""python -m generateur.entrainement nuit | bilan | prerelecture | jeu (plan IA, IA3) | entrainer | convertir (IA4)."""
+"""python -m generateur.entrainement nuit | bilan | prerelecture | corriger | jeu (plan IA, IA3) | entrainer | convertir (IA4)."""
 
 import argparse
 import os
@@ -37,6 +37,9 @@ def main() -> None:
     p = sous.add_parser("prerelecture", help="enregistrer dans le lot les avis d'un paquet de pré-relecture (Claude), "
                                              "que l'enseignant verra en relisant")
     p.add_argument("paquet", type=Path, help="le fichier JSONL des avis, une ligne par exercice (prerelecture.py)")
+    k = sous.add_parser("corriger", help="appliquer les corrections de la pré-relecture (Claude) aux questions jugées "
+                                         "fausses ; l'enseignant les vérifie et accepte de nouveau")
+    k.add_argument("fichier", type=Path, help="le fichier JSONL des corrections, une ligne par question (prerelecture.py)")
     j = sous.add_parser("jeu", help="mettre en forme le jeu de données, le séparer par notion, le figer et le décrire")
     j.add_argument("--part-procedurale", type=float, default=jeu.PART_PROCEDURALE, metavar="P",
                    help="part du jeu laissée aux exercices du générateur procédural non relus (défaut : un tiers)")
@@ -70,6 +73,16 @@ def main() -> None:
         print(f"{sum(c[a] for a in prerelecture.AVIS)} avis enregistrés : {c['bon']} bon(s), {c['a_corriger']} à "
               f"corriger, {c['a_rejeter']} à rejeter" + (f" ; dont {c['deja_decides']} sur des exercices déjà décidés "
                                                          "(leur statut ne change pas)" if c["deja_decides"] else "") + ".")
+    elif args.commande == "corriger":
+        entrainement.utiliser()  # les corrections vont aux exercices du lot, jamais à la vraie banque
+        try:
+            r = prerelecture.corriger(args.fichier)
+        except OSError as erreur:
+            sys.exit(f"Erreur : {erreur}")
+        exercices = len({ident for ident, _ in r["appliquees"]})
+        print(f"{len(r['appliquees'])} question(s) corrigée(s) dans {exercices} exercice(s) : ils sont de nouveau en "
+              "cours de relecture, à vérifier et à accepter." + (f"\n{len(r['refusees'])} refusée(s) :\n- "
+                                                                   + "\n- ".join(r["refusees"]) if r["refusees"] else ""))
     elif args.commande == "jeu":
         lot = entrainement.chemins()
         dossier = entrainement.dossier() / "jeux" / f"{datetime.now():%Y%m%d-%H%M%S}"
