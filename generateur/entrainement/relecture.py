@@ -9,6 +9,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+from generateur.entrainement import prerelecture
 from generateur.moteur import banque
 
 OBJECTIF_RELUS = 150     # plan IA, ⚖10 : l'échantillon que relit l'enseignant
@@ -46,14 +47,16 @@ def ligne(instance: dict) -> dict:
     meta = instance.get("meta") or {}
     return {"id": meta.get("id"), "statut": banque.statut(instance), "matiere": instance.get("matiere"),
             "niveau": instance.get("niveau"), "date": meta.get("date"),
-            "origine": "procedural" if meta.get("origine") == "procedural" else "modele"}
+            "origine": "procedural" if meta.get("origine") == "procedural" else "modele",
+            "prerelecture": banque.avis_en_bref(meta)}
 
 
 def ordonner(lignes: list[dict]) -> list[dict]:
     """L'ordre de relecture. D'abord les exercices écrits par le modèle et pas encore relus, les matières et les classes
     en alternance (dans chacune, dans l'ordre de la génération) : l'échantillon relu couvre le français autant que les
     maths, alors que le lot compte trois fois plus de maths. Puis ceux du générateur procédural, justes par construction.
-    Enfin ceux déjà relus, du plus récent au plus ancien."""
+    Ceux que Claude a pré-relus (« en cours de relecture ») passent devant, dans ce même ordre. Enfin ceux déjà relus, du
+    plus récent au plus ancien."""
     def date(l: dict) -> str:
         return l.get("date") or ""
 
@@ -65,7 +68,8 @@ def ordonner(lignes: list[dict]) -> list[dict]:
     alternes = [f[rang] for rang in range(max(map(len, files), default=0)) for f in files if rang < len(f)]
     proceduraux = sorted((l for l in a_relire if l.get("origine") == "procedural"), key=date)
     relus = sorted((l for l in lignes if l.get("statut") != banque.GENERE), key=date, reverse=True)
-    return alternes + proceduraux + relus
+    a_relire = alternes + proceduraux
+    return [l for l in a_relire if l.get("prerelecture")] + [l for l in a_relire if not l.get("prerelecture")] + relus
 
 
 def compter(du_lot: list[dict], enseignant: list[dict]) -> dict:
@@ -80,7 +84,7 @@ def compter(du_lot: list[dict], enseignant: list[dict]) -> dict:
         "objectif_relus": OBJECTIF_RELUS, "acceptes": acceptes,
         "rejetes": sum(banque.statut(i) == banque.REJETE for i in du_lot),
         "motifs": sum(motifs_ecrits(i) for i in du_lot), "corrections": sum(corrections(i) for i in du_lot),
-        "a_relire": len(a_relire),
+        "a_relire": len(a_relire), "prerelecture": prerelecture.compter(du_lot),
         "jeu": {"acceptes_lot": acceptes, "proceduraux": len(proceduraux), "acceptes_banque": acceptes_banque,
                 "total": acceptes + len(proceduraux) + acceptes_banque, "objectif": OBJECTIF_ACCEPTES,
                 "paires": sum(corrections(i) for i in du_lot + enseignant),

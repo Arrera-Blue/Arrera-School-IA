@@ -277,6 +277,7 @@
         <h2 id="lot-relus"></h2>
         <progress id="lot-progression" max="150" value="0"></progress>
         <p id="lot-detail"></p>
+        <p id="lot-a-revoir" hidden></p>
         <div class="actions"><button type="button" id="btn-lot-suivant">Relire le suivant</button></div>
       </div>
       <form id="filtres" class="filtres" novalidate>
@@ -618,6 +619,12 @@
       <p id="ex-infos" class="infos"></p>
       <p id="ex-programme" class="infos" hidden></p>
       <p id="ex-rang" class="rang" hidden></p>
+      <!-- plan IA, IA3 : l'avis de la pré-relecture de Claude (le lot d'entraînement) ; l'enseignant décide -->
+      <section id="ex-avis" class="avis" aria-labelledby="ex-avis-titre" hidden>
+        <h2 id="ex-avis-titre"></h2>
+        <p id="ex-avis-resume"></p>
+        <p id="ex-avis-note" class="note"></p>
+      </section>
       <details id="ex-controles" class="controles">
         <summary id="ex-controles-resume"></summary>
         <ul id="ex-validation" class="validation" aria-label="Contrôles automatiques"></ul>
@@ -688,6 +695,8 @@
         <label for="rej-precisions">Précisions <span class="facultatif">(facultatif)</span></label>
         <textarea id="rej-precisions" rows="2" maxlength="500"></textarea>
       </div>
+      <p id="rej-avis" class="coches-avis" hidden>Motifs et précisions repris de l'avis de Claude : changez ce qui ne vous
+        convient pas.</p>
       <div class="actions">
         <button type="submit" id="rej-ok">Rejeter et passer au suivant</button>
         <button type="button" id="rej-annuler" class="secondaire">Annuler</button>

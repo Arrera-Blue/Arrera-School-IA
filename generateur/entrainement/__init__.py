@@ -6,12 +6,14 @@
         banque/supprimes/
         sortie/                    leurs pages HTML
         avancement.jsonl           une ligne par demande de la génération de nuit (nuit.py) : de quoi reprendre
+        prerelecture/              les paquets d'avis de Claude sur l'échantillon (prerelecture.py), tels qu'il les a écrits
 
 Le lot se range comme la banque (`utiliser` redirige ses dossiers pour tout le processus) : la génération, la relecture,
 les corrections à la main s'y font avec le code habituel, sans jamais toucher aux exercices de l'enseignant.
 
     python -m generateur.entrainement nuit --jusqua 07:30
     python -m generateur.entrainement bilan
+    python -m generateur.entrainement prerelecture donnees/entrainement/prerelecture/paquet-01.jsonl
 """
 
 from pathlib import Path

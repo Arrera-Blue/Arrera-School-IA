@@ -7,7 +7,8 @@ Ce qui entre (choix du 29/10, docs/etapes/etape-IA3-donnees.md §6) :
 - les exercices du générateur procédural du lot, non relus mais sans erreur (calculs justes par construction), au plus
   un tiers du jeu (`--part-procedurale`) : ils ne couvrent que quatre notions ;
 - **jamais un exercice du modèle que personne n'a relu** : passer les contrôles ne suffit pas (essai du 29/10 : 2
-  exercices sur 4 avaient une erreur que seule la relecture voyait).
+  exercices sur 4 avaient une erreur que seule la relecture voyait). Un exercice pré-relu par Claude mais pas encore
+  décidé par l'enseignant n'entre pas non plus (prerelecture.py) : la fiche dit combien de décisions ont suivi son avis.
 Chacun est contrôlé de nouveau (le fond, avec les règles du jour) et écarté s'il contient une donnée personnelle (nom
 d'un élève de la base, nom écrit comme dans une liste, courriel, téléphone, adresse, lien) ; les doublons aussi.
 
@@ -33,7 +34,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from generateur.entrainement import relecture
+from generateur.entrainement import prerelecture, relecture
 from generateur.moteur import banque, contre_verification, generation, registre, securite
 from generateur.moteur.validation import ErreurValidation
 from generateur.moteur.validation.fond import controler
@@ -293,6 +294,8 @@ def construire(lot: Path, banque_enseignant: Path | None, rejets: list[Path], no
         "jeux": {nom: [{"id": e.id, "source": e.source, "notion": e.notion, "matiere": e.instance.get("matiere"),
                         "niveau": e.instance.get("niveau")} for e in liste] for nom, liste in jeux.items()},
         "paires": len(toutes_paires), "a_eviter": len(a_eviter), "ecartes": ecartes,
+        "relecture": {"relus": sum(bool((i.get("meta") or {}).get("decisions")) for i in du_lot),
+                      **{cle: n for cle, n in prerelecture.compter(du_lot).items() if cle in ("decides", "suivis")}},
         "empreintes": {f: hashlib.sha256((dossier / f).read_bytes()).hexdigest() for f in FICHIERS},
     }
     (dossier / "manifeste.json").write_text(json.dumps(manifeste, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -309,6 +312,15 @@ MATIERES = {"maths": "maths", "francais": "français", "histoire-geo": "histoire
 
 def _pourcent(x: float) -> str:
     return f"{round(100 * x)} %"
+
+
+def _aide(r: dict) -> str:
+    """La pré-relecture de Claude, s'il y en a eu une : combien de décisions elle a précédées, combien l'ont suivie."""
+    if not r.get("decides"):
+        return "."
+    return (f" ; {r['decides']} des {r['relus']} exercices relus du lot l'ont été après une pré-relecture de "
+            f"{prerelecture.PAR}, un autre modèle que celui qui les a écrits : son avis (bon, à corriger, à rejeter) a été "
+            f"suivi {r['suivis']} fois. Les décisions restent humaines, mais aidées.")
 
 
 def fiche(m: dict, a_eviter: list[dict]) -> str:
@@ -374,7 +386,8 @@ def fiche(m: dict, a_eviter: list[dict]) -> str:
         "- **Les procéduraux** ne couvrent que quatre notions (calcul mental, fractions, pourcentages, Pythagore) : "
         "plafonnés pour ne pas déséquilibrer le jeu.",
         "- **L'échantillon relu alterne les matières et les classes** : le français y pèse plus que dans le lot.",
-        "- **Une seule personne a relu** (le développeur du projet), pas des enseignants en classe.",
+        "- **Une seule personne a relu et décidé** (le développeur du projet), pas des enseignants en classe"
+        + _aide(m.get("relecture") or {}),
         "- **Aucune donnée personnelle** : les noms de tous les élèves de la base, les noms écrits comme dans une liste, "
         "courriels, téléphones, adresses et liens sont cherchés ; un exercice qui en contient est écarté."]
     return "\n".join(lignes) + "\n"
