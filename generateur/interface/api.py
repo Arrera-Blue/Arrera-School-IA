@@ -80,6 +80,12 @@ publier compris) :
     GET  /api/exercices?statut=prerelu               en cours de relecture : pré-relus par Claude, pas encore décidés
                                                      (statut=genere : ceux qu'il n'a pas encore vus) ; l'avis de chacun
                                                      dans GET /api/exercices/{id} (« prerelecture »)
+
+La relecture à l'aveugle (plan IA, IA4.3) : la même interface, sur les exercices mélangés du modèle de base et du modèle
+entraîné (donnees/entrainement/aveugle/<comparaison>/, entrainement/aveugle.py) ; relire, décider, modifier une
+question, et rien d'autre (`AVEUGLE` : ni régénérer, ni supprimer) :
+    python -m generateur.interface.api --aveugle        # http://127.0.0.1:8003 (la dernière comparaison)
+    GET  /api/entrainement                           avec « aveugle » : true ; l'objectif : tous les exercices
 """
 
 import argparse
@@ -106,6 +112,7 @@ from generateur.classe import serveur as serveur_classe
 from generateur.donnees import classes, codes, comptes, journal, publications, sessions, suivi
 from generateur.donnees import cours as cours_enseignant
 from generateur.donnees.base import Base
+from generateur.entrainement import aveugle as aveugle_
 from generateur.entrainement import prerelecture
 from generateur.entrainement import relecture as relecture_du_lot
 from generateur.interface.taches import DejaFinie, File, FilePleine
@@ -137,6 +144,13 @@ ENTRAINEMENT = [re.compile(motif) for motif in (
     r"GET /api/(types|programmes|entrainement)", r"GET /api/generations(/[^/]+)?", r"POST /api/generations/[^/]+/annuler",
     r"GET /api/exercices(/[^/]+(/apercu|/telecharger)?)?", r"DELETE /api/exercices/[^/]+",
     r"POST /api/exercices/[^/]+/(decision|questions/\d+/regenerer)", r"PUT /api/exercices/[^/]+/questions/\d+")]
+# la relecture à l'aveugle (plan IA, IA4.3) : relire, décider, modifier une question ; ni régénérer (le modèle de
+# config.yaml écrirait la question), ni supprimer (chaque exercice compte dans la comparaison)
+AVEUGLE = [re.compile(motif) for motif in (
+    r"(GET|POST|DELETE) /api/session", r"POST /api/session/mot-de-passe",
+    r"GET /api/(types|programmes|entrainement)", r"GET /api/generations(/[^/]+)?",
+    r"GET /api/exercices(/[^/]+(/apercu|/telecharger)?)?",
+    r"POST /api/exercices/[^/]+/decision", r"PUT /api/exercices/[^/]+/questions/\d+")]
 
 
 # --- les corps de requête ------------------------------------------------------------------------
@@ -389,10 +403,14 @@ def _entretenir_chaque_heure(base: Base, dossier_sauvegardes: Path, arret: threa
 # --- l'application -------------------------------------------------------------------------------
 
 def creer_application(file: File | None = None, base: Base | None = None, entrainement: bool = False,
-                      banque_enseignant: Path | None = None) -> FastAPI:
+                      banque_enseignant: Path | None = None, aveugle: bool = False) -> FastAPI:
     """`entrainement` : l'interface du lot d'entraînement (plan IA, IA3), qui ne sert qu'à relire ; les dossiers de la
     banque sont alors ceux du lot (`entrainement.utiliser()`, avant), et `banque_enseignant` la vraie banque, lue
-    seulement pour compter ce qui pourra entrer dans le jeu de données."""
+    seulement pour compter ce qui pourra entrer dans le jeu de données. `aveugle` : la relecture à l'aveugle (plan IA,
+    IA4.3), la même interface en plus restreinte ; les dossiers de la banque sont ceux de la comparaison
+    (`aveugle.chemins`, avant)."""
+    entrainement = entrainement or aveugle
+    permises = AVEUGLE if aveugle else ENTRAINEMENT
     reglages = config.charger().get("interface") or {}
     file = file or File(int(reglages.get("file_max", 5)), decrire_erreur)
     base = base or Base(config.chemin("base"))  # créée et migrée à la première utilisation
@@ -451,8 +469,9 @@ def creer_application(file: File | None = None, base: Base | None = None, entrai
         if compte["doit_changer"] and route not in AVANT_CHANGEMENT:
             return JSONResponse({"detail": "mot de passe provisoire : choisissez d'abord le vôtre",
                                  "doit_changer": True}, status_code=403)
-        if entrainement and not any(m.fullmatch(f"{request.method} {request.url.path}") for m in ENTRAINEMENT):
-            return JSONResponse({"detail": "pas dans l'interface du lot d'entraînement : elle ne sert qu'à relire"},
+        if entrainement and not any(m.fullmatch(f"{request.method} {request.url.path}") for m in permises):
+            return JSONResponse({"detail": "pas dans la relecture à l'aveugle : elle ne sert qu'à relire et décider"
+                                 if aveugle else "pas dans l'interface du lot d'entraînement : elle ne sert qu'à relire"},
                                 status_code=404)
         request.state.compte = compte
         return None
@@ -512,11 +531,11 @@ def creer_application(file: File | None = None, base: Base | None = None, entrai
             raise HTTPException(401, str(e)) from None
         # pas de Secure : l'interface est en HTTP sur 127.0.0.1 ; le serveur de classe (E8), en HTTPS, l'aura
         response.set_cookie(COOKIE, jeton, httponly=True, samesite="strict", path="/")
-        return {"compte": compte, "entrainement": entrainement}
+        return {"compte": compte, "entrainement": entrainement, "aveugle": aveugle}
 
     @app.get("/api/session")
     def compte_connecte(request: Request):
-        return {"compte": request.state.compte, "entrainement": entrainement}
+        return {"compte": request.state.compte, "entrainement": entrainement, "aveugle": aveugle}
 
     @app.delete("/api/session")
     def deconnexion(request: Request, response: Response):
@@ -925,7 +944,10 @@ def creer_application(file: File | None = None, base: Base | None = None, entrai
         if not entrainement:
             raise HTTPException(404, "le lot d'entraînement se relit dans son interface : python -m "
                                      "generateur.interface.api --entrainement")
-        return relecture_du_lot.etat(config.chemin("banque"), banque_enseignant)
+        resultat = relecture_du_lot.etat(config.chemin("banque"), banque_enseignant)
+        if aveugle:  # l'objectif : tout relire ; ni jeu de données, ni pré-relecture ici
+            resultat |= {"aveugle": True, "objectif_relus": resultat["lot"]}
+        return resultat
 
     @app.get("/api/programmes")
     def programmes_officiels(matiere: str, niveau: str, tous: bool = False):
@@ -1039,19 +1061,34 @@ def main() -> None:
     parser.add_argument("--sans-navigateur", action="store_true", help="ne pas ouvrir le navigateur")
     parser.add_argument("--entrainement", action="store_true",
                         help="relire le lot d'entraînement (plan IA, IA3) au lieu de la banque")
+    parser.add_argument("--aveugle", nargs="?", const="", metavar="DOSSIER",
+                        help="plan IA, IA4.3 : la relecture à l'aveugle (défaut : la dernière comparaison)")
     args = parser.parse_args()
     import uvicorn
 
     application = app
-    if args.entrainement:
+    if args.aveugle is not None:
+        try:
+            dossier = Path(args.aveugle) if args.aveugle else aveugle_.dernier()
+        except ValueError as erreur:
+            raise SystemExit(f"Erreur : {erreur}") from None
+        if not aveugle_.melanges(dossier):
+            raise SystemExit(f"Erreur : la comparaison {dossier.name} n'est pas finie (python -m generateur.entrainement "
+                             "aveugle generer pour la reprendre)")
+        config.rediriger(aveugle_.chemins(dossier))  # les exercices mélangés, pour tout le processus
+        application = creer_application(aveugle=True)
+    elif args.entrainement:
         vraie_banque = config.chemin("banque")
         entrainement.utiliser()  # les dossiers de la banque sont désormais ceux du lot, pour tout le processus
         application = creer_application(entrainement=True, banque_enseignant=vraie_banque)
-    port = args.port or int(reglages.get("port_entrainement" if args.entrainement else "port",
-                                         8002 if args.entrainement else 8000))
+    if args.aveugle is not None:  # à côté de l'interface du lot (8002), qui peut tourner en même temps
+        port, nom = args.port or int(reglages.get("port_aveugle", 8003)), "Relecture à l'aveugle"
+    else:
+        port = args.port or int(reglages.get("port_entrainement" if args.entrainement else "port",
+                                             8002 if args.entrainement else 8000))
+        nom = "Lot d’entraînement" if args.entrainement else "Interface enseignant"
     url = f"http://127.0.0.1:{port}/"
-    print(f"{'Lot d’entraînement' if args.entrainement else 'Interface enseignant'} : {url}   (Ctrl-C pour arrêter)",
-          flush=True)
+    print(f"{nom} : {url}   (Ctrl-C pour arrêter)", flush=True)
     if not args.sans_navigateur:
         threading.Timer(1.5, webbrowser.open, (url,)).start()
     # toujours 127.0.0.1 : jamais une adresse joignable depuis le réseau de la salle (seul le serveur de

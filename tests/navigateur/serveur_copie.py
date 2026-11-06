@@ -12,6 +12,9 @@ l'interface affiche, et l'essai y bloque un élève par 5 codes faux.
 Avec --entrainement (plan IA, IA3) : l'interface du lot d'entraînement, sur la même copie (même base), avec un lot
 d'essai de 5 exercices dans <dossier>/entrainement/ et un échantillon de 2 exercices à relire (pour en voir la fin) ;
 sans serveur de classe (celui de la première interface tourne déjà).
+
+Avec --aveugle (plan IA, IA4.3) : la relecture à l'aveugle, sur la même copie (même base), avec 2 exercices mélangés
+dans <dossier>/aveugle/ (rangés comme le fait `aveugle.melanger` : rien ne dit quel modèle les a écrits).
 """
 
 import contextlib
@@ -27,9 +30,10 @@ from generateur.moteur import config  # noqa: E402
 
 arguments = [a for a in sys.argv[1:] if not a.startswith("--")]
 ENTRAINEMENT = "--entrainement" in sys.argv
+AVEUGLE = "--aveugle" in sys.argv
 copie = Path(arguments[0]).resolve()
 port = int(arguments[1]) if len(arguments) > 1 else 8012
-if (RACINE / "banque").is_dir() and not ENTRAINEMENT:  # le lot : la copie est déjà faite, par la première interface
+if (RACINE / "banque").is_dir() and not ENTRAINEMENT and not AVEUGLE:  # le lot : la copie est déjà faite, par la première interface
     shutil.copytree(RACINE / "banque", copie / "banque", dirs_exist_ok=True)
 vrai_chemin = config.chemin
 COPIES = {"banque": "banque/instances", "rejets": "banque/rejets", "supprimes": "banque/supprimes", "sortie": "sortie",
@@ -37,6 +41,9 @@ COPIES = {"banque": "banque/instances", "rejets": "banque/rejets", "supprimes": 
 if ENTRAINEMENT:  # les dossiers de la banque sont ceux du lot, comme `entrainement.utiliser()` le fait
     COPIES |= {"banque": "entrainement/banque/instances", "rejets": "entrainement/banque/rejets",
                "supprimes": "entrainement/banque/supprimes", "sortie": "entrainement/sortie"}
+if AVEUGLE:  # les dossiers de la banque sont ceux de la comparaison, comme `aveugle.chemins` le fait
+    COPIES |= {"banque": "aveugle/banque/instances", "rejets": "aveugle/banque/rejets",
+               "supprimes": "aveugle/banque/supprimes", "sortie": "aveugle/sortie"}
 config.chemin = lambda nom: copie / COPIES[nom] if nom in COPIES else vrai_chemin(nom)
 
 
@@ -83,6 +90,27 @@ def semer_le_lot(dossier: Path) -> None:
 if ENTRAINEMENT and not config.chemin("banque").is_dir():
     semer_le_lot(config.chemin("banque"))
 
+
+def semer_l_aveugle(dossier: Path) -> None:
+    """2 exercices mélangés (l'exemple du QCM, à deux titres), avec une meta anonyme : ni adaptateur, ni durée, ni
+    tentatives ; aveugle-01 d'abord dans l'ordre de relecture."""
+    import json
+
+    from generateur.entrainement import aveugle
+    from generateur.moteur import registre
+    dossier.mkdir(parents=True, exist_ok=True)
+    for rang, titre in ((1, "Le théorème de Pythagore (A)"), (2, "Le théorème de Pythagore (B)")):
+        x = json.loads(json.dumps(registre.charger("qcm").exemple)) | {"titre": titre}
+        x["meta"] = {"fournisseur": "llamacpp", "modele": "gemma-4-E4B_q4_0-it.gguf", "duree_s": 40.0, "tentatives": 2,
+                     "adaptateur": {"nom": "essai.gguf", "sha256": "0" * 64}}
+        x = aveugle.anonymiser(x, f"aveugle-0{rang}", datetime(2026, 11, 7, 9, rang))
+        (dossier / f"{x['meta']['id']}.json").write_text(json.dumps(x, ensure_ascii=False), encoding="utf-8")
+
+
+if AVEUGLE and not config.chemin("banque").is_dir():
+    from datetime import datetime
+    semer_l_aveugle(config.chemin("banque"))
+
 from generateur.donnees import comptes, demo, simulation  # noqa: E402
 from generateur.donnees.base import Base  # noqa: E402
 
@@ -100,6 +128,11 @@ import uvicorn  # noqa: E402
 
 from generateur.classe import serveur as serveur_classe  # noqa: E402
 from generateur.interface import api  # noqa: E402
+
+if AVEUGLE:
+    print(f"Relecture à l'aveugle d'essai : http://127.0.0.1:{port}/ (dans {copie / 'aveugle'})", flush=True)
+    uvicorn.run(api.creer_application(aveugle=True), host="127.0.0.1", port=port, log_level="warning")
+    sys.exit(0)
 
 if ENTRAINEMENT:
     from generateur.entrainement import relecture

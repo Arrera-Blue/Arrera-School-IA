@@ -38,6 +38,13 @@ def sans_redirection(monkeypatch):
     monkeypatch.setattr(config, "_REDIRIGES", {})
 
 
+@pytest.fixture(autouse=True)
+def adaptateur_de_la_config(monkeypatch):
+    """L'adaptateur choisi pour tout le processus (plan IA, IA4.3 : `generation.utiliser_adaptateur`) : chaque test
+    repart de celui de config.yaml."""
+    monkeypatch.setattr(generation, "_adaptateur", generation._CONFIG)
+
+
 # --- la vraie banque n'est jamais touchée par les tests ---------------------------------------------------
 # Incident du 29/10 : un test lançait une régénération sans attendre sa fin ; la tâche, finie après le test (la
 # banque temporaire déjà rendue), écrivait dans la vraie banque. La suite échoue désormais si la banque a changé,

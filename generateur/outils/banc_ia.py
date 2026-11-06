@@ -8,6 +8,9 @@ IA2, entraînement IA4), toujours sur les mêmes demandes ; rien n'est écrit da
     python -m generateur.outils.banc_ia cours <dossier>
     python -m generateur.outils.banc_ia bilan <dossier>
 
+    --adaptateur <fichier.gguf | aucun> (plan IA, IA4.3) : le modèle mesuré, sans toucher à config.yaml ; « aucun » : le
+    modèle de base. Il est noté dans <dossier>/modele.json, et repris par le bilan.
+
 - attaque : 30 détournements et 30 demandes normales (bancs/attaque.json ; --controle : le banc de contrôle,
   bancs/attaque_controle.json, 20 et 20, jamais utilisé pour écrire les filtres), par le même chemin que l'interface :
   l'analyse de la phrase, puis la génération par le modèle. Une demande refusée (sécurité de l'IA, IA1) a son verdict
@@ -354,13 +357,48 @@ def cours_du_banc(dossier: Path) -> None:
 # --- 5. le bilan -------------------------------------------------------------------------------------------------
 
 def bilan(dossier: Path) -> dict:
-    """Les chiffres d'un dossier de banc, une fois <dossier>/verdicts.json écrit à la relecture."""
+    """Les chiffres d'un dossier de banc, une fois <dossier>/verdicts.json écrit à la relecture ; le modèle mesuré, s'il
+    a été noté (IA4.3 : `modele.json`)."""
+    resultat = _bilan(dossier)
+    if (dossier / "modele.json").exists():
+        resultat["modele"] = json.loads((dossier / "modele.json").read_text(encoding="utf-8"))
+    return resultat
+
+
+def noter_le_modele(dossier: Path) -> dict:
+    """Le modèle que le banc mesure (IA4.3 : le modèle de base ou le modèle entraîné), noté dans <dossier>/modele.json."""
+    fournisseur = generation.creer_fournisseur()
+    adaptateur = fournisseur.adaptateur
+    note = {"fournisseur": fournisseur.nom, "modele": fournisseur.modele, "adaptateur": adaptateur,
+            "libelle": f"{fournisseur.modele} + l'adaptateur {adaptateur['nom']}" if adaptateur
+            else f"{fournisseur.modele} (le modèle de base)", "date": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    (dossier / "modele.json").write_text(json.dumps(note, ensure_ascii=False, indent=2), encoding="utf-8")
+    return note
+
+
+def choisir_l_adaptateur(valeur: str | None) -> None:
+    """--adaptateur : un fichier .gguf (relatif au dossier courant ou à la racine du dépôt), ou « aucun » (le modèle de
+    base) ; rien : celui de config.yaml. Lève ValueError pour un fichier introuvable."""
+    if valeur is None:
+        return
+    if valeur.strip().lower() in ("aucun", "base", "null", "none"):
+        generation.utiliser_adaptateur(None)
+        return
+    chemin = Path(valeur)
+    for essai in ([chemin] if chemin.is_absolute() else [Path.cwd() / chemin, config.RACINE / chemin]):
+        if essai.is_file():
+            generation.utiliser_adaptateur(essai.resolve())
+            return
+    raise ValueError(f"adaptateur introuvable : {valeur} (un fichier .gguf, ou « aucun » pour le modèle de base)")
+
+
+def _bilan(dossier: Path) -> dict:
     verdicts = json.loads((dossier / "verdicts.json").read_text(encoding="utf-8")) if (dossier / "verdicts.json").exists() else {}
     if (dossier / "connaissances.json").exists():
         c = json.loads((dossier / "connaissances.json").read_text(encoding="utf-8"))
         return {"connaissances": f"{c['justes']} / {c['questions']}", "series": c.get("series"),
                 "duree_moyenne_s": c["duree_moyenne_s"]}
-    sorties = sorted(p for p in dossier.glob("*.json") if p.name not in ("verdicts.json", "bilan.json"))
+    sorties = sorted(p for p in dossier.glob("*.json") if p.name not in ("verdicts.json", "bilan.json", "modele.json"))
     if sorties and "-" in sorties[0].stem:
         # génération hors maths : {clé-n : {"fausses": [numéros], "ambigues": [numéros], "notes": {…}}}
         lus = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorties}
@@ -400,6 +438,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--seulement", help="clés à lancer, séparées par des virgules (banc d'attaque)")
     p.add_argument("--controle", action="store_true", help="le banc d'attaque de contrôle (attaque_controle.json)")
     p.add_argument("--fois", type=int, default=2, help="générations par demande (banc de génération)")
+    p.add_argument("--adaptateur", help="plan IA, IA4.3 : l'adaptateur posé sur le modèle (un .gguf), ou « aucun » pour "
+                                        "le modèle de base ; défaut : celui de config.yaml")
     args = p.parse_args(argv)
     dossier = args.dossier.resolve()
     if args.banc == "bilan":
@@ -407,8 +447,15 @@ def main(argv: list[str] | None = None) -> int:
         (dossier / "bilan.json").write_text(json.dumps(resultat, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps(resultat, ensure_ascii=False, indent=2))
         return 0
+    try:
+        choisir_l_adaptateur(args.adaptateur)
+    except ValueError as erreur:
+        print(f"Erreur : {erreur}", file=sys.stderr)
+        return 2
     dossier.mkdir(parents=True, exist_ok=True)
     _dans_le_dossier(dossier)
+    if args.banc != "recherche":  # la recherche dans les cours se passe du modèle
+        print(f"Modèle mesuré : {noter_le_modele(dossier)['libelle']}", flush=True)
     if args.banc == "attaque":
         attaque(dossier, set(args.seulement.split(",")) if args.seulement else None, args.controle)
     elif args.banc == "connaissances":

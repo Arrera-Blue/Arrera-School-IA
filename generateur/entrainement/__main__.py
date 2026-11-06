@@ -1,4 +1,5 @@
-"""python -m generateur.entrainement nuit | bilan | prerelecture | corriger | jeu (plan IA, IA3) | entrainer | convertir (IA4)."""
+"""python -m generateur.entrainement nuit | bilan | prerelecture | corriger | jeu (plan IA, IA3) | entrainer | convertir |
+aveugle generer | aveugle bilan (IA4)."""
 
 import argparse
 import os
@@ -9,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from generateur import entrainement
-from generateur.entrainement import adaptateur, bilan, jeu, nuit, prerelecture
+from generateur.entrainement import adaptateur, aveugle, bilan, jeu, nuit, prerelecture
 from generateur.moteur import config
 
 
@@ -55,9 +56,29 @@ def main() -> None:
                    help=f"un point d'étape à la place de l'adaptateur final (défaut : {adaptateur.POIDS})")
     c.add_argument("--sortie", type=Path, help="défaut : à côté du dossier, <dossier>.gguf (<dossier>-<itération>.gguf "
                                                "pour un point d'étape)")
+    v = sous.add_parser("aveugle", help="plan IA, IA4.3 : le modèle de base contre le modèle entraîné, relus à l'aveugle")
+    vsous = v.add_subparsers(dest="action", required=True)
+    g = vsous.add_parser("generer", help="générer les exercices des deux modèles sur les mêmes demandes, puis les mélanger "
+                                         "(reprend la dernière comparaison si elle n'est pas finie)")
+    g.add_argument("--adaptateur", type=Path, help="le modèle entraîné : un .gguf (… convertir pour un point d'étape) ; "
+                                                   "pour une nouvelle comparaison")
+    g.add_argument("--jeu", type=Path, help="le jeu sur lequel il a été entraîné (défaut : celui de sa description)")
+    g.add_argument("--nombre", type=int, default=aveugle.NOMBRE, help=f"demandes (défaut : {aveugle.NOMBRE})")
+    g.add_argument("--graine", type=int, default=aveugle.GRAINE)
+    g.add_argument("--nouvelle", action="store_true", help="une nouvelle comparaison, même si la dernière n'est pas finie")
+    vb = vsous.add_parser("bilan", help="dévoiler les modèles une fois tout relu : bilan.md (défaut : la dernière comparaison)")
+    vb.add_argument("dossier", type=Path, nargs="?")
+    vb.add_argument("--meme-si-pas-fini", action="store_true", help="dévoiler avant la fin de la relecture")
     args = parser.parse_args()
 
-    if args.commande == "nuit":
+    if args.commande == "aveugle":
+        try:
+            _aveugle(args)
+        except ValueError as erreur:
+            sys.exit(f"Erreur : {erreur}")
+        except KeyboardInterrupt:
+            print("\nArrêtée (Ctrl-C) : relancer la même commande reprend là où elle s'est arrêtée.")
+    elif args.commande == "nuit":
         _rester_eveille()
         fin = nuit.heure_de_fin(args.jusqua) if args.jusqua else None
         try:
@@ -118,6 +139,41 @@ def main() -> None:
         print(texte)
         if args.sortie:
             args.sortie.write_text(texte, encoding="utf-8")
+
+
+def _aveugle(args) -> None:
+    """aveugle generer : reprendre la dernière comparaison si elle n'est pas finie, sinon en commencer une (il faut
+    l'adaptateur) ; aveugle bilan : dévoiler les modèles."""
+    if args.action == "bilan":
+        dossier = args.dossier or aveugle.dernier()
+        print(aveugle.bilan(dossier, args.meme_si_pas_fini))
+        print(f"Écrit dans {dossier / 'bilan.md'}")
+        return
+    _rester_eveille()
+    try:
+        en_cours = aveugle.dernier()
+    except ValueError:
+        en_cours = None
+    if en_cours and not aveugle.melanges(en_cours) and not args.nouvelle:
+        prevu = aveugle.lire_plan(en_cours)["adaptateur"]
+        if args.adaptateur and args.adaptateur.resolve() != aveugle._absolu(prevu["chemin"]).resolve():
+            raise ValueError(f"la comparaison {en_cours.name} n'est pas finie, avec l'adaptateur {prevu['nom']} : la "
+                             "reprendre (sans --adaptateur), ou en commencer une autre (--nouvelle)")
+        dossier = en_cours
+        print(f"Reprise de la comparaison {dossier.name} : {len(aveugle.reste_a_faire(dossier))} génération(s) à faire.")
+    else:
+        if not args.adaptateur:
+            raise ValueError("préciser le modèle entraîné : --adaptateur modeles/adaptateurs/<nom>.gguf")
+        jeu_ = args.jeu or aveugle.jeu_de_l_adaptateur(args.adaptateur)
+        if jeu_ is None:
+            raise ValueError(f"le jeu de données de {args.adaptateur.name} est introuvable : préciser --jeu")
+        dossier = aveugle.racine() / f"{datetime.now():%Y%m%d-%H%M}"
+        plan = aveugle.preparer(args.adaptateur, jeu_, dossier, args.nombre, args.graine)
+        print(f"Comparaison {dossier.name} : {len(plan['demandes'])} demandes, chacune par le modèle de base puis par "
+              f"le modèle entraîné ({plan['adaptateur']['nom']}). Environ 1 min par génération.", flush=True)
+    aveugle.generer(dossier, lambda texte: print(texte, flush=True))
+    if not aveugle.melanges(dossier):
+        print("Pas fini : relancer la même commande reprend là où elle s'est arrêtée.")
 
 
 if __name__ == "__main__":
