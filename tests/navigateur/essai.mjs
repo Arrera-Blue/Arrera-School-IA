@@ -14,7 +14,8 @@
 // (plan IA, IA2), créer un compte,
 // se déconnecter, changer un mot de passe provisoire, affichage sur téléphone, relire le lot d'entraînement dans son
 // interface (au suivant, passer, rejeter en cochant pourquoi, l'échantillon relu : plan IA, IA3 ; l'avis de la pré-relecture
-// de Claude, « En cours de relecture ») ; aucune erreur JavaScript ni
+// de Claude, « En cours de relecture »), la relecture à l'aveugle (plan IA, IA4.3 : décider sans régénérer ni supprimer,
+// sans rien qui dise quel modèle) ; aucune erreur JavaScript ni
 // violation de CSP. Captures d'écran et copie de la banque : dans le dossier affiché à la fin.
 // Code de sortie : 0 si tous les contrôles passent, 1 sinon.
 import { spawn, spawnSync } from "node:child_process";
@@ -36,7 +37,8 @@ const serveur = spawn(python, ["tests/navigateur/serveur_copie.py", dossier, Str
 const chrome = spawn(CHROMES.find(existsSync), ["--headless=new", `--remote-debugging-port=${DEBOGAGE}`,
   `--user-data-dir=${join(dossier, "profil")}`, "--window-size=1280,1600", "about:blank"], { stdio: "ignore" });
 let serveurLot = null; // l'interface du lot d'entraînement (section 10)
-const arreter = () => { chrome.kill(); serveur.kill(); if (serveurLot) serveurLot.kill(); };
+let serveurAveugle = null; // la relecture à l'aveugle (section 11)
+const arreter = () => { chrome.kill(); serveur.kill(); if (serveurLot) serveurLot.kill(); if (serveurAveugle) serveurAveugle.kill(); };
 process.on("exit", arreter);
 
 async function prete(url) {
@@ -701,6 +703,61 @@ open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(ex, ensure_ascii=False
     verifier(`téléphone lot ${chemin.split("/")[1]} : pas de défilement horizontal`, await js(`document.documentElement.scrollWidth <= window.innerWidth`));
   }
   await cdp("Emulation.clearDeviceMetricsOverride");
+
+  // 11. la relecture à l'aveugle (plan IA, IA4.3) : lancée à part (--aveugle), sur 2 exercices mélangés ; relire et
+  // décider, sans régénérer ni supprimer, sans rien qui dise quel modèle a écrit l'exercice
+  const AVEUGLE = `http://127.0.0.1:${PORT + 3}/`;
+  serveurAveugle = spawn(python, ["tests/navigateur/serveur_copie.py", dossier, String(PORT + 3), "--aveugle"], { stdio: "inherit" });
+  await prete(AVEUGLE + "api/types");
+  await cdp("Network.clearBrowserCookies");
+  await cdp("Page.navigate", { url: AVEUGLE });
+  await jusqua(`!document.querySelector("#vue-connexion").hidden`);
+  await saisir("#connexion-identifiant", ESSAI.identifiant);
+  await saisir("#connexion-mot-de-passe", ESSAI.motDePasse);
+  await cliquer("#btn-connexion");
+  await jusqua(`location.hash === "#/banque" && document.querySelectorAll("#table-banque tbody tr").length === 2
+    && document.querySelector("#lot-relus").textContent !== ""`);
+  verifier("aveugle : une seule rubrique, la relecture à 0 sur 2, ni pré-relecture ni jeu de données", await js(`(() => {
+    const visibles = [...document.querySelectorAll("#nav-principale a")].filter((a) => !a.hidden);
+    return visibles.length === 1 && visibles[0].textContent === "Relecture à l'aveugle"
+      && document.querySelector("#titre-banque").textContent === "Relecture à l'aveugle"
+      && document.querySelector("#lot-intro").textContent.includes("sans rien qui dise lequel les a écrits")
+      && document.querySelector("#lot-relus").textContent === "Relus : 0 sur 2"
+      && !document.querySelector('#filtre-statut option[value="prerelu"]') && document.querySelector("#lot-jeu").hidden; })()`));
+  await capture("19-aveugle");
+  const { result: { cookies: cookiesAveugle } } = await cdp("Network.getCookies", { urls: [AVEUGLE] });
+  const sessionAveugle = cookiesAveugle.find((c) => c.name === "session");
+  const statutAveugle = async (methode, chemin, corps) => (await fetch(AVEUGLE + chemin.slice(1), { method: methode,
+    headers: { Cookie: `session=${sessionAveugle && sessionAveugle.value}`, "Content-Type": "application/json" },
+    body: corps ? JSON.stringify(corps) : undefined })).status;
+  verifier("aveugle : régénérer et supprimer refusés par le serveur",
+    await statutAveugle("POST", "/api/exercices/aveugle-01/questions/1/regenerer", { motif: "x" }) === 404
+    && await statutAveugle("DELETE", "/api/exercices/aveugle-01", {}) === 404
+    && await statutAveugle("GET", "/api/entrainement") === 200);
+  await cliquer("#btn-lot-suivant");
+  await jusqua(`location.hash === "#/exercice/aveugle-01" && !document.querySelector("#ex-rang").hidden`);
+  verifier("aveugle : relire le suivant, sans « Régénérer » ni « Supprimer », ni durée ni tentatives", await js(`(() =>
+    document.querySelectorAll(".question .regenerer").length === 0 && document.querySelectorAll(".question .modifier").length === 3
+      && document.querySelector("#btn-supprimer").hidden && document.querySelector("#btn-publier").hidden
+      && document.querySelector("#ex-rang").textContent === "1er exercice relu sur 2."
+      && document.querySelector("#ex-retour").textContent === "← Relecture à l'aveugle"
+      && !/généré en|tentatives|adaptateur/.test(document.querySelector("#ex-infos").textContent))()`));
+  await capture("20-aveugle-exercice");
+  await jusqua(`!document.querySelector("#btn-accepter").disabled`);
+  await cliquer("#btn-accepter");
+  await jusqua(`location.hash === "#/exercice/aveugle-02" && document.querySelector("#ex-rang").textContent === "2e exercice relu sur 2."`);
+  await cliquer("#btn-rejeter");
+  await jusqua(`document.querySelector("#dialogue-rejeter").open && document.querySelectorAll("#rej-motifs input").length === 6`);
+  await js(`(() => { for (const c of document.querySelectorAll("#rej-motifs input")) if (c.value === "reponse_fausse") c.checked = true; })()`);
+  await cliquer("#rej-ok");
+  await jusqua(`!document.querySelector("#dialogue-rejeter").open`);
+  await attendre(500);
+  await cdp("Page.navigate", { url: AVEUGLE + "#/banque" });
+  await jusqua(`document.querySelector("#lot-relus").textContent.startsWith("Relecture finie")`);
+  verifier("aveugle : tout relu, le bilan annoncé", await js(`document.querySelector("#lot-relus").textContent === "Relecture finie : 2 sur 2 ✓"
+    && document.querySelector("#lot-detail").textContent === "1 accepté, 1 rejeté ; 0 question corrigée. Tout est relu : le bilan "
+      + "dévoile les modèles (python -m generateur.entrainement aveugle bilan)." && document.querySelector("#lot-jeu").hidden`));
+  await capture("21-aveugle-fini");
 } catch (e) {
   verifier("parcours interrompu", false, e.message);
 }

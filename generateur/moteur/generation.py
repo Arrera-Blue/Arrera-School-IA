@@ -224,13 +224,30 @@ def identifiant(type_: str, instance: dict, horodatage: str = "%Y%m%d-%H%M%S") -
 _numero = numero_de_question
 
 
+# plan IA, IA4.3 : l'adaptateur choisi pour tout le processus (les bancs et la relecture à l'aveugle comparent le modèle
+# de base et le modèle entraîné sans toucher à config.yaml) ; _CONFIG : celui de config.yaml (llamacpp.adaptateur)
+_CONFIG = object()
+_adaptateur: object = _CONFIG
+
+
+def utiliser_adaptateur(chemin: str | Path | None) -> None:
+    """Pour tout le reste du processus, l'adaptateur LoRA posé sur le modèle llama.cpp (un .gguf, relatif à la racine du
+    dépôt ou absolu) au lieu de celui de config.yaml ; None : le modèle de base. La génération, la contre-vérification,
+    l'analyse d'une phrase par le modèle : tout passe par `creer_fournisseur`."""
+    global _adaptateur
+    _adaptateur = None if chemin is None else str(chemin)
+
+
 def creer_fournisseur(nom: str | None = None) -> Fournisseur:
-    """Le fournisseur `nom` (défaut : le premier de `fournisseurs.ordre`), réglé d'après config.yaml."""
+    """Le fournisseur `nom` (défaut : le premier de `fournisseurs.ordre`), réglé d'après config.yaml (l'adaptateur :
+    celui de `utiliser_adaptateur`, s'il a été choisi)."""
     cfg = config.charger()
     nom = nom or cfg["fournisseurs"]["ordre"][0]
     reglages = dict(cfg["fournisseurs"].get(nom, {}))
     if nom in ("ollama", "llamacpp"):
         reglages["temperature"] = cfg["generation"]["temperature"]
+    if nom == "llamacpp" and _adaptateur is not _CONFIG:
+        reglages["adaptateur"] = _adaptateur
     return creer(nom, reglages)
 
 

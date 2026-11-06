@@ -40,11 +40,12 @@
   // entrainement : l'interface du lot d'entraînement (plan IA, IA3, --entrainement), qui ne sert qu'à relire ; lot : où
   // en est la relecture (/api/entrainement) ; passes : les exercices passés sans décision ; annonceLot : le message
   // à montrer sur l'exercice suivant (« Exercice accepté. ») ; filtreLot : le filtre du lot a été choisi une fois (« En
-  // cours de relecture » s'il y a des exercices pré-relus par Claude)
+  // cours de relecture » s'il y a des exercices pré-relus par Claude) ; aveugle : la relecture à l'aveugle (plan IA,
+  // IA4.3, --aveugle), le lot en plus restreint (ni régénérer, ni supprimer), sans dire quel modèle a écrit l'exercice
   const etat = { compte: null, programmes: {}, classe: null, listeLue: null, cartes: null, tableau: null, fiche: null,
     masquer: false, types: [], suivi: null, generation: null, exercice: null, regeneration: null, origine: "banque",
     statut: null, valide: true, occupe: false, donnees: null, recherche: null, annonce: null, cours: null, coursOuvert: null,
-    entrainement: false, lot: null, passes: new Set(), annonceLot: null, filtreLot: false };
+    entrainement: false, aveugle: false, lot: null, passes: new Set(), annonceLot: null, filtreLot: false };
   const $ = (selecteur) => document.querySelector(selecteur);
 
   // --- outils -----------------------------------------------------------------------------------
@@ -244,9 +245,9 @@
     remplirSelect($("#filtre-niveau"), premier.niveaux, {}, "Toutes");
   }
 
-  async function ouvrirSession(compte, entrainement = etat.entrainement) {
+  async function ouvrirSession(compte, entrainement = etat.entrainement, aveugle = etat.aveugle) {
     etat.compte = compte;
-    if (entrainement && !etat.entrainement) preparerEntrainement();
+    if (entrainement && !etat.entrainement) preparerEntrainement(aveugle);
     $("#entete-nom").textContent = compte.nom;
     $("#entete-initiales").textContent = initiales(compte.nom);
     $("#titre-generer").textContent = `Bonjour ${compte.nom}`;
@@ -285,9 +286,9 @@
     }
     $("#btn-connexion").disabled = true;
     try {
-      const { compte, entrainement } = await api("/api/session", { identifiant, mot_de_passe: motDePasse.value });
+      const { compte, entrainement, aveugle } = await api("/api/session", { identifiant, mot_de_passe: motDePasse.value });
       motDePasse.value = "";
-      await ouvrirSession(compte, entrainement);
+      await ouvrirSession(compte, entrainement, aveugle);
     } catch (e) {
       motDePasse.value = "";
       erreur.textContent = e.message.charAt(0).toUpperCase() + e.message.slice(1);
@@ -1788,18 +1789,27 @@
 
   // --- le lot d'entraînement (plan IA, IA3) : relire, au suivant, rejeter en disant pourquoi ------------------
 
-  function preparerEntrainement() {
+  function preparerEntrainement(aveugle = false) {
     etat.entrainement = true;
-    document.title = "Lot d'entraînement — Générateur d'exercices";
+    etat.aveugle = Boolean(aveugle);
+    const nom = etat.aveugle ? "Relecture à l'aveugle" : "Lot d'entraînement";
+    document.title = `${nom} — Générateur d'exercices`;
     for (const lien of document.querySelectorAll("#nav-principale a[data-vue]")) lien.hidden = lien.dataset.vue !== "banque";
-    $('#nav-principale a[data-vue="banque"] .menu-nom').textContent = "Lot d'entraînement";
-    $("#titre-banque").textContent = "Lot d'entraînement";
-    $("#table-banque caption").textContent = "Les exercices du lot, dans l'ordre de relecture";
+    $('#nav-principale a[data-vue="banque"] .menu-nom').textContent = nom;
+    $("#titre-banque").textContent = nom;
+    $("#table-banque caption").textContent = etat.aveugle ? "Les exercices des deux modèles, mélangés"
+      : "Les exercices du lot, dans l'ordre de relecture";
+    if (etat.aveugle) {
+      $("#lot-intro").textContent = "Sur les mêmes demandes, le modèle de base et le modèle entraîné ont chacun écrit "
+        + "un exercice ; les voici mélangés, sans rien qui dise lequel les a écrits. Décidez comme d'habitude : accepter, "
+        + "ou rejeter en cochant pourquoi. Le bilan dévoilera les modèles une fois tout relu.";
+      $("#btn-supprimer").hidden = true; // chaque exercice compte dans la comparaison
+    }
     $("#lot-intro").hidden = false;
     $("#lot-etat").hidden = false;
     $("#vue-banque").classList.add("lot");
     // « En cours de relecture » : pré-relus par Claude, pas encore décidés ; seulement dans le lot
-    $('#filtre-statut option[value="genere"]').after(el("option", { value: "prerelu", texte: STATUTS.prerelu }));
+    if (!etat.aveugle) $('#filtre-statut option[value="genere"]').after(el("option", { value: "prerelu", texte: STATUTS.prerelu }));
     $("#filtre-statut").value = "genere";
     $("#btn-accepter").textContent = "Accepter et passer au suivant";
     $("#btn-passer").hidden = false;
@@ -1821,8 +1831,8 @@
     const l = etat.lot;
     const atteint = l.relus >= l.objectif_relus;
     $("#lot-etat").classList.toggle("atteint", atteint);
-    $("#lot-relus").replaceChildren(atteint ? "Échantillon relu : " : "Relus : ", el("strong", { texte: String(l.relus) }),
-      ` sur ${l.objectif_relus}` + (atteint ? " ✓" : ""));
+    $("#lot-relus").replaceChildren(atteint ? (l.aveugle ? "Relecture finie : " : "Échantillon relu : ") : "Relus : ",
+      el("strong", { texte: String(l.relus) }), ` sur ${l.objectif_relus}` + (atteint ? " ✓" : ""));
     $("#lot-progression").max = l.objectif_relus;
     $("#lot-progression").value = Math.min(l.relus, l.objectif_relus);
     $("#lot-progression").textContent = `${l.relus} sur ${l.objectif_relus}`;
@@ -1830,6 +1840,15 @@
     const p = l.prerelecture;
     const decisions = `${accord(l.acceptes, "accepté")}, ${accord(l.rejetes, "rejeté")} ; `
       + `${accord(l.corrections, "question")} ${l.corrections > 1 ? "corrigées" : "corrigée"}. `;
+    if (l.aveugle) { // plan IA, IA4.3 : ni pré-relecture, ni jeu de données ; le bilan dévoile les modèles
+      $("#lot-detail").textContent = decisions + (atteint
+        ? "Tout est relu : le bilan dévoile les modèles (python -m generateur.entrainement aveugle bilan)."
+        : "Rien n'indique quel modèle a écrit l'exercice ; deux exercices sur la même notion viennent chacun de l'un d'eux.");
+      $("#lot-a-revoir").hidden = true;
+      $("#lot-jeu").hidden = true;
+      $("#btn-lot-suivant").disabled = !l.ordre.length;
+      return;
+    }
     if (atteint) {
       $("#lot-detail").textContent = decisions + (p.decides ? `Vous avez suivi l'avis de Claude ${p.suivis} fois sur ${p.decides}.`
         : "Vous pouvez continuer : chaque exercice accepté compte.");
@@ -2000,7 +2019,7 @@
     $("#btn-telecharger").href = `/api/exercices/${ident}/telecharger`;
     $("#btn-telecharger").setAttribute("download", `${ident}.html`);
     $("#ex-retour").href = `#/${etat.origine}`;
-    $("#ex-retour").textContent = etat.entrainement ? "← Lot d'entraînement"
+    $("#ex-retour").textContent = etat.entrainement ? (etat.aveugle ? "← Relecture à l'aveugle" : "← Lot d'entraînement")
       : etat.origine === "generer" ? "← Créer un exercice" : "← Banque";
     afficherRang(resume.statut);
     afficherVue("exercice"); // la rubrique du menu suit l'origine
@@ -2262,8 +2281,9 @@
       const boutons = el("div", { class: "question-actions" },
         el("button", { type: "button", class: "secondaire petit modifier", "data-numero": String(i + 1),
           texte: "Modifier" }),
-        el("button", { type: "button", class: "secondaire petit regenerer", "data-numero": String(i + 1),
-          texte: "Régénérer cette question" }));
+        etat.aveugle ? null // à l'aveugle (IA4.3) : le modèle de config.yaml écrirait la question
+          : el("button", { type: "button", class: "secondaire petit regenerer", "data-numero": String(i + 1),
+            texte: "Régénérer cette question" }));
       return el("li", { class: "question", id: `question-${i + 1}`, tabindex: "-1" },
         el("div", { class: "question-entete" }, el("h3", { texte: `Question ${i + 1}` }), badges),
         el("p", { class: "enonce", texte: q.enonce }),
@@ -2694,8 +2714,8 @@
 
     // déjà connecté (page rechargée) ? sinon, l'écran de connexion (affiché par api() sur le 401)
     try {
-      const { compte, entrainement } = await api("/api/session");
-      await ouvrirSession(compte, entrainement);
+      const { compte, entrainement, aveugle } = await api("/api/session");
+      await ouvrirSession(compte, entrainement, aveugle);
     } catch (e) {
       if ($("#vue-connexion").hidden) afficherConnexion(`Le serveur ne répond pas : ${e.message}`);
     }

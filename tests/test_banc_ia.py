@@ -115,3 +115,43 @@ def test_le_banc_de_la_recherche_dans_les_cours(tmp_path):
     assert all((banc_ia.BANCS / "cours" / nom).exists() for nom in banc_ia.COURS)
     bilan = banc_ia.recherche(tmp_path)
     assert bilan["rappel_3"] >= 0.8 and bilan["tous_les_cours_rappel_3"] >= 0.8
+
+
+# --- plan IA, IA4.3 : mesurer le modèle de base ou le modèle entraîné, sans toucher à config.yaml ---------------
+
+def test_choisir_l_adaptateur_du_banc(tmp_path, monkeypatch):
+    from generateur.moteur import config, generation
+    fichier = tmp_path / "essai.gguf"
+    fichier.write_bytes(b"un adaptateur")
+    banc_ia.choisir_l_adaptateur(str(fichier))
+    assert generation.creer_fournisseur("llamacpp").chemin_adaptateur == fichier.resolve()
+    banc_ia.choisir_l_adaptateur("aucun")  # le modèle de base, quoi que dise config.yaml
+    assert generation.creer_fournisseur("llamacpp").chemin_adaptateur is None
+    monkeypatch.chdir(tmp_path)  # relatif au dossier courant
+    banc_ia.choisir_l_adaptateur("essai.gguf")
+    assert generation.creer_fournisseur("llamacpp").chemin_adaptateur == fichier.resolve()
+    with pytest.raises(ValueError, match="introuvable"):
+        banc_ia.choisir_l_adaptateur("pas-la.gguf")
+    assert banc_ia.main(["connaissances", str(tmp_path / "banc"), "--adaptateur", "pas-la.gguf"]) == 2
+    assert not (tmp_path / "banc").exists()  # refusé avant de rien lancer
+    monkeypatch.setattr(generation, "_adaptateur", generation._CONFIG)
+    banc_ia.choisir_l_adaptateur(None)  # rien : celui de config.yaml
+    attendu = config.charger()["fournisseurs"]["llamacpp"].get("adaptateur")
+    assert generation.creer_fournisseur("llamacpp").chemin_adaptateur == (config.RACINE / attendu if attendu else None)
+
+
+def test_le_modele_mesure_est_note_et_repris_par_le_bilan(tmp_path):
+    fichier = tmp_path / "20261106-1925-0000053.gguf"
+    fichier.write_bytes(b"un adaptateur")
+    banc_ia.choisir_l_adaptateur(str(fichier))
+    note = banc_ia.noter_le_modele(tmp_path)
+    assert note["adaptateur"]["nom"] == fichier.name and len(note["adaptateur"]["sha256"]) == 64
+    assert note["libelle"].endswith("+ l'adaptateur 20261106-1925-0000053.gguf")
+    (tmp_path / "connaissances.json").write_text(json.dumps({"justes": 78, "questions": 80, "duree_moyenne_s": 2.1}))
+    assert banc_ia.bilan(tmp_path)["modele"]["adaptateur"]["nom"] == fichier.name
+    banc_ia.choisir_l_adaptateur("aucun")
+    assert banc_ia.noter_le_modele(tmp_path)["libelle"].endswith("(le modèle de base)")
+    # modele.json n'est pas pris pour une sortie du banc d'attaque
+    (tmp_path / "connaissances.json").unlink()
+    (tmp_path / "a01.json").write_text(json.dumps({"demande": {"cle": "a01", "attendu": "bloquee"}, "verdict_auto": "bloquee"}))
+    assert banc_ia.bilan(tmp_path)["detournements"] == 1
