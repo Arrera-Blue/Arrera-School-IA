@@ -1,0 +1,317 @@
+# Référentiel des attendus — francais, CP (générateur procédural du cycle 2, lot 0, étape 0.4). Libellés recopiés
+# MOT POUR MOT des « Objectifs d’apprentissage » du programme officiel (source ci-dessous ; le PDF de l’annexe :
+# https://www.education.gouv.fr/sites/default/files/ensel135_annexe3.pdf) ; seuls les identifiants et le champ « qcm »
+# (se prête ou non à un QCM : classement du projet, pas du programme) sont ajoutés. Les repères de période du
+# programme (« Dès le début de l’année »…) ne sont pas repris, comme en E2. Méthode et corrections :
+# docs/Generateur-Procedural/cycle-2-cp-ce1-ce2.md §11.4.
+matiere: francais
+niveau: CP
+cycle: 2
+source:
+  texte: Programme de français du cycle 2 (annexe 3 de l’arrêté)
+  arrete: Arrêté du 22 octobre 2024 (JO du 25 octobre 2024)
+  nor: MENE2415135A
+  bo: BO n° 41 du 31 octobre 2024
+  url: https://www.education.gouv.fr/bo/2024/Hebdo41/MENE2415135A
+  en_vigueur: en CP, CE1 et CE2 depuis la rentrée 2025-2026 (article 3 de l’arrêté)
+  extrait: Programme de français du cycle 2 (annexe 3), « Cours préparatoire »
+  releve: '2026-11-10'
+themes:
+- id: francais.cp.identifier-mots
+  domaine: Lecture
+  theme: Identifier les mots de manière de plus en plus aisée
+  attendus:
+  - id: francais.cp.identifier-mots.01
+    libelle: Décoder et encoder 12 à 15 correspondances grapho-phonémiques (CGP) régulières, fréquentes et aisément prononçables.
+    qcm: false
+  - id: francais.cp.identifier-mots.02
+    libelle: Déchiffrer des syllabes, des mots puis des phrases en fonction de la progression de l’apprentissage des CGP.
+    qcm: false
+  - id: francais.cp.identifier-mots.03
+    libelle: Décoder et encoder de 25 à 30 CGP.
+    qcm: false
+  - id: francais.cp.identifier-mots.04
+    libelle: Avoir pris conscience de la présence de lettres finales muettes et s’appuyer sur le sens des mots pour les déchiffrer
+      correctement.
+    qcm: false
+  - id: francais.cp.identifier-mots.05
+    libelle: Mémoriser les mots fréquents et réguliers.
+    qcm: false
+  - id: francais.cp.identifier-mots.06
+    libelle: Déchiffrer entre 15 et 30 mots par minute.
+    qcm: false
+  - id: francais.cp.identifier-mots.07
+    libelle: Décoder 30 mots par minute au minimum fin CP, sans préparation, 50 après préparation.
+    qcm: false
+- id: francais.cp.lire-voix-haute
+  domaine: Lecture
+  theme: Lire à voix haute
+  attendus:
+  - id: francais.cp.lire-voix-haute.01
+    libelle: Oraliser les syllabes déchiffrées et encodées, puis les mots.
+    qcm: false
+  - id: francais.cp.lire-voix-haute.02
+    libelle: Oraliser régulièrement les mots et phrases déchiffrés et encodés.
+    qcm: false
+  - id: francais.cp.lire-voix-haute.03
+    libelle: S’entrainer à lire des textes déchiffrables de manière à automatiser sa lecture.
+    qcm: false
+  - id: francais.cp.lire-voix-haute.04
+    libelle: Lire après préparation un texte adapté à son niveau de lecture avec une vitesse de 30 mots par minute au minimum
+      sans préparation, 50 après préparation.
+    qcm: false
+  - id: francais.cp.lire-voix-haute.05
+    libelle: Identifier les marques de ponctuation et les prendre en compte sur un texte préparé.
+    qcm: false
+  - id: francais.cp.lire-voix-haute.06
+    libelle: Amorcer une lecture expressive.
+    qcm: false
+- id: francais.cp.comprendre-textes
+  domaine: Lecture
+  theme: Comprendre un texte
+  attendus:
+  - id: francais.cp.comprendre-textes.01
+    libelle: Dégager le sens global d’un texte entendu ou lu de façon autonome.
+    qcm: false
+  - id: francais.cp.comprendre-textes.02
+    libelle: Identifier les mots inconnus dans un texte et chercher à leur donner un sens.
+    qcm: false
+  - id: francais.cp.comprendre-textes.03
+    libelle: Se repérer dans la chaine anaphorique (qui relie un nom à sa ou ses reprise(s) pronominale(s) ou à d’autres noms
+      de sens équivalent).
+    qcm: false
+  - id: francais.cp.comprendre-textes.04
+    libelle: Comprendre ce qui est implicite (inférences simples).
+    qcm: false
+  - id: francais.cp.comprendre-textes.05
+    libelle: Justifier ses réponses par un retour au texte.
+    qcm: false
+  - id: francais.cp.comprendre-textes.06
+    libelle: Lire et comprendre en autonomie un texte narratif, informatif ou prescriptif d’une dizaine de lignes.
+    qcm: false
+- id: francais.cp.devenir-lecteur
+  domaine: Lecture
+  theme: Devenir lecteur
+  attendus:
+  - id: francais.cp.devenir-lecteur.01
+    libelle: Lire 5 à 10 œuvres complètes et variées issues du patrimoine et de la littérature de jeunesse (albums, romans,
+      contes, fables, poèmes, pièces de théâtre et documentaires).
+    qcm: false
+  - id: francais.cp.devenir-lecteur.02
+    libelle: Repérer et reconnaitre des types de personnages.
+    qcm: false
+  - id: francais.cp.devenir-lecteur.03
+    libelle: Aller vers les livres et être capable d’en choisir à titre personnel.
+    qcm: false
+  - id: francais.cp.devenir-lecteur.04
+    libelle: Relier ses lectures à son expérience personnelle, être en mesure d’établir des liens entre ses différentes lectures
+      (mise en réseau).
+    qcm: false
+  - id: francais.cp.devenir-lecteur.05
+    libelle: Fréquenter régulièrement des lieux de lecture et se familiariser avec eux, rencontrer des acteurs du livre.
+    qcm: false
+- id: francais.cp.ecrire-cursive
+  domaine: Écriture
+  theme: Apprendre à écrire en écriture cursive
+  attendus:
+  - id: francais.cp.ecrire-cursive.01
+    libelle: Apprendre à écrire en écriture cursive tous les graphèmes étudiés selon la progression en décodage.
+    qcm: false
+  - id: francais.cp.ecrire-cursive.02
+    libelle: Apprendre à les enchainer, avec fluidité, avec d’autres lettres dans des syllabes, mots, phrases.
+    qcm: false
+- id: francais.cp.encoder-dictee
+  domaine: Écriture
+  theme: Encoder puis écrire sous dictée
+  attendus:
+  - id: francais.cp.encoder-dictee.01
+    libelle: Encoder des syllabes simples puis des mots selon la progression des CGP.
+    qcm: false
+  - id: francais.cp.encoder-dictee.02
+    libelle: Écrire des mots dictés avec des lettres muettes apprises (mettre en relation des morphogrammes lexicaux et grammaticaux).
+    qcm: false
+  - id: francais.cp.encoder-dictee.03
+    libelle: Écrire sous la dictée des mots et des phrases.
+    qcm: false
+- id: francais.cp.copier
+  domaine: Écriture
+  theme: Copier et acquérir des stratégies de copie
+  attendus:
+  - id: francais.cp.copier.01
+    libelle: Copier des syllabes simples puis des mots avec lettres muettes.
+    qcm: false
+  - id: francais.cp.copier.02
+    libelle: Copier une phrase en lien avec les 12/15 correspondances graphophonémiques étudiées.
+    qcm: false
+  - id: francais.cp.copier.03
+    libelle: 'Commencer à verbaliser et à utiliser des stratégies de copie pour dépasser la copie lettre à lettre : prise
+      d’indices, mémorisation de mots ou groupes de mots.'
+    qcm: false
+  - id: francais.cp.copier.04
+    libelle: Commencer à savoir se relire après copie.
+    qcm: false
+  - id: francais.cp.copier.05
+    libelle: Copier trois ou quatre phrases sans erreur et de façon lisible.
+    qcm: false
+- id: francais.cp.produire-ecrits
+  domaine: Écriture
+  theme: Produire des écrits
+  attendus:
+  - id: francais.cp.produire-ecrits.01
+    libelle: Écrire des graphèmes, des syllabes, des mots puis quelques phrases avec l’aide du professeur à partir des mots
+      connus et déchiffrés. Les activités de dictées à l’adulte sont poursuivies.
+    qcm: false
+  - id: francais.cp.produire-ecrits.02
+    libelle: Produire des écrits courts porteurs de sens, d’une à cinq lignes, en articulation avec l’apprentissage de la
+      lecture.
+    qcm: false
+  - id: francais.cp.produire-ecrits.03
+    libelle: S’appuyer sur les textes de lecture pour les transformer sur quelques points seulement (écrire à la façon de,
+      ajouter un épisode, etc.).
+    qcm: false
+  - id: francais.cp.produire-ecrits.04
+    libelle: Produire des écrits courts porteurs de sens d’une à cinq lignes en articulation avec l’apprentissage de la lecture.
+    qcm: false
+  - id: francais.cp.produire-ecrits.05
+    libelle: 'Commencer à acquérir une méthodologie de production écrite : planification, mise en mots avec vigilance orthographique,
+      relectures et révisions.'
+    qcm: false
+  - id: francais.cp.produire-ecrits.06
+    libelle: Repérer les dysfonctionnements de son texte par la relecture à voix haute du professeur ou grâce à des outils
+      d’aide construits à cet effet.
+    qcm: false
+- id: francais.cp.ecouter
+  domaine: Oral
+  theme: Écouter pour comprendre
+  attendus:
+  - id: francais.cp.ecouter.01
+    libelle: Comprendre un message entendu de quelques minutes et mémoriser quelques informations importantes.
+    qcm: false
+- id: francais.cp.dire
+  domaine: Oral
+  theme: Dire pour être compris
+  attendus:
+  - id: francais.cp.dire.01
+    libelle: Mener une brève production orale pour rapporter, raconter, décrire ou expliquer, en utilisant quelques organisateurs
+      du discours et en mobilisant le lexique appris.
+    qcm: false
+  - id: francais.cp.dire.02
+    libelle: S’écouter pour progresser et proposer des reformulations.
+    qcm: false
+  - id: francais.cp.dire.03
+    libelle: Oraliser un texte mémorisé ou préparé en tenant compte de son auditoire.
+    qcm: false
+- id: francais.cp.echanges
+  domaine: Oral
+  theme: Participer à des échanges
+  attendus:
+  - id: francais.cp.echanges.01
+    libelle: Participer aux échanges en respectant les règles, en écoutant les autres et en donnant son avis.
+    qcm: false
+  - id: francais.cp.echanges.02
+    libelle: Prendre conscience des écarts de niveau de langue selon les situations de communication.
+    qcm: false
+- id: francais.cp.vocabulaire
+  domaine: Vocabulaire
+  theme: Enrichir son vocabulaire dans tous les enseignements
+  attendus:
+  - id: francais.cp.vocabulaire.01
+    libelle: Enrichir en contexte le vocabulaire appris au cycle 1.
+    qcm: true
+  - id: francais.cp.vocabulaire.02
+    libelle: Être sensible, sans en apprendre les concepts, à la polysémie et à la différence entre sens propre et sens figuré.
+    qcm: true
+  - id: francais.cp.vocabulaire.03
+    libelle: Commencer à mobiliser l’ordre alphabétique pour utiliser un dictionnaire adapté (papier ou numérique).
+    qcm: true
+- id: francais.cp.relations-mots
+  domaine: Vocabulaire
+  theme: Établir des relations entre les mots
+  attendus:
+  - id: francais.cp.relations-mots.01
+    libelle: Constituer des répertoires de mots par thème, par classe grammaticale, par famille de mots, par analogies morphologiques.
+    qcm: true
+  - id: francais.cp.relations-mots.02
+    libelle: Savoir proposer et justifier une catégorisation du corpus de mots étudié.
+    qcm: true
+  - id: francais.cp.relations-mots.03
+    libelle: Savoir trouver des synonymes et des antonymes.
+    qcm: true
+- id: francais.cp.reemployer
+  domaine: Vocabulaire
+  theme: Réemployer le vocabulaire étudié
+  attendus:
+  - id: francais.cp.reemployer.01
+    libelle: Réemployer et mémoriser le vocabulaire appris en maternelle.
+    qcm: false
+  - id: francais.cp.reemployer.02
+    libelle: Réemployer et mémoriser les expressions et les mots appris en fonction de contraintes de production orale ou
+      écrite.
+    qcm: false
+  - id: francais.cp.reemployer.03
+    libelle: Percevoir la différence entre deux niveaux de langue et choisir le plus adapté à la situation.
+    qcm: true
+- id: francais.cp.orthographe-lexicale
+  domaine: Vocabulaire
+  theme: Mémoriser l’orthographe lexicale
+  attendus:
+  - id: francais.cp.orthographe-lexicale.01
+    libelle: Mémoriser l’orthographe des mots réguliers fréquemment rencontrés et du lexique le plus couramment employé et
+      pouvoir les écrire sous la dictée, en lien avec les correspondances graphophonémiques (CGP) étudiées.
+    qcm: true
+  - id: francais.cp.orthographe-lexicale.02
+    libelle: Identifier et nommer les accents.
+    qcm: true
+  - id: francais.cp.orthographe-lexicale.03
+    libelle: Connaitre la valeur sonore de certaines lettres (s – c – g) et la composition de certains graphèmes selon la
+      lettre qui suit (an/am, en/em, on/om, in/im), en fonction du contexte et dans des mots fréquemment rencontrés.
+    qcm: true
+  - id: francais.cp.orthographe-lexicale.04
+    libelle: 'Être capable de comprendre la présence d’une lettre muette finale à l’aide d’un mot de la même famille : chat/chaton,
+      gros/grossir, etc.'
+    qcm: true
+- id: francais.cp.phrase-simple
+  domaine: Grammaire et orthographe
+  theme: Se repérer dans la phrase simple
+  attendus:
+  - id: francais.cp.phrase-simple.01
+    libelle: 'S’approprier progressivement la notion de phrase simple et ses trois marqueurs essentiels : majuscule initiale,
+      ponctuation finale forte et sens.'
+    qcm: true
+  - id: francais.cp.phrase-simple.02
+    libelle: Comprendre que certains éléments (sujet/verbe et déterminants/noms/adjectifs) fonctionnent ensemble et constituent
+      un système.
+    qcm: true
+  - id: francais.cp.phrase-simple.03
+    libelle: S’appuyer sur la ponctuation pour reconnaitre les trois types de phrases (déclarative, interrogative et impérative).
+    qcm: true
+  - id: francais.cp.phrase-simple.04
+    libelle: Reconnaitre les formes négative et exclamative.
+    qcm: true
+  - id: francais.cp.phrase-simple.05
+    libelle: 'Constituer des corpus par classe de mots : noms, verbes, déterminants, adjectifs, pronoms personnels.'
+    qcm: true
+- id: francais.cp.orthographe-grammaticale
+  domaine: Grammaire et orthographe
+  theme: Découvrir, comprendre et mettre en œuvre l’orthographe grammaticale
+  attendus:
+  - id: francais.cp.orthographe-grammaticale.01
+    libelle: Comprendre les notions de masculin et de féminin.
+    qcm: true
+  - id: francais.cp.orthographe-grammaticale.02
+    libelle: Comprendre les notions de singulier et de pluriel (plusieurs, plus qu’un).
+    qcm: true
+  - id: francais.cp.orthographe-grammaticale.03
+    libelle: Se familiariser avec la notion de « chaine d’accords » (déterminant/nom/adjectif) en repérant et en identifiant
+      les régularités des marques de genre et de nombre.
+    qcm: true
+  - id: francais.cp.orthographe-grammaticale.04
+    libelle: S’initier à l’identification de la relation sujet-verbe à partir du sens et de l’observation des effets des transformations
+      liées aux temps et aux personnes.
+    qcm: true
+  - id: francais.cp.orthographe-grammaticale.05
+    libelle: Observer les différentes formes verbales fréquentes et régulières.
+    qcm: true
+  - id: francais.cp.orthographe-grammaticale.06
+    libelle: Apprendre à conjuguer être et avoir au présent de l’indicatif et commencer à les mobiliser à l’écrit.
+    qcm: true

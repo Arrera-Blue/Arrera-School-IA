@@ -19,19 +19,43 @@ def test_le_referentiel_est_sain():
     assert programmes.verifier() == []
 
 
-def test_quatre_programmes_sources_citees():
+def test_sept_programmes_sources_citees():
     documents = {(d["matiere"], d["niveau"]): d for d in programmes.documents()}
-    assert set(documents) == {("maths", "6e"), ("maths", "5e"), ("francais", "6e"), ("francais", "5e")}
+    assert set(documents) == {("maths", "6e"), ("maths", "5e"), ("francais", "6e"), ("francais", "5e"),
+                              ("francais", "CP"), ("francais", "CE1"), ("francais", "CE2")}
     for (matiere, niveau), doc in documents.items():
         source = doc["source"]
         if niveau == "6e":
             assert doc["cycle"] == 3 and source["nor"] == "MENE2504620A" and source["bo"] == "BO n° 16 du 17 avril 2025"
+        elif niveau in ("CP", "CE1", "CE2"):  # le cycle 2 : générateur procédural du cycle 2, étape 0.4 (10/11)
+            assert doc["cycle"] == 2 and source["nor"] == "MENE2415135A" and source["bo"] == "BO n° 41 du 31 octobre 2024"
         else:
             assert doc["cycle"] == 4 and source["nor"] == "MENE2602912A" and source["bo"] == "BO n° 10 du 5 mars 2026"
-    # 368 libellés relevés le 21/10/2026 : tout ajout ou retrait doit être voulu (et la doc mise à jour)
-    assert len(programmes.lister()) == 368
+    # 368 libellés relevés le 21/10/2026, 182 le 10/11/2026 : tout ajout ou retrait doit être voulu (et la doc mise
+    # à jour)
+    assert len(programmes.lister()) == 550
     assert {(m, n): len(programmes.lister(m, n)) for m, n in documents} == {
-        ("maths", "6e"): 95, ("maths", "5e"): 104, ("francais", "6e"): 85, ("francais", "5e"): 84}
+        ("maths", "6e"): 95, ("maths", "5e"): 104, ("francais", "6e"): 85, ("francais", "5e"): 84,
+        ("francais", "CP"): 70, ("francais", "CE1"): 60, ("francais", "CE2"): 52}
+
+
+def test_le_francais_du_cycle_2():
+    """Relevé mot pour mot dans l'annexe 3 du BO n° 41 du 31 octobre 2024 (docs/Generateur-Procedural/ §11.4)."""
+    a = programmes.attendu("francais.ce2.orthographe-grammaticale.03")
+    assert a.libelle == ("Apprendre à conjuguer au présent, à l’imparfait, au futur et au passé composé de l’indicatif être "
+                         "et avoir, les verbes du premier groupe et les verbes irréguliers du 3e groupe (faire, aller, dire, "
+                         "venir, pouvoir, voir, vouloir, prendre).")
+    assert a.qcm and a.niveau == "CE2" and a.cycle == 2 and a.domaine == "Grammaire et orthographe"
+    assert a.theme == "Découvrir, comprendre et mettre en œuvre l’orthographe grammaticale"
+    # un mot coupé en fin de ligne, recollé : « grapho-phonémiques » ; la lecture n'est pas un QCM
+    a = programmes.attendu("francais.cp.identifier-mots.01")
+    assert "correspondances grapho-phonémiques (CGP)" in a.libelle and not a.qcm
+    assert programmes.attendu("francais.cp.relations-mots.03").libelle == "Savoir trouver des synonymes et des antonymes."
+    # consulter un dictionnaire, la fluence verbale : pas des QCM
+    assert not programmes.attendu("francais.ce2.vocabulaire.05").qcm and not programmes.attendu("francais.ce2.reemployer.04").qcm
+    assert programmes.couvert("francais", "CP") and not programmes.couvert("maths", "CP")
+    assert {t["id"].split(".")[2] for t in programmes.arbre("francais", "CE1", qcm=None)["themes"]} >= {
+        "vocabulaire", "relations-mots", "phrase-simple", "orthographe-grammaticale"}
 
 
 def test_libelles_officiels():

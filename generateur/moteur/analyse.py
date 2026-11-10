@@ -109,7 +109,8 @@ MOTS_DES_MATIERES = {
                 r"complement|vocabulaire|poesie|roman|figures? de style|homophone|subordonnee|"
                 r"propositions? (?:relative|subordonnee|independante)|adjectif|adverbe|pronom|determinant|"
                 r"participe|indicatif|dictee|litterature|fable|moliere|conte|lecture|ponctuation|"
-                r"synonyme|antonyme|champ lexical|discours|narrat|theatre",
+                r"synonyme|antonyme|champ lexical|discours|narrat|theatre|"
+                r"masculin|feminin|singulier|pluriel|ordre alphabetique|syllabe|lettres? muettes?",
     "histoire-geo": r"histoire|hist-geo|geographi|revolution|guerres?\b|moyen age|antiquite|rois?\b|empire|"
                     r"napoleon|louis xiv|renaissance|republique|colonis|decolonis|mondialisation|continent|"
                     r"capitale|urbanisation|chretiente|croisade|egypte|grece|grecs?\b|rome\b|romains?\b|"
