@@ -77,6 +77,10 @@ def test_lecture_du_nombre_et_de_la_classe():
                                                   "une question", "sans nombre")] == [8, 10, 12, None, None]
     assert [lire_classe(t) for t in ("pour des 4e", "en 6ème", "classe de troisième", "en CM2")] == \
         ["4e", "6e", "3e", None]
+    # l'école (cycle 2) ; « ce 2 » en minuscules n'est pas une classe
+    assert [lire_classe(t) for t in ("au CP", "pour des ce1", "en CE 2", "cours préparatoire", "cours elementaire 1re annee",
+                                     "cours élémentaire deuxième année", "à rendre pour ce 2 mai", "un cp")] == \
+        ["CP", "CE1", "CE2", "CP", "CE1", "CE2", None, "CP"]
     # la génération en ligne de commande lit désormais les nombres en lettres
     assert generation.completer_demande({"demande_enseignant": "dix questions sur les fractions"})["nb_questions"] == 10
 

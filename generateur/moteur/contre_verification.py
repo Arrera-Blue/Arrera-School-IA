@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from generateur.moteur.fournisseurs import ErreurFournisseur, Fournisseur
 
 CONSIGNE = (
-    "Tu réponds à une question de QCM de collège français. Écris d'abord une explication courte (la règle, le fait, "
+    "Tu réponds à une question de QCM d'école élémentaire ou de collège français. Écris d'abord une explication courte (la règle, le fait, "
     "la date, le calcul), puis le numéro de la seule bonne proposition. Réponds uniquement par l'objet JSON demandé.")
 
 

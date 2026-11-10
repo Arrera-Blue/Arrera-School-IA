@@ -5,8 +5,8 @@ Règles (docs/etapes/etape-E1-securite.md §6, docs/rgpd/) :
 - chaque enseignant ne voit et ne touche que **ses** classes (une classe d'un autre est « introuvable ») ;
 - minimisation : nom, prénom, classe, numéro, empreinte du code ; une liste collée avec d'autres colonnes (date
   de naissance…) n'en garde que le nom et le prénom ;
-- le code n'est montré qu'une fois, sur la carte ; ensuite, on ne peut que le refaire (codes.py) : 4 images en 6e,
-  un mot de passe imprimé de la 5e à la 3e (E8) ;
+- le code n'est montré qu'une fois, sur la carte ; ensuite, on ne peut que le refaire (codes.py) : 4 images du CP à
+  la 6e, un mot de passe imprimé de la 5e à la 3e (E8) ;
 - chaque action est notée au journal, avec l'identifiant interne de l'élève, jamais son nom ;
 - l'export d'un élève est un CSV lisible, sans formule (une cellule « =… » serait exécutée par un tableur).
 """
@@ -18,10 +18,11 @@ import sqlite3
 import unicodedata
 from datetime import date, datetime
 
+from generateur import programmes
 from generateur.donnees import codes, images, journal
 from generateur.donnees.base import Base, maintenant_iso
 
-NIVEAUX = ("6e", "5e", "4e", "3e")
+NIVEAUX = programmes.NIVEAUX  # du CP à la 3e (le CM1 et le CM2 pas encore)
 ELEVES_MAX = 40
 NOM_MAX = 60
 NOM_CLASSE_MAX = 30
@@ -144,9 +145,13 @@ def _vue_eleve(ligne: sqlite3.Row) -> dict:
             "actif": bool(ligne["actif"]), "bloque": bool(ligne["bloque"])}
 
 
+# les élèves qui se connectent avec 4 images : un enfant de CP ne tape pas un mot de passe (choix du 10/11)
+CLASSES_AUX_IMAGES = ("CP", "CE1", "CE2", "6e")
+
+
 def connexion_du_niveau(niveau: str) -> str:
-    """4 images en 6e ; un mot de passe imprimé de la 5e à la 3e (choix du 27/10)."""
-    return "images" if niveau == "6e" else "mot_de_passe"
+    """4 images du CP à la 6e ; un mot de passe imprimé de la 5e à la 3e (choix du 27/10)."""
+    return "images" if niveau in CLASSES_AUX_IMAGES else "mot_de_passe"
 
 
 def lister(base: Base, compte: dict, archivees: bool = False) -> list[dict]:

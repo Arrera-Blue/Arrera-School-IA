@@ -258,6 +258,9 @@ try {
   await jusqua(`!document.querySelector("#classes-etat").textContent.startsWith("Chargement")`);
   verifier("classes : rappel « élèves fictifs uniquement » (dossier RGPD non validé)", await js(`!document.querySelector("#classes-rgpd").hidden`));
   await cliquer("#btn-nouvelle-classe");
+  verifier("classes : le CP, le CE1 et le CE2 proposés (école), la 6e par défaut", await js(`(() => {
+    const s = document.querySelector("#classe-niveau");
+    return ["CP", "CE1", "CE2"].every((n) => s.querySelector('optgroup[label="École"] option[value="' + n + '"]')) && s.value === "6e"; })()`));
   await saisir("#classe-nom", "6e Essai");
   await saisir("#classe-liste", "DUPONT;Marie\nLE GOFF Anne-Sophie\nMARTIN;Alice;12/03/2014");
   await cliquer("#btn-verifier-liste");

@@ -1,7 +1,7 @@
 """Extraction d'intention (étape 3.1) : la phrase de l'enseignant → une requête structurée, à confirmer.
 
 Deux mécanismes, dans cet ordre (architecture §9.1) :
-1. des **règles**, instantanées : la classe (« 4e », « quatrième »), le nombre de questions (« 8 », « dix »),
+1. des **règles**, instantanées : la classe (« 4e », « quatrième », « CE1 »), le nombre de questions (« 8 », « dix »),
    la difficulté, la matière par mots-clés, la notion (« … sur les fractions … ») ;
 2. le **modèle**, seulement pour ce que les règles n'ont pas trouvé (matière, notion) : un appel court, la
    sortie contrainte par un schéma. Tout extraire par le modèle coûterait plus de 20 s sur un PC sans GPU
@@ -40,7 +40,13 @@ NOMBRES_EN_LETTRES = {"trois": 3, "quatre": 4, "cinq": 5, "six": 6, "sept": 7, "
 NOMBRE_DE_QUESTIONS = re.compile(
     r"\b(?:(\d{1,2})|(" + "|".join(k for k in NOMBRES_EN_LETTRES if not k.endswith("aine")) + r")|"
     r"une (dizaine|douzaine|quinzaine|vingtaine) de) questions?\b", re.IGNORECASE)
-CLASSE = re.compile(r"\b([3-6])(?:e|è|ème|eme)\b|\b(sixième|cinquième|quatrième|troisième)s?\b", re.IGNORECASE)
+# le collège (« 4e », « quatrième ») ; l'école (« CP », « ce1 », « CE 2 », « cours préparatoire », « cours élémentaire
+# 2e année ») : « ce 2 » en minuscules n'est pas une classe (« pour ce 2 mai »)
+CLASSE = re.compile(
+    r"\b([3-6])(?:e|è|ème|eme)\b|\b(sixième|cinquième|quatrième|troisième)s?\b|"
+    r"\b(cp|ce[12]|(?-i:CE [12]))\b|"
+    r"\b(cours pr[ée]paratoire|cours [ée]l[ée]mentaire (?:1re|1ère|premi[èe]re|2e|deuxi[èe]me) ann[ée]e)\b",
+    re.IGNORECASE)
 CLASSES_EN_LETTRES = {"sixième": "6e", "cinquième": "5e", "quatrième": "4e", "troisième": "3e"}
 
 
@@ -53,11 +59,19 @@ def lire_nombre_de_questions(texte: str) -> int | None:
 
 
 def lire_classe(texte: str) -> str | None:
-    """« pour des 4e », « en 4ème », « classe de quatrième » → « 4e »."""
+    """« pour des 4e », « en 4ème », « classe de quatrième » → « 4e » ; « au CP », « des ce1 », « cours élémentaire
+    2e année » → « CP », « CE1 », « CE2 »."""
     m = CLASSE.search(texte or "")
     if not m:
         return None
-    return f"{m[1]}e" if m[1] else CLASSES_EN_LETTRES[m[2].lower()]
+    if m[1]:
+        return f"{m[1]}e"
+    if m[2]:
+        return CLASSES_EN_LETTRES[m[2].lower()]
+    if m[3]:
+        return m[3].upper().replace(" ", "")
+    long = sans_accents(m[4])
+    return "CP" if "preparatoire" in long else "CE1" if ("1re" in long or "premiere" in long) else "CE2"
 
 
 # --- la difficulté, le type, la matière ----------------------------------------------------------
@@ -111,7 +125,7 @@ MOTS_DES_MATIERES = {
            r"vaccin",
     "physique-chimie": r"physique|chimie|electricit|circuits? electrique|tension electrique|intensite|atomes?\b|"
                        r"molecule|masse volumique|vitesse|energie|lumiere|melange|dissolution|"
-                       r"etats? de la matiere|transformation chimique|combustion|gravitation|forces?\b|"
+                       r"etats? de la matiere|etats? de l'eau|transformation chimique|combustion|gravitation|forces?\b|"
                        r"poids\b|mouvement|optique|loi d'ohm|resistance electrique|acide|ions?\b|"
                        r"changements? d'etat|solubilit|conducteur|isolant|signal|ondes?\b",
     "anglais": r"anglais|english|preterit|present perfect|irregular|verbes irreguliers anglais|vocabulary|"
@@ -119,6 +133,18 @@ MOTS_DES_MATIERES = {
     "technologie": r"technologi|techno\b|programmation|scratch|algorithm|robot|objets? techniques?|"
                    r"reseaux? informatiques?|informatique|capteur|actionneur|cahier des charges|"
                    r"impression 3d|chaine d'energie|chaine d'information",
+    # le cycle 2 (questionner le monde) ; l'EMC, les arts plastiques et la musique, de l'école au collège
+    "questionner-le-monde": r"questionner le monde|qlm\b|se reperer dans le temps|se reperer dans l'espace|calendrier|"
+                            r"saisons?\b|jours de la semaine|mois de l'annee|frise|vivant ou non|non vivant|"
+                            r"monde du vivant|monde de la matiere|monde des objets",
+    "emc": r"emc\b|enseignement moral|moral et civique|education civique|civique|citoyen|laicite|"
+           r"symboles de la republique|marianne|devise de la republique|drapeau|hymne national|marseillaise|"
+           r"droits de l'enfant|regles de vie|vivre ensemble|harcelement|discrimination|fraternite",
+    "arts-plastiques": r"arts? plastiques?|dessin|peinture|peindre|couleurs? (?:primaire|secondaire|chaude|froide)|"
+                       r"melange des couleurs|sculpture|collage|(?:oe)?uvres? d'art|peintres?\b|artistes?\b|musee",
+    "education-musicale": r"education musicale|musique|musical|instruments? de musique|familles? d'instruments|"
+                          r"chanson|chorale|rythme|melodie|notes? de musique|solfege|orchestre|compositeur|tempo|"
+                          r"percussions?\b|partition",
 }
 MATIERES_RE = {m: re.compile(r"\b(?:" + motifs + ")") for m, motifs in MOTS_DES_MATIERES.items()}
 # le nom de la matière, quand l'enseignant le cite, l'emporte sur un mot-clé d'une autre matière : « verbes
@@ -126,7 +152,9 @@ MATIERES_RE = {m: re.compile(r"\b(?:" + motifs + ")") for m, motifs in MOTS_DES_
 NOMS_DES_MATIERES = {m: re.compile(r"\b(?:" + motifs + ")") for m, motifs in {
     "maths": r"maths?\b|mathemati", "francais": r"francais\b|langue francaise", "histoire-geo": r"histoire|geographi",
     "svt": r"svt\b|sciences de la vie", "physique-chimie": r"physique|chimie", "anglais": r"anglais|english",
-    "technologie": r"technologi|techno\b"}.items()}
+    "technologie": r"technologi|techno\b", "questionner-le-monde": r"questionner le monde|qlm\b",
+    "emc": r"emc\b|enseignement moral et civique|education civique", "arts-plastiques": r"arts? plastiques?",
+    "education-musicale": r"education musicale|musique\b"}.items()}
 POIDS_DU_NOM = 3
 
 
@@ -138,6 +166,18 @@ def lire_matiere(texte: str, permises: list[str]) -> str | None:
     meilleur = max(scores.values(), default=0)
     gagnantes = [m for m, s in scores.items() if s == meilleur]
     return gagnantes[0] if meilleur and len(gagnantes) == 1 else None
+
+
+# au cycle 2, les sciences, l'histoire et la géographie s'enseignent dans « questionner le monde »
+# (docs/matieres-cp-3e.md) : « les états de l'eau pour des CE1 » n'est pas de la physique-chimie
+VERS_QUESTIONNER_LE_MONDE = ("svt", "physique-chimie", "technologie", "histoire-geo")
+
+
+def matiere_de_la_classe(matiere: str | None, niveau: str | None, permises: list[str]) -> str | None:
+    if (programmes.cycle(niveau) == 2 and matiere in VERS_QUESTIONNER_LE_MONDE
+            and "questionner-le-monde" in permises):
+        return "questionner-le-monde"
+    return matiere
 
 
 def lire_difficulte(texte: str) -> str | None:
@@ -161,6 +201,7 @@ FIN_DE_NOTION = re.compile(
     r"\s*(?:[,;.!?()\[\]]|\s[-–—]\s|"
     r"\bpour (?:des|les|mes|une|un|la|le|ma|mon|leur|nos|vos)\b|"
     r"\b(?:pour|en|de|niveau|classe de) (?:[3-6](?:e|è|ème|eme)\b|sixième|cinquième|quatrième|troisième)|"
+    r"\b(?:pour|en|de|au|niveau|classe de|classe du) (?:cp|ce ?[12])\b|\bcours pr[ée]paratoire|\bcours [ée]l[ée]mentaire|"
     r"\ben (?:classe|cycle)\b|\b(?:de |au )?niveau\b|\bavec\b|"
     r"\b(?:de |en )?(?:\d{1,2}|une dizaine de|une quinzaine de|" + "|".join(
         k for k in NOMBRES_EN_LETTRES if not k.endswith("aine")) + r") questions?\b|"
@@ -217,7 +258,7 @@ def _nettoyer(notion: str) -> str | None:
 # --- le modèle, pour ce que les règles n'ont pas trouvé ------------------------------------------
 
 CONSIGNE_MODELE = (
-    "Tu lis la phrase d'un enseignant de collège. Dis d'abord si elle demande un exercice scolaire (« exercice » : "
+    "Tu lis la phrase d'un enseignant d'école élémentaire ou de collège. Dis d'abord si elle demande un exercice scolaire (« exercice » : "
     "true), ou autre chose (« exercice » : false) : une lettre, un courriel, un programme informatique, une "
     "traduction, une blague, une information (la météo…), une conversation. Une simple notion du programme (« les "
     "fractions en 6e ») est une demande d'exercice. Puis extrais la matière, parmi les valeurs permises par le "
@@ -350,6 +391,7 @@ def analyser(phrase: str, fournisseur: Fournisseur | None = None,
                 notion, sources["notion"] = proposition["notion"].strip(), "modele"
         duree = round(time.monotonic() - debut, 1)
 
+    matiere = matiere_de_la_classe(matiere, niveau, matieres)
     if matiere is None:
         remarques.append("matière non reconnue : à choisir")
     if notion is None:

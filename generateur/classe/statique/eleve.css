@@ -1,5 +1,5 @@
 /* Les écrans de l'élève sur le serveur de classe (E8) : la maquette validée (docs/maquettes/eleve-connexion.html).
-   Style « enfant » pour une classe de 6e, « collège » sinon (et avant de connaître la classe). */
+   Style « enfant » du CP à la 6e, « collège » sinon (et avant de connaître la classe). */
 
 @font-face { font-family: "Andika"; font-weight: 400; font-display: swap; src: url("/polices/andika-400.woff2") format("woff2"); }
 @font-face { font-family: "Andika"; font-weight: 700; font-display: swap; src: url("/polices/andika-700.woff2") format("woff2"); }
