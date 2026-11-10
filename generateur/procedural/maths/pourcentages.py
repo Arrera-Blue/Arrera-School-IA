@@ -10,8 +10,10 @@ import random
 from fractions import Fraction
 
 from generateur.procedural import Retirer, Squelette, distracteurs, ecrire
+from generateur.procedural.maths import COLLEGE
 
 NOM, TITRE, NOTION, NIVEAU = "pourcentages", "Les pourcentages", "pourcentages", "5e"
+MATIERE, NIVEAUX = "maths", COLLEGE  # NIVEAU : la classe par défaut ; NIVEAUX : celles où il s'applique
 MOTS_CLES = ("pourcentage", "pour cent", "remise", "soldes", "reduction", "augmentation", "taux")
 
 # une question inversée ou niée : « combien ne sont pas… », « ce qui reste »

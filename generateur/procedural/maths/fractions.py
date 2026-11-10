@@ -11,8 +11,10 @@ import random
 from fractions import Fraction
 
 from generateur.procedural import Retirer, Squelette, distracteurs
+from generateur.procedural.maths import COLLEGE
 
 NOM, TITRE, NOTION, NIVEAU = "fractions", "Les fractions", "fractions", "6e"
+MATIERE, NIVEAUX = "maths", COLLEGE  # NIVEAU : la classe par défaut ; NIVEAUX : celles où il s'applique
 MOTS_CLES = ("fraction",)
 
 # la partie et le tout : « dont 3 sont coloriées », « Léa en mange 3 »… pas « ce qui reste »

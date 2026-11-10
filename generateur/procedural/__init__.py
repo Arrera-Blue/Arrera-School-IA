@@ -1,13 +1,19 @@
-"""Générateur procédural pour les maths (étape 1.7) : les nombres pour le programme, la langue pour le modèle.
+"""Générateur procédural (étape 1.7) : la réponse pour le programme, la langue pour le modèle.
 
-Pour les notions couvertes (calcul mental, pourcentages, Pythagore), le programme tire les nombres, calcule
-la réponse et fabrique les distracteurs à partir d'erreurs typiques d'élèves. Le modèle ne fait que réécrire
-l'énoncé, sous contrôle (habillage.py). Le calcul est juste par construction, au lieu d'être vérifié après
-coup. Conception : docs/etapes/etape-1.7-procedural.md.
+Pour les notions couvertes, le programme tire la question, connaît la réponse (il la calcule) et fabrique les
+distracteurs à partir d'erreurs typiques d'élèves. En maths, le modèle peut réécrire l'énoncé, sous contrôle
+(habillage.py). La réponse est juste par construction, au lieu d'être vérifiée après coup. Conception :
+docs/etapes/etape-1.7-procedural.md.
+
+Un sous-dossier par matière (`maths/` ; le cycle 2 : docs/Generateur-Procedural/cycle-2-cp-ce1-ce2.md) : son
+`__init__` déclare `MATIERE`, `AUTRES_NOTIONS` (les notions de la matière qu'aucun générateur ne couvre) et
+`generateurs()` ; chaque module de générateur, `NOM` (unique, toutes matières), `MATIERE`, `NIVEAU` (la classe par
+défaut), `NIVEAUX` (celles où il s'applique), `MOTS_CLES`, `GENRES`, `ATTENDUS`, et `TABLES` s'il lit ses réponses
+dans des tables de référence (tables.py). Ce paquet-ci est commun : le squelette d'une question, les distracteurs,
+l'aiguillage, le tirage, l'assemblage.
 """
 
 import random
-import re
 import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -82,17 +88,25 @@ def sans_accents(texte: str) -> str:
     return unicodedata.normalize("NFKD", texte).encode("ascii", "ignore").decode().lower()
 
 
-# d'autres notions de maths : si la demande en cite une, elle n'est pas couverte en entier par un générateur ;
-# en début de mot (« aire » n'est pas dans « scolaire », ni « angle » dans « triangle »)
-AUTRES_NOTIONS = re.compile(r"\b(?:decima|equation|relatif|proportionnal|aires?\b|perimetre|volume|"
-                            r"puissance|racine|statisti|probabilit|thales|trigonometr|fonction|geometr|symetr|"
-                            r"conversion|division euclidienne)")
+def matieres() -> dict:
+    """Les matières qui ont des générateurs : {matière : son paquet}. Import local : le paquet reste léger à charger."""
+    from generateur.procedural import maths
+    return {p.MATIERE: p for p in (maths,)}
 
 
 def notions() -> dict:
-    """Les générateurs disponibles, par nom. Import local : le paquet reste léger à charger."""
-    from generateur.procedural import calcul_mental, fractions, pourcentages, pythagore
-    return {m.NOM: m for m in (calcul_mental, fractions, pourcentages, pythagore)}
+    """Les générateurs disponibles, toutes matières, par nom."""
+    return {m.NOM: m for paquet in matieres().values() for m in paquet.generateurs()}
+
+
+def candidats(demande: dict) -> dict:
+    """Les générateurs de la matière et de la classe demandées (toutes, si la demande ne les dit pas), dont les tables
+    de référence sont relues : un générateur dont une table n'a pas été validée n'est jamais proposé."""
+    from generateur.procedural import tables  # import local : `python -m generateur.procedural.tables` reste propre
+    matiere, niveau = demande.get("matiere"), demande.get("niveau")
+    return {nom: m for nom, m in notions().items()
+            if (matiere is None or m.MATIERE == matiere) and (niveau is None or niveau in m.NIVEAUX)
+            and tables.relues(m.MATIERE, getattr(m, "TABLES", ()))}
 
 
 # --- programmes officiels (évolution E2.5) ----------------------------------------------------------
@@ -116,25 +130,29 @@ def aiguiller(demande: dict) -> str | None:
     Avec un attendu du programme (E2) : le générateur qui en travaille le plus d'attendus distincts (« Les
     fractions » de 6e : les fractions plutôt que les pourcentages, rangés dans le même thème) ; aucun → le modèle.
 
-    Sans attendu : une seule notion couverte, et aucune autre notion de maths citée : « les pourcentages »,
+    Sans attendu : une seule notion couverte, et aucune autre notion de sa matière citée : « les pourcentages »,
     « l'addition de fractions » → oui ; « fractions et pourcentages », « les nombres décimaux » → non. Un générateur
     peut déclarer des mots qui l'excluent (EXCLUS) : « addition » désigne le calcul mental, sauf s'il s'agit de
-    fractions."""
-    if demande.get("matiere") not in (None, "maths"):
+    fractions.
+
+    Seuls les générateurs de la matière et de la classe demandées comptent (`candidats`) : « le calcul mental »
+    pour des CP n'est pas celui de 6e."""
+    modules = candidats(demande)
+    if not modules:
         return None
     if cible := demande.get("attendu"):
         niveau = demande.get("niveau")
         scores = []
-        for nom, module in notions().items():
+        for nom, module in modules.items():
             genres = genres_pour(module, cible, niveau)
             distincts = {a for g in genres for a in attendus_du_genre(module, g.__name__, niveau)}
             scores.append((len(distincts), len(genres), nom))
         meilleur = max(scores)
         return meilleur[2] if meilleur[1] else None
     texte = sans_accents(" ".join(str(demande.get(c) or "") for c in ("notion", "demande_enseignant")))
-    couvertes = [nom for nom, module in notions().items()
+    couvertes = [nom for nom, module in modules.items()
                  if any(m in texte for m in module.MOTS_CLES) and not any(x in texte for x in getattr(module, "EXCLUS", ()))]
-    if len(couvertes) != 1 or AUTRES_NOTIONS.search(texte):
+    if len(couvertes) != 1 or matieres()[modules[couvertes[0]].MATIERE].AUTRES_NOTIONS.search(texte):
         return None
     return couvertes[0]
 
@@ -179,5 +197,5 @@ def question(squelette: Squelette, enonce: str, rng: random.Random) -> dict:
 def assembler(notion: str, niveau: str, squelettes: list[Squelette], enonces: list[str],
               rng: random.Random) -> dict:
     module = notions()[notion]
-    return {"type": "qcm", "titre": module.TITRE, "matiere": "maths", "niveau": niveau, "notion": module.NOTION,
+    return {"type": "qcm", "titre": module.TITRE, "matiere": module.MATIERE, "niveau": niveau, "notion": module.NOTION,
             "questions": [question(s, e, rng) for s, e in zip(squelettes, enonces)]}

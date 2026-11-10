@@ -8,8 +8,10 @@ arrondi. Le piège de l'habillage : avec les mêmes nombres, faire d'un côté d
 import random
 
 from generateur.procedural import Squelette, distracteurs
+from generateur.procedural.maths import COLLEGE
 
 NOM, TITRE, NOTION, NIVEAU = "pythagore", "Le théorème de Pythagore", "théorème de Pythagore", "4e"
+MATIERE, NIVEAUX = "maths", COLLEGE  # NIVEAU : la classe par défaut ; NIVEAUX : celles où il s'applique
 MOTS_CLES = ("pythagore", "hypotenuse", "triangle rectangle")
 
 TRIPLETS = ((3, 4, 5), (5, 12, 13), (8, 15, 17), (7, 24, 25), (20, 21, 29))
