@@ -4,6 +4,7 @@ reconstruite sans rien perdre), les listes de classes et de matières d'accord p
 l'enseignant."""
 
 import json
+import re
 import shutil
 import sqlite3
 import typing
@@ -15,7 +16,7 @@ from generateur import programmes
 from generateur.donnees import base as module_base
 from generateur.donnees import classes
 from generateur.interface import api
-from generateur.moteur import analyse, registre, rendu
+from generateur.moteur import analyse, banque, config, generation, registre, rendu
 
 RACINE = Path(__file__).resolve().parent.parent
 MIGRATIONS = Path(module_base.__file__).parent / "migrations"
@@ -119,6 +120,21 @@ def test_un_exercice_de_cp_se_rend_en_style_enfant_avec_le_nom_de_sa_matiere():
     instance.update(matiere="questionner-le-monde", niveau="CP")
     html = rendu.rendre(instance, "qcm")
     assert '<body data-style="enfant">' in html and "Questionner le monde" in html
+
+
+@pytest.mark.parametrize("niveau", ["CP", "CE1", "CE2"])
+def test_un_exercice_du_cycle_2_entre_dans_la_banque(tmp_path, monkeypatch, niveau):
+    """Essai du 10/11 : « identifiant d'exercice invalide : 'qcm-les-saisons-CP-…' » après la génération ; un
+    identifiant n'a que des minuscules."""
+    vrai_chemin = config.chemin
+    monkeypatch.setattr(config, "chemin", lambda nom: vrai_chemin(nom) if nom == "types" else tmp_path / nom)
+    instance = json.loads(json.dumps(registre.charger("qcm").exemple))
+    instance.update(matiere="questionner-le-monde", niveau=niveau, notion="Les saisons")
+    ident = generation.identifiant("qcm", instance)
+    assert re.fullmatch(rf"qcm-les-saisons-{niveau.lower()}-\d{{8}}-\d{{6}}", ident)
+    instance["meta"] = {"id": ident, "statut": banque.GENERE}
+    banque.ecrire(instance)
+    assert banque.charger(ident)["niveau"] == niveau
 
 
 # --- le référentiel ---------------------------------------------------------------------------------

@@ -218,7 +218,9 @@ def questions_a_remplacer(erreur: ErreurValidation) -> list[int] | None:
 def identifiant(type_: str, instance: dict, horodatage: str = "%Y%m%d-%H%M%S") -> str:
     texte = unicodedata.normalize("NFKD", instance.get("notion") or instance.get("titre") or "exercice")
     slug = re.sub(r"[^a-z0-9]+", "-", texte.encode("ascii", "ignore").decode().lower()).strip("-")[:40]
-    return f"{type_}-{slug}-{instance.get('niveau', '')}-{datetime.now():{horodatage}}"
+    # la classe en minuscules (« CP » → « cp ») : un identifiant n'a que des minuscules (banque.IDENTIFIANT)
+    niveau = re.sub(r"[^a-z0-9]+", "", str(instance.get("niveau") or "").lower())
+    return f"{type_}-{slug}-{niveau}-{datetime.now():{horodatage}}"
 
 
 _numero = numero_de_question
