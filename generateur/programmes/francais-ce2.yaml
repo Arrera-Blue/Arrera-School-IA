@@ -1,0 +1,262 @@
+# Référentiel des attendus — francais, CE2 (générateur procédural du cycle 2, lot 0, étape 0.4). Libellés recopiés
+# MOT POUR MOT des « Objectifs d’apprentissage » du programme officiel (source ci-dessous ; le PDF de l’annexe :
+# https://www.education.gouv.fr/sites/default/files/ensel135_annexe3.pdf) ; seuls les identifiants et le champ « qcm »
+# (se prête ou non à un QCM : classement du projet, pas du programme) sont ajoutés. Les repères de période du
+# programme (« Dès le début de l’année »…) ne sont pas repris, comme en E2. Méthode et corrections :
+# docs/Generateur-Procedural/cycle-2-cp-ce1-ce2.md §11.4.
+matiere: francais
+niveau: CE2
+cycle: 2
+source:
+  texte: Programme de français du cycle 2 (annexe 3 de l’arrêté)
+  arrete: Arrêté du 22 octobre 2024 (JO du 25 octobre 2024)
+  nor: MENE2415135A
+  bo: BO n° 41 du 31 octobre 2024
+  url: https://www.education.gouv.fr/bo/2024/Hebdo41/MENE2415135A
+  en_vigueur: en CP, CE1 et CE2 depuis la rentrée 2025-2026 (article 3 de l’arrêté)
+  extrait: Programme de français du cycle 2 (annexe 3), « Cours élémentaire deuxième année »
+  releve: '2026-11-10'
+themes:
+- id: francais.ce2.identifier-mots
+  domaine: Lecture
+  theme: Identifier les mots de manière de plus en plus aisée
+  attendus:
+  - id: francais.ce2.identifier-mots.01
+    libelle: Avoir automatisé toutes les correspondances graphophonémiques (CGP).
+    qcm: false
+  - id: francais.ce2.identifier-mots.02
+    libelle: Lire un texte nouveau en s’appuyant sur un décodage rapide.
+    qcm: false
+  - id: francais.ce2.identifier-mots.03
+    libelle: Automatiser la lecture des mots.
+    qcm: false
+  - id: francais.ce2.identifier-mots.04
+    libelle: Repérer les lettres muettes et décoder les mots inconnus en conservant une vitesse de lecture correspondant aux
+      objectifs de fin d’année.
+    qcm: false
+- id: francais.ce2.lire-voix-haute
+  domaine: Lecture
+  theme: Lire à voix haute
+  attendus:
+  - id: francais.ce2.lire-voix-haute.01
+    libelle: Lire un texte adapté à son niveau de lecture avec une vitesse de 90 mots par minute.
+    qcm: false
+  - id: francais.ce2.lire-voix-haute.02
+    libelle: Lire un texte en respectant l’ensemble des marques de ponctuation et les liaisons.
+    qcm: false
+  - id: francais.ce2.lire-voix-haute.03
+    libelle: Manifester sa compréhension par une lecture expressive qui respecte la structure du texte, de la phrase et le
+      sens.
+    qcm: false
+- id: francais.ce2.comprendre-textes
+  domaine: Lecture
+  theme: Comprendre un texte
+  attendus:
+  - id: francais.ce2.comprendre-textes.01
+    libelle: Lire et dégager le sens d’un texte narratif, poétique, documentaire ou théâtral, lu en autonomie ou lu par un
+      adulte en s’appuyant sur les caractéristiques de ces textes.
+    qcm: false
+  - id: francais.ce2.comprendre-textes.02
+    libelle: Adopter une posture active par rapport au vocabulaire inconnu.
+    qcm: false
+  - id: francais.ce2.comprendre-textes.03
+    libelle: Se repérer dans la chaine anaphorique (qui relie un nom à sa ou ses reprise(s) pronominale(s) ou à d’autres noms
+      de sens équivalent) et s’appuyer sur le sens du texte pour résoudre des ambigüités.
+    qcm: false
+  - id: francais.ce2.comprendre-textes.04
+    libelle: Différencier le type narratif du type informatif et prescriptif.
+    qcm: false
+  - id: francais.ce2.comprendre-textes.05
+    libelle: Comprendre ce qui est implicite (inférences) en s’appuyant sur des indices explicites et sur ses propres connaissances.
+    qcm: false
+  - id: francais.ce2.comprendre-textes.06
+    libelle: Revenir au texte pour identifier et comprendre les éléments complexes.
+    qcm: false
+  - id: francais.ce2.comprendre-textes.07
+    libelle: Lire et comprendre en autonomie un texte narratif, informatif ou prescriptif d’une vingtaine de lignes.
+    qcm: false
+- id: francais.ce2.devenir-lecteur
+  domaine: Lecture
+  theme: Devenir lecteur
+  attendus:
+  - id: francais.ce2.devenir-lecteur.01
+    libelle: Lire de manière autonome 5 à 10 œuvres complètes et variées issues du patrimoine et de la littérature de jeunesse
+      (albums, romans, contes, fables, poèmes, pièces de théâtre et documentaires).
+    qcm: false
+  - id: francais.ce2.devenir-lecteur.02
+    libelle: Relier ses lectures à son expérience personnelle, être en mesure d’établir des liens entre ses différentes lectures
+      (mise en réseau).
+    qcm: false
+  - id: francais.ce2.devenir-lecteur.03
+    libelle: Fréquenter des lieux de lecture régulièrement et rencontrer des acteurs du livre.
+    qcm: false
+- id: francais.ce2.ecrire-cursive
+  domaine: Écriture
+  theme: Apprendre à écrire en écriture cursive
+  attendus:
+  - id: francais.ce2.ecrire-cursive.01
+    libelle: Automatiser l’écriture de toutes les lettres minuscules et majuscules en cursive.
+    qcm: false
+- id: francais.ce2.encoder-dictee
+  domaine: Écriture
+  theme: Encoder puis écrire sous dictée
+  attendus:
+  - id: francais.ce2.encoder-dictee.01
+    libelle: Orthographier correctement les mots fréquents, réguliers et irréguliers et des phrases selon les accords étudiés
+      dans le cadre de dictées.
+    qcm: false
+- id: francais.ce2.copier
+  domaine: Écriture
+  theme: Copier et acquérir des stratégies de copie
+  attendus:
+  - id: francais.ce2.copier.01
+    libelle: Copier une dizaine de lignes sans erreur en conjuguant vitesse et exactitude et en respectant les mises en page
+      complexes.
+    qcm: false
+- id: francais.ce2.produire-ecrits
+  domaine: Écriture
+  theme: Produire des écrits
+  attendus:
+  - id: francais.ce2.produire-ecrits.01
+    libelle: 'Développer tout au long de l’année les compétences qui lui permettront en fin d’année : d’écrire pour transmettre
+      un message, une émotion, une information, etc., à un destinataire ; de rédiger quelques phrases qui permettent d’entrainer
+      les automatismes appris en grammaire et orthographe ; d’écrire un texte d’une dizaine de lignes de différents types
+      et relevant des différents enseignements : respecter la syntaxe, les règles orthographiques étudiées, réemployer un
+      lexique précis et prendre en compte des contraintes d’écriture ; de relire son texte méthodiquement.'
+    qcm: false
+- id: francais.ce2.ecouter
+  domaine: Oral
+  theme: Écouter pour comprendre
+  attendus:
+  - id: francais.ce2.ecouter.01
+    libelle: Repérer, mémoriser et relier entre elles plusieurs informations importantes pour construire la cohérence d’un
+      message entendu de plus en plus long et complexe (5 minutes maximum), en évaluant son degré de compréhension.
+    qcm: false
+- id: francais.ce2.dire
+  domaine: Oral
+  theme: Dire pour être compris
+  attendus:
+  - id: francais.ce2.dire.01
+    libelle: Mener une production orale de plus en plus longue et structurée pour raconter, expliquer, argumenter, justifier.
+    qcm: false
+  - id: francais.ce2.dire.02
+    libelle: Maintenir l’intérêt de son auditoire lors des différentes prestations orales.
+    qcm: false
+- id: francais.ce2.echanges
+  domaine: Oral
+  theme: Participer à des échanges
+  attendus:
+  - id: francais.ce2.echanges.01
+    libelle: Tenir compte de ce qui a déjà été dit lors des interventions au sein d’un groupe.
+    qcm: false
+  - id: francais.ce2.echanges.02
+    libelle: Utiliser un registre de langue et adopter des postures adaptées aux situations proposées (jeux de rôles).
+    qcm: false
+- id: francais.ce2.vocabulaire
+  domaine: Vocabulaire
+  theme: Enrichir son vocabulaire dans toutes les disciplines
+  attendus:
+  - id: francais.ce2.vocabulaire.01
+    libelle: Enrichir les répertoires constitués au CP et au CE1 en y ajoutant notamment des expressions ou des locutions.
+    qcm: true
+  - id: francais.ce2.vocabulaire.02
+    libelle: Automatiser l’utilisation de différentes formulations, associées à un réseau, en contexte.
+    qcm: false
+  - id: francais.ce2.vocabulaire.03
+    libelle: Comprendre le lien sémantique entre sens propre et sens figuré dans les cas les plus fréquents.
+    qcm: true
+  - id: francais.ce2.vocabulaire.04
+    libelle: S’appuyer sur la morphologie des mots pour en trouver le sens.
+    qcm: true
+  - id: francais.ce2.vocabulaire.05
+    libelle: Consulter avec aisance des articles de dictionnaire adapté pour y vérifier le sens supposé de mots rencontrés.
+    qcm: false
+- id: francais.ce2.relations-mots
+  domaine: Vocabulaire
+  theme: Établir des relations entre les mots
+  attendus:
+  - id: francais.ce2.relations-mots.01
+    libelle: Enrichir les collections constituées au début du cycle avec des mots, des expressions et des associations fréquentes.
+    qcm: true
+  - id: francais.ce2.relations-mots.02
+    libelle: Percevoir de grandes catégories et hiérarchiser les termes génériques de base et spécifiques.
+    qcm: true
+  - id: francais.ce2.relations-mots.03
+    libelle: Savoir utiliser les niveaux de langue (familier, courant et soutenu) en fonction des situations et des interlocuteurs.
+    qcm: true
+  - id: francais.ce2.relations-mots.04
+    libelle: Se constituer un répertoire lexical personnel qui pourra forger l’autonomie visée au cycle 3.
+    qcm: false
+  - id: francais.ce2.relations-mots.05
+    libelle: Trier et apparier des mots et leurs dérivés en fonction des préfixes et suffixes identifiés.
+    qcm: true
+- id: francais.ce2.reemployer
+  domaine: Vocabulaire
+  theme: Réemployer le vocabulaire étudié
+  attendus:
+  - id: francais.ce2.reemployer.01
+    libelle: Employer à bon escient et rigoureusement les mots étudiés, en référence à leur contexte d’emploi et leur éventuelle
+      polysémie.
+    qcm: true
+  - id: francais.ce2.reemployer.02
+    libelle: Comprendre la différence entre sens propre/sens figuré.
+    qcm: true
+  - id: francais.ce2.reemployer.03
+    libelle: Changer de niveau de langue selon les situations.
+    qcm: true
+  - id: francais.ce2.reemployer.04
+    libelle: Automatiser la restitution des mots d’un corpus étudié (fluence verbale).
+    qcm: false
+- id: francais.ce2.orthographe-lexicale
+  domaine: Vocabulaire
+  theme: Mémoriser l’orthographe des mots
+  attendus:
+  - id: francais.ce2.orthographe-lexicale.01
+    libelle: Écrire correctement sous la dictée les mots réguliers et irréguliers fréquemment rencontrés.
+    qcm: true
+  - id: francais.ce2.orthographe-lexicale.02
+    libelle: Tenir compte des accents.
+    qcm: true
+  - id: francais.ce2.orthographe-lexicale.03
+    libelle: S’appuyer sur des critères morphologiques (radical, préfixe et suffixe) et analogiques pour orthographier correctement
+      les mots.
+    qcm: true
+- id: francais.ce2.phrase-simple
+  domaine: Grammaire et orthographe
+  theme: Se repérer dans la phrase simple
+  attendus:
+  - id: francais.ce2.phrase-simple.01
+    libelle: 'Identifier la phrase simple et reconnaitre ses principaux constituants : le groupe sujet, le verbe et les compléments
+      sans distinguer ces derniers entre eux.'
+    qcm: true
+  - id: francais.ce2.phrase-simple.02
+    libelle: 'Reconnaitre et produire les trois types de phrases : déclarative, interrogative et impérative.'
+    qcm: true
+  - id: francais.ce2.phrase-simple.03
+    libelle: Reconnaitre et produire les formes négative et exclamative.
+    qcm: true
+  - id: francais.ce2.phrase-simple.04
+    libelle: 'Différencier et nommer les principales classes de mots : le déterminant, le nom commun, le nom propre, l’adjectif,
+      le verbe, le pronom personnel sujet et l’adverbe.'
+    qcm: true
+  - id: francais.ce2.phrase-simple.05
+    libelle: Utiliser la ponctuation de fin de phrase (. ! ?) et reconnaitre les marques du discours rapporté (« … »).
+    qcm: true
+- id: francais.ce2.orthographe-grammaticale
+  domaine: Grammaire et orthographe
+  theme: Découvrir, comprendre et mettre en œuvre l’orthographe grammaticale
+  attendus:
+  - id: francais.ce2.orthographe-grammaticale.01
+    libelle: Repérer, comprendre et mettre en œuvre les marques d’accord au sein du groupe nominal.
+    qcm: true
+  - id: francais.ce2.orthographe-grammaticale.02
+    libelle: Identifier, dans des situations simples, la relation sujet-verbe.
+    qcm: true
+  - id: francais.ce2.orthographe-grammaticale.03
+    libelle: Apprendre à conjuguer au présent, à l’imparfait, au futur et au passé composé de l’indicatif être et avoir, les
+      verbes du premier groupe et les verbes irréguliers du 3e groupe (faire, aller, dire, venir, pouvoir, voir, vouloir,
+      prendre).
+    qcm: true
+  - id: francais.ce2.orthographe-grammaticale.04
+    libelle: Identifier le radical et la terminaison d’un verbe conjugué au programme et trouver son infinitif.
+    qcm: true

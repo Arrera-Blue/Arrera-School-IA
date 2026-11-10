@@ -952,7 +952,7 @@ def creer_application(file: File | None = None, base: Base | None = None, entrai
     @app.get("/api/programmes")
     def programmes_officiels(matiere: str, niveau: str, tous: bool = False):
         """Les thèmes et attendus du programme pour cette matière à cette classe (par défaut, ceux qui se prêtent
-        à un QCM) ; `couvert: false` si le référentiel ne l'a pas (E2 : maths et français, 6e et 5e)."""
+        à un QCM) ; `couvert: false` si le référentiel ne l'a pas (E2 : maths et français, 6e et 5e ; le français du CP au CE2)."""
         contenu = programmes.arbre(matiere, niveau, None if tous else True)
         return {"couvert": contenu is not None, **(contenu or {"matiere": matiere, "niveau": niveau, "themes": []})}
 

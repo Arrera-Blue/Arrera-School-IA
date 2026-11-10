@@ -242,3 +242,18 @@ def test_un_generateur_d_une_autre_matiere_est_aiguille_et_assemble(monkeypatch)
     assert (exercice["matiere"], exercice["niveau"], exercice["titre"]) == ("francais", "CE1", "Conjugaison")
     question = exercice["questions"][0]
     assert question["propositions"][question["index_correct"]] == "chantent"
+
+
+# --- étape 0.4 : le programme de français du cycle 2 ------------------------------------------------
+
+@pytest.mark.parametrize("phrase, attendu", [
+    ("un QCM de conjugaison au présent pour des CE1", "francais.ce1.orthographe-grammaticale.04"),
+    ("les synonymes et les antonymes au CP", "francais.cp.relations-mots.03"),
+    ("un QCM sur le masculin et le féminin pour des CP", "francais.cp.orthographe-grammaticale.01"),
+    ("l'ordre alphabétique au CP", "francais.cp.vocabulaire.03"),
+])
+def test_l_attendu_du_cycle_2_est_propose(phrase, attendu):
+    """La phrase de l'enseignant → l'objectif officiel du CP au CE2, proposé à vérifier (comme en E2)."""
+    analyse_ = analyse.analyser(phrase)
+    assert analyse_.requete["attendu"] == attendu and analyse_.sources["attendu"] == "devine"
+    assert programmes.attendu(attendu).qcm

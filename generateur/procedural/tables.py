@@ -255,7 +255,7 @@ def main(arguments: list[str] | None = None, dossier: Path | None = None) -> int
         try:
             t = charger(matiere, nom, dossier)
         except TableInvalide as e:
-            print(f"✗ {matiere}/{nom} : {e}")
+            print(f"✗ {e}")  # le message commence par <matière>/<nom>
             code = 1
             continue
         etat = (f"relue par {t.relecture['par']} le {t.relecture['le']}" if t.relue
