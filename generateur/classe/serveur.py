@@ -49,7 +49,7 @@ ENTRETIEN_S = 600
 
 class Connexion(BaseModel):
     eleve: int = Field(ge=1)
-    code: list[str] | str = Field(max_length=100)  # 4 noms d'images (6e), ou le mot de passe (5e à 3e)
+    code: list[str] | str = Field(max_length=100)  # 4 noms d'images (CP à 6e), ou le mot de passe (5e à 3e)
 
 
 class Reponse(BaseModel):
@@ -183,7 +183,7 @@ def creer_application(base: Base | None = None, cle: bytes | None = None, r: dic
             vue = connexion_eleve.eleves_de_la_classe(base, classe_id)
         except connexion_eleve.Introuvable:
             raise HTTPException(404, "classe introuvable") from None
-        # les 12 images du clavier de code (6e), dans l'ordre des cartes
+        # les 12 images du clavier de code (du CP à la 6e), dans l'ordre des cartes
         return {**vue, "images": [{"image": i, "nom": n} for i, n in images.IMAGES]}
 
     @app.post("/api/session")

@@ -135,7 +135,7 @@ def test_la_page_et_sa_politique_de_securite(client):
     csp = page.headers["content-security-policy"]
     assert "script-src 'self'" in csp and "frame-ancestors 'none'" in csp and "unsafe-inline" not in csp
     assert client.get("/statique/app.js").status_code == 200
-    assert client.get("/api/types").json()["types"][0]["niveaux"] == ["6e", "5e", "4e", "3e"]
+    assert client.get("/api/types").json()["types"][0]["niveaux"] == ["CP", "CE1", "CE2", "6e", "5e", "4e", "3e"]
 
 
 def test_analyser(client):

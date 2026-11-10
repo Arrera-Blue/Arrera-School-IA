@@ -6,7 +6,7 @@ corrections : docs/etapes/etape-E2-programmes.md.
 
 Identifiants : `maths.6e.fractions` désigne un thème, `maths.6e.fractions.09` un attendu de ce thème. Un exercice
 peut viser un attendu précis ou un thème entier ; un filtre sur un thème trouve aussi les exercices de ses attendus
-(`couvre`).
+(`couvre`). La classe s'y écrit en minuscules (`francais.ce1.…` pour le CE1 : `segment`).
 
 `reperes.yaml` : des notions qui n'apparaissent qu'à partir d'une classe (« racine carrée » : 4e), pour avertir
 quand un exercice sort de son niveau (validation/programme.py).
@@ -22,9 +22,13 @@ from pathlib import Path
 import yaml
 
 DOSSIER = Path(__file__).parent
-NIVEAUX = ("6e", "5e", "4e", "3e")
-ID_THEME = re.compile(r"^(maths|francais)\.(6e|5e|4e|3e)\.[a-z0-9]+(?:-[a-z0-9]+)*$")
-ID_ATTENDU = re.compile(r"^(maths|francais)\.(6e|5e|4e|3e)\.[a-z0-9]+(?:-[a-z0-9]+)*\.\d{2}$")
+# les classes, dans l'ordre de la scolarité (`rang`) ; le cycle 2 depuis le générateur procédural du cycle 2 (lot 0,
+# docs/Generateur-Procedural/cycle-2-cp-ce1-ce2.md) ; le cycle 3 n'a pas encore le CM1 ni le CM2
+NIVEAUX = ("CP", "CE1", "CE2", "6e", "5e", "4e", "3e")
+CYCLES = {"CP": 2, "CE1": 2, "CE2": 2, "6e": 3, "5e": 4, "4e": 4, "3e": 4}
+_SEGMENTS = "|".join(n.lower() for n in NIVEAUX)
+ID_THEME = re.compile(rf"^(maths|francais)\.({_SEGMENTS})\.[a-z0-9]+(?:-[a-z0-9]+)*$")
+ID_ATTENDU = re.compile(rf"^(maths|francais)\.({_SEGMENTS})\.[a-z0-9]+(?:-[a-z0-9]+)*\.\d{{2}}$")
 CHAMPS_SOURCE = ("texte", "arrete", "nor", "bo", "url", "en_vigueur", "extrait", "releve")
 
 
@@ -219,6 +223,16 @@ def rang(niveau: str | None) -> int:
     return NIVEAUX.index(niveau) if niveau in NIVEAUX else -1
 
 
+def cycle(niveau: str | None) -> int | None:
+    """2 pour le CP, le CE1 et le CE2 ; 3 pour la 6e ; 4 de la 5e à la 3e ; None pour une classe inconnue."""
+    return CYCLES.get(niveau)
+
+
+def segment(niveau: str) -> str:
+    """La classe telle qu'elle s'écrit dans un identifiant : « CE1 » → « ce1 », « 6e » → « 6e »."""
+    return niveau.lower()
+
+
 # --- contrôle du référentiel ---------------------------------------------------------------------
 
 def verifier() -> list[str]:
@@ -233,7 +247,8 @@ def verifier() -> list[str]:
         if manque:
             defauts.append(f"{nom} : source incomplète ({', '.join(manque)})")
         for t in doc.get("themes", []):
-            if not ID_THEME.match(t.get("id", "")) or not t["id"].startswith(f"{doc['matiere']}.{doc['niveau']}."):
+            if not ID_THEME.match(t.get("id", "")) or not t["id"].startswith(
+                    f"{doc['matiere']}.{segment(str(doc['niveau']))}."):
                 defauts.append(f"{nom} : identifiant de thème mal formé : {t.get('id')}")
             if not t.get("attendus"):
                 defauts.append(f"{nom} : thème vide : {t.get('id')}")

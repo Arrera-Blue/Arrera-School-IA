@@ -7,6 +7,8 @@
   const MATIERES = {
     "maths": "Mathématiques", "francais": "Français", "histoire-geo": "Histoire-géographie", "svt": "SVT",
     "physique-chimie": "Physique-chimie", "anglais": "Anglais", "technologie": "Technologie",
+    "questionner-le-monde": "Questionner le monde", "emc": "Enseignement moral et civique",
+    "arts-plastiques": "Arts plastiques", "education-musicale": "Éducation musicale",
   };
   const STATUTS = { genere: "À relire", prerelu: "En cours de relecture", accepte: "Accepté", rejete: "Rejeté" };
   const AVIS = { bon: "bon", a_corriger: "à corriger", a_rejeter: "à rejeter" }; // la pré-relecture de Claude (IA3)

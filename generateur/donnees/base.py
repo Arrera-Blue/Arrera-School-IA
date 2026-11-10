@@ -73,25 +73,43 @@ def migrations_disponibles(dossier: Path = MIGRATIONS) -> list[tuple[int, str, P
     return trouvees
 
 
+class CleEtrangereCassee(RuntimeError):
+    """Une migration laisserait une ligne qui renvoie à une ligne absente : elle est annulée."""
+
+
 def migrer(conn: sqlite3.Connection, dossier: Path = MIGRATIONS) -> list[str]:
-    """Applique les migrations qui manquent ; renvoie leurs noms. Chacune entière, ou pas du tout."""
+    """Applique les migrations qui manquent ; renvoie leurs noms. Chacune entière, ou pas du tout.
+
+    Les clés étrangères sont coupées le temps des migrations (hors transaction : SQLite l'exige), pour qu'une
+    migration puisse reconstruire une table (006 : changer une contrainte CHECK) sans que la suppression de l'ancienne
+    efface en cascade les lignes qui s'y rattachent ; avant de valider chaque migration, `foreign_key_check` vérifie
+    qu'aucune clé n'est cassée (si la connexion les appliquait). Elles sont remises comme avant à la fin."""
     conn.execute("CREATE TABLE IF NOT EXISTS migration (numero INTEGER PRIMARY KEY, nom TEXT NOT NULL, "
                  "date TEXT NOT NULL)")
+    cles_etrangeres = conn.execute("PRAGMA foreign_keys").fetchone()[0]
+    conn.execute("PRAGMA foreign_keys = OFF")
     appliquees = []
-    for numero, nom, fichier in migrations_disponibles(dossier):
-        conn.execute("BEGIN IMMEDIATE")  # verrou d'écriture : deux processus ne migrent pas en même temps
-        try:
-            if conn.execute("SELECT 1 FROM migration WHERE numero = ?", (numero,)).fetchone():
+    try:
+        for numero, nom, fichier in migrations_disponibles(dossier):
+            conn.execute("BEGIN IMMEDIATE")  # verrou d'écriture : deux processus ne migrent pas en même temps
+            try:
+                if conn.execute("SELECT 1 FROM migration WHERE numero = ?", (numero,)).fetchone():
+                    conn.execute("ROLLBACK")
+                    continue
+                for instruction in instructions(fichier.read_text(encoding="utf-8")):
+                    conn.execute(instruction)
+                if cles_etrangeres and (cassees := conn.execute("PRAGMA foreign_key_check").fetchall()):
+                    raise CleEtrangereCassee(f"migration {nom} annulée : {len(cassees)} clé(s) étrangère(s) cassée(s) "
+                                             f"(table {cassees[0][0]})")
+                conn.execute("INSERT INTO migration (numero, nom, date) VALUES (?, ?, ?)",
+                             (numero, nom, maintenant_iso()))
+            except BaseException:
                 conn.execute("ROLLBACK")
-                continue
-            for instruction in instructions(fichier.read_text(encoding="utf-8")):
-                conn.execute(instruction)
-            conn.execute("INSERT INTO migration (numero, nom, date) VALUES (?, ?, ?)", (numero, nom, maintenant_iso()))
-        except BaseException:
-            conn.execute("ROLLBACK")
-            raise
-        conn.execute("COMMIT")
-        appliquees.append(nom)
+                raise
+            conn.execute("COMMIT")
+            appliquees.append(nom)
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON" if cles_etrangeres else "PRAGMA foreign_keys = OFF")
     return appliquees
 
 

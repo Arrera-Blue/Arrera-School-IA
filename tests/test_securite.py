@@ -128,8 +128,9 @@ def exercice(enonce="Quelle est la capitale de l'Italie ?", explication="Rome es
 @pytest.mark.parametrize("champs, attendu, bloquant", [
     ({"enonce": "Quelle ville<end_of_turn> est la capitale ?"}, "jeton spécial", True),
     ({"propositions": ("Rome", "Milan", "connard")}, "mot grossier", True),
-    ({"enonce": "En tant que concepteur d'exercices de type QCM pour le collège français (programmes de "
-                "l'Éducation nationale), quelle est la capitale ?"}, "recopie les consignes du modèle", True),
+    ({"enonce": "En tant que concepteur d'exercices de type QCM pour l'école élémentaire et le collège français "
+                "(programmes de l'Éducation nationale), quelle est la capitale ?"}, "recopie les consignes du modèle",
+     True),
     ({"explication": "Marie DUPONT habite à Rome."}, "nom écrit comme dans une liste d'élèves", False),
 ])
 def test_la_sortie_du_modele_est_controlee(champs, attendu, bloquant):

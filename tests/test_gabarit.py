@@ -1,5 +1,5 @@
 """Le gabarit du QCM (generateur/types/qcm/gabarit.html) : page autonome, hors ligne, faisable au clavier (E5), en jeu
-(E7 : une question à la fois ; style « enfant » en 6e, « collège » de la 5e à la 3e).
+(E7 : une question à la fois ; style « enfant » du CP à la 6e, « collège » de la 5e à la 3e).
 Le parcours au clavier, les animations et la lecture à voix haute sont essayés dans Chrome : tests/navigateur/exercice.mjs."""
 
 import json
@@ -42,7 +42,8 @@ def test_une_question_a_la_fois_et_un_bouton_ecouter_par_question():
     assert len(re.findall(r'<section class="question" id="question-\d+" data-correct="\d" [^>]*hidden>', html)) == n
 
 
-@pytest.mark.parametrize("niveau, style", [("6e", "enfant"), ("5e", "college"), ("4e", "college"), ("3e", "college")])
+@pytest.mark.parametrize("niveau, style", [("CP", "enfant"), ("CE1", "enfant"), ("CE2", "enfant"), ("6e", "enfant"),
+                                           ("5e", "college"), ("4e", "college"), ("3e", "college")])
 def test_le_style_suit_le_niveau(niveau, style):
     html = page(niveau=niveau)
     assert f'<body data-style="{style}">' in html

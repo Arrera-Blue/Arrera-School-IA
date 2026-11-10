@@ -76,7 +76,8 @@ def test_un_code_d_images_ne_vaut_pas_un_mot_de_passe():
     assert not codes.verifier("0-1-2-3", codes.empreinte((0, 1, 2, 3), CLE), CLE)
 
 
-@pytest.mark.parametrize("niveau, connexion", [("6e", "images"), ("5e", "mot_de_passe"), ("4e", "mot_de_passe"), ("3e", "mot_de_passe")])
+@pytest.mark.parametrize("niveau, connexion", [("CP", "images"), ("CE1", "images"), ("CE2", "images"), ("6e", "images"),
+                                               ("5e", "mot_de_passe"), ("4e", "mot_de_passe"), ("3e", "mot_de_passe")])
 def test_la_connexion_suit_le_niveau_de_la_classe(base, prof, niveau, connexion):
     vue, cartes = classe(base, prof, f"{niveau} B", niveau)
     assert vue["connexion"] == connexion and all(c["connexion"] == connexion for c in cartes)

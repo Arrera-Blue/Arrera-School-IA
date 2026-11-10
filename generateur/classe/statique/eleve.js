@@ -5,7 +5,10 @@
   const $ = (s) => document.querySelector(s);
   const ECRANS = ["classes", "noms", "code", "accueil"];
   const MATIERES = { maths: "Mathématiques", francais: "Français", "histoire-geo": "Histoire-géographie", svt: "SVT",
-    "physique-chimie": "Physique-chimie", anglais: "Anglais", technologie: "Technologie" };
+    "physique-chimie": "Physique-chimie", anglais: "Anglais", technologie: "Technologie",
+    "questionner-le-monde": "Questionner le monde", emc: "Enseignement moral et civique",
+    "arts-plastiques": "Arts plastiques", "education-musicale": "Éducation musicale" };
+  const ENFANT = ["CP", "CE1", "CE2", "6e"]; // le style « enfant » : les classes aux 4 images (classes.CLASSES_AUX_IMAGES)
   const etat = { classe: null, eleve: null, images: [], saisi: [], bloque: false };
 
   function el(balise, attributs = {}, ...enfants) {
@@ -30,7 +33,7 @@
     return { statut: reponse.status, donnees };
   }
 
-  function style(niveau) { document.body.dataset.style = niveau === "6e" ? "enfant" : "college"; }
+  function style(niveau) { document.body.dataset.style = ENFANT.includes(niveau) ? "enfant" : "college"; }
 
   function afficher(ecran, focus) {
     for (const nom of ECRANS) $(`#ecran-${nom}`).hidden = nom !== ecran;

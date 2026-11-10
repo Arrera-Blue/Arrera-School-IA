@@ -221,7 +221,7 @@ class EleveSaisi(BaseModel):
 
 class NouvelleClasse(BaseModel):
     nom: str = Field(max_length=40)
-    niveau: Literal["6e", "5e", "4e", "3e"]
+    niveau: Literal["CP", "CE1", "CE2", "6e", "5e", "4e", "3e"]  # classes.NIVEAUX
     annee: str | None = Field(None, pattern=r"^\d{4}-\d{4}$")
     eleves: list[EleveSaisi] = Field(default_factory=list, max_length=classes.ELEVES_MAX)
 

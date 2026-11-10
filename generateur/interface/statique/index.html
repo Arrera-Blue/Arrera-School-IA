@@ -421,7 +421,12 @@
           <div class="champ">
             <label for="classe-niveau">Niveau</label>
             <select id="classe-niveau" required>
-              <option value="6e">6e</option><option value="5e">5e</option><option value="4e">4e</option><option value="3e">3e</option>
+              <optgroup label="École">
+                <option value="CP">CP</option><option value="CE1">CE1</option><option value="CE2">CE2</option>
+              </optgroup>
+              <optgroup label="Collège">
+                <option value="6e" selected>6e</option><option value="5e">5e</option><option value="4e">4e</option><option value="3e">3e</option>
+              </optgroup>
             </select>
           </div>
           <div class="champ">

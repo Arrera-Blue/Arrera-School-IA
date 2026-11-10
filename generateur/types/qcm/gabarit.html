@@ -1,6 +1,8 @@
-{%- set enfant = niveau == "6e" -%}
+{%- set enfant = niveau in ("CP", "CE1", "CE2", "6e") -%}
 {%- set libelles = {"maths": "Mathématiques", "francais": "Français", "histoire-geo": "Histoire-géographie", "svt": "SVT",
-     "physique-chimie": "Physique-chimie", "anglais": "Anglais", "technologie": "Technologie"} -%}
+     "physique-chimie": "Physique-chimie", "anglais": "Anglais", "technologie": "Technologie",
+     "questionner-le-monde": "Questionner le monde", "emc": "Enseignement moral et civique",
+     "arts-plastiques": "Arts plastiques", "education-musicale": "Éducation musicale"} -%}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -12,7 +14,7 @@
         content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:; font-src data:{% if classe %}; connect-src 'self'{% endif %}">
   <title>{{ titre }} — {{ niveau }}</title>
   <style>
-    /* E7 : un jeu, une question à la fois. 6e : style « enfant » (Andika, un compagnon, des étoiles, une vague) ;
+    /* E7 : un jeu, une question à la fois. Du CP à la 6e : style « enfant » (Andika, un compagnon, des étoiles, une vague) ;
        5e à 3e : style « collège » (Atkinson Hyperlegible, des points, une série, un balayage). Maquette validée :
        docs/maquettes/exercice-eleve.html. La couleur n'est jamais seule ; les mouvements s'arrêtent si l'élève
        a demandé moins d'animations (prefers-reduced-motion). */
