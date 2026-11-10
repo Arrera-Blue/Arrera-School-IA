@@ -15,7 +15,8 @@ from generateur.moteur.validation.n2_schema import valider
 from generateur.moteur.validation.n3_pedagogie import cle_de_comparaison
 from generateur.moteur.validation.n4_calcul import VERIFIE, verifier_question
 from generateur.outils.bilan_n4 import mesurer
-from generateur.procedural import habillage, pourcentages, pythagore
+from generateur.procedural import habillage
+from generateur.procedural.maths import pourcentages, pythagore
 from generateur.procedural.habillage import controler
 
 GENRES = [g for module in procedural.notions().values() for g in module.GENRES]
@@ -54,7 +55,7 @@ def test_tirages_en_masse(genre):
 
 def test_fractions_sans_distracteur_entier():
     """Recette 1.6 : « 9/1 » et « 4/4 », des entiers écrits en fractions, s'écartaient trop facilement."""
-    from generateur.procedural import fractions
+    from generateur.procedural.maths import fractions
     for genre in (g for g in fractions.GENRES if g is not fractions.comparaison):  # là : les fractions de l'énoncé
         rng = random.Random(f"entier-{genre.__name__}")
         for _ in range(TIRAGES):
@@ -310,7 +311,7 @@ def test_pas_de_distracteur_absurde_pour_pythagore():
 
 
 def test_controle_de_l_habillage_partie_d_un_tout():
-    from generateur.procedural import fractions
+    from generateur.procedural.maths import fractions
     s = fractions.partie(random.Random(2))
     n, k = re.findall(r"\d+", s.enonce)
     ok = f"Une pizza est coupée en {n} parts égales. Léa en mange {k}. Quelle fraction de la pizza a-t-elle mangée ?"

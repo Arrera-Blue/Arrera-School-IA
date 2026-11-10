@@ -179,3 +179,66 @@ def test_la_matiere_de_la_classe():
     assert analyse.matiere_de_la_classe("francais", "CP", permises) == "francais"
     assert analyse.matiere_de_la_classe("svt", None, permises) == "svt"
     assert analyse.matiere_de_la_classe("svt", "CE1", ["svt"]) == "svt"  # matière absente du type : rien ne change
+
+
+# --- étape 0.2 : le générateur procédural rangé par matière -------------------------------------------
+
+def test_les_generateurs_ranges_par_matiere():
+    from generateur import procedural
+    paquets = procedural.matieres()
+    assert list(paquets) == ["maths"]
+    noms = [m.NOM for p in paquets.values() for m in p.generateurs()]
+    assert len(noms) == len(set(noms)) == len(procedural.notions())  # un nom n'est jamais pris deux fois
+    for matiere, paquet in paquets.items():
+        for module in paquet.generateurs():
+            assert module.__name__ == f"generateur.procedural.{matiere}.{module.NOM}"
+            assert module.MATIERE == matiere and module.NIVEAU in module.NIVEAUX
+            assert set(module.NIVEAUX) <= set(programmes.NIVEAUX)
+    # les maths du collège seulement (celles du cycle 2 ne sont pas couvertes)
+    assert {n for m in paquets["maths"].generateurs() for n in m.NIVEAUX} == {"6e", "5e", "4e", "3e"}
+
+
+@pytest.mark.parametrize("demande, generateur", [
+    ({"notion": "le calcul mental", "niveau": "6e"}, "calcul_mental"),
+    ({"notion": "le calcul mental", "niveau": "CP"}, None),        # pas le calcul mental de 6e pour des CP
+    ({"notion": "le calcul mental", "matiere": "maths", "niveau": "CE2"}, None),
+    ({"notion": "le théorème de Pythagore", "matiere": "maths", "niveau": "3e"}, "pythagore"),
+    ({"notion": "les fractions", "matiere": "francais"}, None),    # aucun générateur de français, pour l'instant
+    ({"attendu": "maths.6e.fractions", "matiere": "maths", "niveau": "CP"}, None),
+])
+def test_l_aiguillage_suit_la_matiere_et_la_classe(demande, generateur):
+    from generateur import procedural
+    assert procedural.aiguiller(demande) == generateur
+
+
+def test_un_generateur_d_une_autre_matiere_est_aiguille_et_assemble(monkeypatch):
+    """Ce que l'étape 0.2 prépare : un générateur de français (ici, un faux) trouvé par l'aiguillage et assemblé avec
+    sa matière, sans rien changer aux maths."""
+    import random
+    from types import SimpleNamespace
+
+    from generateur import procedural
+
+    def accord(rng):
+        return procedural.Squelette(genre="conjugaison_essai.accord", enonce="Ils (chanter) au présent : ils …",
+                                    reponse="chantent", distracteurs=("chante", "chantes", "chantons"),
+                                    explication="Avec « ils », la terminaison est -ent.", cle=("accord",))
+    faux = SimpleNamespace(NOM="conjugaison_essai", TITRE="Conjugaison", NOTION="conjugaison", MATIERE="francais",
+                           NIVEAU="CE1", NIVEAUX=("CE1", "CE2"), MOTS_CLES=("conjugaison",), GENRES=(accord,),
+                           ATTENDUS={})
+    francais = SimpleNamespace(MATIERE="francais", AUTRES_NOTIONS=re.compile(r"\bhomophone"),
+                               generateurs=lambda: (faux,))
+    vraies = procedural.matieres()
+    monkeypatch.setattr(procedural, "matieres", lambda: {**vraies, "francais": francais})
+
+    assert procedural.aiguiller({"notion": "la conjugaison", "matiere": "francais", "niveau": "CE1"}) == "conjugaison_essai"
+    assert procedural.aiguiller({"notion": "la conjugaison", "niveau": "CE2"}) == "conjugaison_essai"
+    assert procedural.aiguiller({"notion": "la conjugaison", "niveau": "CP"}) is None            # pas sa classe
+    assert procedural.aiguiller({"notion": "la conjugaison et les homophones", "niveau": "CE1"}) is None  # autre notion
+    assert procedural.aiguiller({"notion": "les fractions", "niveau": "6e"}) == "fractions"      # les maths, intactes
+    rng = random.Random(1)
+    squelettes = procedural.tirer("conjugaison_essai", 1, rng)
+    exercice = procedural.assembler("conjugaison_essai", "CE1", squelettes, [s.enonce for s in squelettes], rng)
+    assert (exercice["matiere"], exercice["niveau"], exercice["titre"]) == ("francais", "CE1", "Conjugaison")
+    question = exercice["questions"][0]
+    assert question["propositions"][question["index_correct"]] == "chantent"

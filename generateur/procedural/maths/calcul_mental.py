@@ -7,8 +7,10 @@ l'opération sans changer les nombres. Les énoncés varient par des formulation
 import random
 
 from generateur.procedural import Squelette, Retirer, distracteurs
+from generateur.procedural.maths import COLLEGE
 
 NOM, TITRE, NOTION, NIVEAU = "calcul_mental", "Calcul mental", "calcul mental", "6e"
+MATIERE, NIVEAUX = "maths", COLLEGE  # NIVEAU : la classe par défaut ; NIVEAUX : celles où il s'applique
 MOTS_CLES = ("calcul mental", "table de multiplication", "tables de multiplication", "addition", "soustraction",
              "multiplication", "quatre operations")
 EXCLUS = ("fraction",)  # « l'addition de fractions » relève du générateur des fractions
