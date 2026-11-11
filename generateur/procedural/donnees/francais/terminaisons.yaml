@@ -1,0 +1,100 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.1), écrite par Claude avec
+# scripts/conjugaison/construire_conjugaisons.py, chaque forme comparée à Verbiste.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/terminaisons --par "…"
+description: 'Les terminaisons des verbes en -er (ce par quoi la forme se termine), pour les explications et les questions
+  de terminaison. Le passé composé n''en a pas : l''auxiliaire et le participe passé en -é.'
+sources:
+  verbiste:
+    nom: 'Verbiste (par verbecc 2.1.0) : chaque forme comparée, identique'
+    url: https://github.com/bretttolbert/verbecc
+    consulte: '2026-11-11'
+    licence: LGPL (données de Verbiste) ; seules des formes de la langue sont reprises
+proprietes:
+  temps:
+  - present
+  - imparfait
+  - futur
+  personne:
+  - je
+  - tu
+  - il
+  - nous
+  - vous
+  - ils
+  terminaison: texte
+cle:
+- temps
+- personne
+lignes:
+- temps: present
+  personne: je
+  terminaison: -e
+  source: verbiste
+- temps: present
+  personne: tu
+  terminaison: -es
+  source: verbiste
+- temps: present
+  personne: il
+  terminaison: -e
+  source: verbiste
+- temps: present
+  personne: nous
+  terminaison: -ons
+  source: verbiste
+- temps: present
+  personne: vous
+  terminaison: -ez
+  source: verbiste
+- temps: present
+  personne: ils
+  terminaison: -ent
+  source: verbiste
+- temps: imparfait
+  personne: je
+  terminaison: -ais
+  source: verbiste
+- temps: imparfait
+  personne: tu
+  terminaison: -ais
+  source: verbiste
+- temps: imparfait
+  personne: il
+  terminaison: -ait
+  source: verbiste
+- temps: imparfait
+  personne: nous
+  terminaison: -ions
+  source: verbiste
+- temps: imparfait
+  personne: vous
+  terminaison: -iez
+  source: verbiste
+- temps: imparfait
+  personne: ils
+  terminaison: -aient
+  source: verbiste
+- temps: futur
+  personne: je
+  terminaison: -erai
+  source: verbiste
+- temps: futur
+  personne: tu
+  terminaison: -eras
+  source: verbiste
+- temps: futur
+  personne: il
+  terminaison: -era
+  source: verbiste
+- temps: futur
+  personne: nous
+  terminaison: -erons
+  source: verbiste
+- temps: futur
+  personne: vous
+  terminaison: -erez
+  source: verbiste
+- temps: futur
+  personne: ils
+  terminaison: -eront
+  source: verbiste
