@@ -1,0 +1,14 @@
+[
+  {"cle": "conjugaison-6e", "matiere": "francais", "niveau": "6e", "notion": "le présent de l'indicatif", "nb_questions": 5,
+   "demande_enseignant": "un QCM de 5 questions sur le présent de l'indicatif pour des 6e"},
+  {"cle": "nature-mots-5e", "matiere": "francais", "niveau": "5e", "notion": "la nature des mots (classes grammaticales)", "nb_questions": 5,
+   "demande_enseignant": "un QCM de 5 questions sur la nature des mots pour des 5e"},
+  {"cle": "revolution-4e", "matiere": "histoire-geo", "niveau": "4e", "notion": "la Révolution française", "nb_questions": 5,
+   "demande_enseignant": "un QCM de 5 questions sur la Révolution française pour des 4e"},
+  {"cle": "passe-compose-6e", "matiere": "francais", "niveau": "6e", "notion": "le passé composé", "nb_questions": 5,
+   "attendu": "francais.6e.conjugaison.01", "demande_enseignant": "un QCM de 5 questions sur le passé composé pour des 6e"},
+  {"cle": "attribut-cod-6e", "matiere": "francais", "niveau": "6e", "notion": "attribut du sujet et COD", "nb_questions": 5,
+   "attendu": "francais.6e.phrase-simple.03", "demande_enseignant": "un QCM pour distinguer l'attribut du sujet et le COD, en 6e"},
+  {"cle": "fractions-pourcentages-5e", "matiere": "maths", "niveau": "5e", "notion": "les fractions et les pourcentages", "nb_questions": 5,
+   "demande_enseignant": "un QCM de 5 questions sur les fractions et les pourcentages pour des 5e"}
+]

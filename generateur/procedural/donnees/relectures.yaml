@@ -1,3 +1,10 @@
 # Les relectures des tables de référence (generateur/procedural/tables.py) : écrit par
 # « python -m generateur.procedural.tables relire » ; ne pas modifier à la main.
-{}
+francais/conjugaisons:
+  empreinte: d77ff7152a3baa21892329bfa79c2dd4b2e1d5993f57933a7136c98d044af0d2
+  le: '2026-11-11'
+  par: Lois
+francais/terminaisons:
+  empreinte: 179b277b037a920948a486ece30232879ce8db68f07136bcbfae689c561e7d9b
+  le: '2026-11-11'
+  par: Lois
