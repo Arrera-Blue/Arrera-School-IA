@@ -32,6 +32,16 @@ Après une modification, la table n'est plus relue : la faire relire et valider
 (`python -m generateur.procedural.tables relire francais/conjugaisons --par "…"`). Méthode :
 `docs/Generateur-Procedural/lot-1-francais.md` §11.
 
+## `accords/` : les tables des accords (`generateur/procedural/donnees/francais/`)
+
+| Script | Rôle | Demande |
+|---|---|---|
+| `construire_accords.py` | `noms.yaml`, `adjectifs.yaml`, `pluriels_irreguliers.yaml`, `feminins.yaml` ; **la source de ces tables** | `pyyaml` |
+| `verifier_accords.py` | le second contrôle : genres, pluriels, formes et erreurs typiques comparés à Lexique 3.83 | `Lexique383.tsv` (lexique.org, CC BY-SA 4.0, téléchargé à part) |
+| `page_relecture_accords.py` | la page de relecture des quatre tables, pour l'enseignant | `pyyaml` |
+
+Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.2.
+
 ## `essais/` : des essais ponctuels
 
 | Script | Rôle |

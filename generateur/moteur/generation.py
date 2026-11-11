@@ -613,11 +613,13 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
     # N2 : le générateur doit produire un QCM conforme au schéma, comme le modèle
     valider(instance, schema_de_sortie(registre.charger("qcm").schema, demande))
 
+    derniere = None
     for _ in range(3):
         try:
             avertissements, bilan_n4 = valider_le_fond(instance)
             break
         except ErreurValidation as e:
+            derniere = e  # « e » n'existe plus après le bloc except : gardée pour l'erreur finale
             fautives = sorted(e.questions) or [i + 1 for i, h in enumerate(par_question) if h["habillage"] == "modele"]
             deja = {s.cle for s in squelettes}
             for n in fautives:
@@ -633,8 +635,8 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
                     par_question[i] = {"habillage": "gabarit", "retiree": message}
                     print(f"   ⚠ question {n} : refusée ({e.niveau}) → tirée à nouveau", flush=True)
                 instance["questions"][i] = procedural.question(squelettes[i], enonces[i], rng)
-    else:
-        raise ErreurValidation(e.niveau, e.erreurs, e.questions)  # un bug du générateur : à corriger, pas à cacher
+    else:  # un bug du générateur : à corriger, pas à cacher
+        raise ErreurValidation(derniere.niveau, derniere.erreurs, derniere.questions)
 
     appels = [habille.appel] if habille.appel else []
     instance["meta"] = {

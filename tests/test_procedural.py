@@ -337,3 +337,14 @@ def test_pas_d_appel_au_modele_sous_le_seuil(capsys):
 
 def test_seuil_lu_dans_la_configuration():
     assert config.charger()["generation"]["habillage_min"] == 2
+
+
+def test_toujours_refuse_une_erreur_claire(dossiers, monkeypatch):
+    """Trois refus de suite (un bug du générateur) : ErreurValidation, avec son message ; pas une UnboundLocalError
+    (« e » n'existe plus après le bloc except : vu au lot 1 du cycle 2, le 11/11)."""
+    def refuser(instance):
+        raise ErreurValidation("N3", ["question 1 : même énoncé que la question 2"], (1,))
+    monkeypatch.setattr(generation, "valider_le_fond", refuser)
+    with pytest.raises(ErreurValidation, match="même énoncé"):
+        generation.generer({"type": "qcm", "notion": "les pourcentages", "niveau": "5e"}, "qcm", "maquette",
+                           mode="procedural", graine=1)
