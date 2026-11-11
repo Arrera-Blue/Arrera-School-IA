@@ -172,11 +172,25 @@ def _dossier(dossier: Path | None) -> Path:
     return Path(dossier) if dossier is not None else DOSSIER  # lu à l'appel : les tests le déplacent
 
 
+# le YAML lu, par empreinte du fichier : une table n'est relue (et revérifiée) que si son contenu a changé ; les
+# générateurs la consultent à chaque question, l'aiguillage à chaque demande
+_LUS: dict[str, tuple] = {}
+
+
+def _lire(fichier: Path):
+    contenu = fichier.read_bytes()
+    cle = hashlib.sha256(contenu).hexdigest()
+    if cle not in _LUS:
+        donnees = yaml.safe_load(contenu.decode("utf-8"))
+        _LUS[cle] = (donnees, defauts(donnees), empreinte(donnees) if isinstance(donnees, dict) else None)
+    return _LUS[cle]
+
+
 def relectures(dossier: Path | None = None) -> dict:
     fichier = _dossier(dossier) / RELECTURES
     if not fichier.exists():
         return {}
-    return yaml.safe_load(fichier.read_text(encoding="utf-8")) or {}
+    return _lire(fichier)[0] or {}
 
 
 def chemin(matiere: str, nom: str, dossier: Path | None = None) -> Path:
@@ -190,12 +204,12 @@ def charger(matiere: str, nom: str, dossier: Path | None = None) -> Table:
     fichier = chemin(matiere, nom, dossier)
     if not fichier.exists():
         raise TableInconnue(f"table introuvable : {matiere}/{nom}")
-    donnees = yaml.safe_load(fichier.read_text(encoding="utf-8"))
-    if erreurs := defauts(donnees):
+    donnees, erreurs, signature = _lire(fichier)
+    if erreurs:
         raise TableInvalide(f"{matiere}/{nom} : " + " ; ".join(erreurs))
     relecture = relectures(dossier).get(f"{matiere}/{nom}")
     return Table(matiere, nom, donnees["description"].strip(), donnees["sources"], donnees["proprietes"],
-                 tuple(donnees["cle"]), tuple(donnees["lignes"]), empreinte(donnees),
+                 tuple(donnees["cle"]), tuple(donnees["lignes"]), signature,
                  {k: _texte(v) for k, v in relecture.items()} if relecture else None)
 
 

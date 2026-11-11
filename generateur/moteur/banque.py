@@ -368,6 +368,8 @@ def relecture(instance: dict, fond: dict | None = None) -> dict:
         })
     return {"questions": questions, "avertissements": generaux, "erreurs": erreurs_generales,
             "procedural": procedural, "valide": not fond["erreurs"],
+            # les réponses lues dans des tables de référence relues (le français du cycle 2), et non calculées
+            "tables": procedural and bool(meta.get("tables")),
             "a_corriger": sorted(erreurs), "niveau": fond["niveau"],
             "a_relire": sum(q["n4"] == "a_relire" and q["calcul"] in ("modele", "claude") for q in questions),
             "contre_verification": sorted(desaccords), "ancrage": sorted(non_ancrees)}

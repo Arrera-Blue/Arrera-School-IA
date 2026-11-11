@@ -141,7 +141,8 @@ def test_la_page_et_sa_politique_de_securite(client):
 def test_analyser(client):
     resultat = client.post("/api/analyser", json={"phrase": "un QCM sur les pourcentages pour des 5e"}).json()
     assert resultat["requete"]["matiere"] == "maths" and resultat["procedural"] == {"nom": "pourcentages",
-                                                                                     "notion": "pourcentages"}
+                                                                                     "notion": "pourcentages",
+                                                                                     "tables": False}
     complete = client.post("/api/analyser", json={"phrase": "un QCM sur le cycle de l'eau pour des 5e"}).json()
     assert complete["requete"]["matiere"] == "svt" and complete["sources"]["matiere"] == "modele"
 

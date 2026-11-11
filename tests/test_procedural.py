@@ -19,7 +19,8 @@ from generateur.procedural import habillage
 from generateur.procedural.maths import pourcentages, pythagore
 from generateur.procedural.habillage import controler
 
-GENRES = [g for module in procedural.notions().values() for g in module.GENRES]
+# les genres des maths (le français, à tables : tests/test_conjugaison.py…)
+GENRES = [g for module in procedural.matieres()["maths"].generateurs() for g in module.GENRES]
 # N3 demande au moins deux questions pour certaines règles : une seconde, neutre
 AUTRE = {"enonce": "Quelle est la capitale de la France ?", "propositions": ["Paris", "Lyon", "Marseille"],
          "index_correct": 0, "explication": "Paris est la capitale de la France."}

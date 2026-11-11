@@ -9,10 +9,12 @@ Un sous-dossier par matière (`maths/` ; le cycle 2 : docs/Generateur-Procedural
 `__init__` déclare `MATIERE`, `AUTRES_NOTIONS` (les notions de la matière qu'aucun générateur ne couvre) et
 `generateurs()` ; chaque module de générateur, `NOM` (unique, toutes matières), `MATIERE`, `NIVEAU` (la classe par
 défaut), `NIVEAUX` (celles où il s'applique), `MOTS_CLES`, `GENRES`, `ATTENDUS`, et `TABLES` s'il lit ses réponses
-dans des tables de référence (tables.py). Ce paquet-ci est commun : le squelette d'une question, les distracteurs,
-l'aiguillage, le tirage, l'assemblage.
+dans des tables de référence (tables.py). Un genre peut recevoir la classe (`genre(rng, niveau)` : la conjugaison du
+CP n'est pas celle du CE2) et ne servir qu'à certaines classes (`CLASSES_DU_GENRE = {nom du genre: (classes…)}`).
+Ce paquet-ci est commun : le squelette d'une question, les distracteurs, l'aiguillage, le tirage, l'assemblage.
 """
 
+import inspect
 import random
 import unicodedata
 from collections.abc import Callable
@@ -90,8 +92,8 @@ def sans_accents(texte: str) -> str:
 
 def matieres() -> dict:
     """Les matières qui ont des générateurs : {matière : son paquet}. Import local : le paquet reste léger à charger."""
-    from generateur.procedural import maths
-    return {p.MATIERE: p for p in (maths,)}
+    from generateur.procedural import francais, maths
+    return {p.MATIERE: p for p in (maths, francais)}
 
 
 def notions() -> dict:
@@ -162,11 +164,23 @@ def aiguiller(demande: dict) -> str | None:
 ESSAIS_MAX = 200
 
 
-def tirer_une(genre: Genre, rng: random.Random, deja: set) -> Squelette:
+def _appeler(genre: Genre, rng: random.Random, niveau: str | None) -> Squelette:
+    """Le genre, avec la classe s'il la demande (`genre(rng, niveau)`) ; les genres des maths ne la demandent pas."""
+    if niveau is not None and "niveau" in inspect.signature(genre).parameters:
+        return genre(rng, niveau=niveau)
+    return genre(rng)
+
+
+def classes_du_genre(module, genre: Genre) -> tuple[str, ...]:
+    """Les classes où le genre sert (toutes celles du module, s'il ne dit rien)."""
+    return tuple(getattr(module, "CLASSES_DU_GENRE", {}).get(genre.__name__, module.NIVEAUX))
+
+
+def tirer_une(genre: Genre, rng: random.Random, deja: set, niveau: str | None = None) -> Squelette:
     """Une question du genre, différente de celles déjà tirées."""
     for _ in range(ESSAIS_MAX):
         try:
-            squelette = genre(rng)
+            squelette = _appeler(genre, rng, niveau)
         except Retirer:
             continue
         if squelette.cle not in deja:
@@ -175,15 +189,27 @@ def tirer_une(genre: Genre, rng: random.Random, deja: set) -> Squelette:
     raise RuntimeError("le générateur ne trouve plus de question nouvelle : demander moins de questions")
 
 
-def tirer(notion: str, nombre: int, rng: random.Random, genres: list[Genre] | None = None) -> list[Squelette]:
+def tirer(notion: str, nombre: int, rng: random.Random, genres: list[Genre] | None = None,
+          niveau: str | None = None) -> list[Squelette]:
     """`nombre` questions de la notion, de genres variés : chaque genre une fois, dans un ordre tiré au sort,
-    avant qu'un genre revienne. `genres` : seulement ceux-là (ceux d'un attendu du programme)."""
-    genres = list(genres or notions()[notion].GENRES)
+    avant qu'un genre revienne. `genres` : seulement ceux-là (ceux d'un attendu du programme). `niveau` : la classe,
+    donnée aux genres qui la demandent ; seuls servent les genres de cette classe."""
+    module = notions()[notion]
+    genres = [g for g in (genres or module.GENRES) if niveau is None or niveau in classes_du_genre(module, g)]
+    if not genres:
+        raise RuntimeError(f"aucune question de « {module.NOTION} » pour la classe {niveau}")
     ordre: list[Genre] = []
     while len(ordre) < nombre:
         ordre += rng.sample(genres, len(genres))
     deja: set = set()
-    return [tirer_une(g, rng, deja) for g in ordre[:nombre]]
+    return [tirer_une(g, rng, deja, niveau) for g in ordre[:nombre]]
+
+
+def empreintes_des_tables(module) -> dict[str, str]:
+    """{« francais/conjugaisons » : empreinte} : de quelle version des tables l'exercice est tiré."""
+    from generateur.procedural import tables
+    return {f"{module.MATIERE}/{nom}": tables.charger(module.MATIERE, nom).empreinte
+            for nom in getattr(module, "TABLES", ())}
 
 
 def question(squelette: Squelette, enonce: str, rng: random.Random) -> dict:

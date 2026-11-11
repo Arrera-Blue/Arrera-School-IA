@@ -357,7 +357,10 @@ def _verifier(corps: Demande) -> dict:
 def _procedural(requete: dict) -> dict | None:
     """Le générateur procédural qui traiterait cette demande, s'il y en a un (affiché à l'enseignant)."""
     nom = procedural.aiguiller(requete) if requete.get("type", "qcm") == "qcm" else None
-    return {"nom": nom, "notion": procedural.notions()[nom].NOTION} if nom else None
+    if not nom:
+        return None
+    module = procedural.notions()[nom]
+    return {"nom": nom, "notion": module.NOTION, "tables": bool(getattr(module, "TABLES", ()))}
 
 
 def decharger_si_inactif(file: File, delai_s: float, maintenant: float | None = None) -> bool:

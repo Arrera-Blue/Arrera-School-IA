@@ -594,10 +594,12 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
 
     # un attendu du programme : seulement les genres qui le travaillent (E2.5)
     genres = procedural.genres_pour(module, demande["attendu"], niveau) if demande.get("attendu") else None
-    squelettes = procedural.tirer(notion, nombre, rng, genres)
+    squelettes = procedural.tirer(notion, nombre, rng, genres, niveau)
     print(f"→ génération procédurale ({module.NOTION}) : {nombre} questions tirées (graine {graine})", flush=True)
+    origine = ("réponses lues dans des tables relues par l'enseignant" if getattr(module, "TABLES", ())
+               else "calculs faits par le programme")
     _signaler(suivi, etape="tirage", message=f"Générateur procédural ({module.NOTION}) : {nombre} questions "
-                                              "tirées, calculs faits par le programme")
+                                              f"tirées, {origine}")
     habillage_min = int(config.charger()["generation"].get("habillage_min", 1))
     if fournisseur.nom != "maquette" and sum(s.habillable for s in squelettes) >= habillage_min:
         _signaler(suivi, etape="habillage", message="Le modèle réécrit les énoncés en situation concrète "
@@ -626,7 +628,7 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
                     print(f"   ⚠ question {n} : refusée après habillage ({e.niveau}) → énoncé-gabarit", flush=True)
                 else:
                     genre = next(g for g in module.GENRES if squelettes[i].genre.endswith(f".{g.__name__}"))
-                    squelettes[i] = procedural.tirer_une(genre, rng, deja)
+                    squelettes[i] = procedural.tirer_une(genre, rng, deja, niveau)
                     enonces[i] = squelettes[i].enonce
                     par_question[i] = {"habillage": "gabarit", "retiree": message}
                     print(f"   ⚠ question {n} : refusée ({e.niveau}) → tirée à nouveau", flush=True)
@@ -655,6 +657,8 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
         "prompt_origine": demande.get("demande_enseignant") or demande,
         "demande": demande,
     }
+    if tables_lues := procedural.empreintes_des_tables(module):
+        instance["meta"]["tables"] = tables_lues  # la version des tables d'où viennent les réponses
     travailles = [a for s in squelettes for a in procedural.attendus_du_genre(module, s.genre.split(".")[-1], niveau)]
     if programme := programme_de(demande, travailles):
         instance["meta"]["programme"] = programme
@@ -784,7 +788,7 @@ def _retirer_question(instance: dict, numero: int, meta: dict, valider_fond: Cal
                                               f"question {numero}")
     derniere = None
     for _ in range(ESSAIS_DE_TIRAGE):
-        squelette = procedural.tirer_une(genre or rng.choice(module.GENRES), rng, set())
+        squelette = procedural.tirer_une(genre or rng.choice(module.GENRES), rng, set(), instance.get("niveau"))
         question = procedural.question(squelette, squelette.enonce, rng)
         if question["enonce"] == ancienne["enonce"]:
             continue
