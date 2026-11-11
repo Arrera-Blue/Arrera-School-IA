@@ -1,0 +1,142 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.2), écrite par Claude avec
+# scripts/accords/construire_accords.py, comparée à Lexique 3.83 (scripts/accords/verifier_accords.py).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/feminins --par "…"
+description: Des féminins qui s'entendent, de noms (lecteur/lectrice) et d'adjectifs (joyeux/joyeuse), au CE2 ; l'erreur typique
+  de l'élève, écrite à la main.
+sources:
+  claude:
+    nom: Liste écrite par Claude ; genres, pluriels et formes comparés à Lexique 3.83
+    url: http://www.lexique.org
+    consulte: '2026-11-11'
+    licence: CC BY-SA 4.0 (Lexique 3), pour la comparaison seulement
+proprietes:
+  masculin: texte
+  feminin: texte
+  nature:
+  - nom
+  - adjectif
+  regle: texte
+  erreur: texte
+cle:
+- masculin
+lignes:
+- masculin: lecteur
+  feminin: lectrice
+  nature: nom
+  regle: -teur → -trice
+  erreur: lecteuse
+  source: claude
+- masculin: acteur
+  feminin: actrice
+  nature: nom
+  regle: -teur → -trice
+  erreur: acteuse
+  source: claude
+- masculin: directeur
+  feminin: directrice
+  nature: nom
+  regle: -teur → -trice
+  erreur: directeuse
+  source: claude
+- masculin: conducteur
+  feminin: conductrice
+  nature: nom
+  regle: -teur → -trice
+  erreur: conducteuse
+  source: claude
+- masculin: boulanger
+  feminin: boulangère
+  nature: nom
+  regle: -er → -ère
+  erreur: boulangere
+  source: claude
+- masculin: fermier
+  feminin: fermière
+  nature: nom
+  regle: -er → -ère
+  erreur: fermiere
+  source: claude
+- masculin: épicier
+  feminin: épicière
+  nature: nom
+  regle: -er → -ère
+  erreur: épiciere
+  source: claude
+- masculin: lion
+  feminin: lionne
+  nature: nom
+  regle: -on → -onne
+  erreur: lione
+  source: claude
+- masculin: champion
+  feminin: championne
+  nature: nom
+  regle: -on → -onne
+  erreur: champione
+  source: claude
+- masculin: gardien
+  feminin: gardienne
+  nature: nom
+  regle: -en → -enne
+  erreur: gardiene
+  source: claude
+- masculin: musicien
+  feminin: musicienne
+  nature: nom
+  regle: -en → -enne
+  erreur: musiciene
+  source: claude
+- masculin: joyeux
+  feminin: joyeuse
+  nature: adjectif
+  regle: -eux → -euse
+  erreur: joyeuxe
+  source: claude
+- masculin: heureux
+  feminin: heureuse
+  nature: adjectif
+  regle: -eux → -euse
+  erreur: heureuxe
+  source: claude
+- masculin: peureux
+  feminin: peureuse
+  nature: adjectif
+  regle: -eux → -euse
+  erreur: peureuxe
+  source: claude
+- masculin: sportif
+  feminin: sportive
+  nature: adjectif
+  regle: -f → -ve
+  erreur: sportife
+  source: claude
+- masculin: neuf
+  feminin: neuve
+  nature: adjectif
+  regle: -f → -ve
+  erreur: neufe
+  source: claude
+- masculin: premier
+  feminin: première
+  nature: adjectif
+  regle: -er → -ère
+  erreur: premiere
+  source: claude
+- masculin: léger
+  feminin: légère
+  nature: adjectif
+  regle: -er → -ère
+  erreur: légere
+  source: claude
+- masculin: gentil
+  feminin: gentille
+  nature: adjectif
+  regle: -il → -ille
+  erreur: gentile
+  source: claude
+- masculin: bon
+  feminin: bonne
+  nature: adjectif
+  regle: -on → -onne
+  erreur: bone
+  source: claude

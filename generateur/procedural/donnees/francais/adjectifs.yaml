@@ -1,0 +1,121 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.2), écrite par Claude avec
+# scripts/accords/construire_accords.py, comparée à Lexique 3.83 (scripts/accords/verifier_accords.py).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/adjectifs --par "…"
+description: Des adjectifs aux quatre formes toutes différentes ; leur place par rapport au nom ; les sortes de noms qu'ils
+  qualifient (« tout », ou une liste).
+sources:
+  claude:
+    nom: Liste écrite par Claude ; genres, pluriels et formes comparés à Lexique 3.83
+    url: http://www.lexique.org
+    consulte: '2026-11-11'
+    licence: CC BY-SA 4.0 (Lexique 3), pour la comparaison seulement
+proprietes:
+  ms: texte
+  fs: texte
+  mp: texte
+  fp: texte
+  place:
+  - avant
+  - apres
+  pour: texte
+cle:
+- ms
+lignes:
+- ms: petit
+  fs: petite
+  mp: petits
+  fp: petites
+  place: avant
+  pour: tout
+  source: claude
+- ms: grand
+  fs: grande
+  mp: grands
+  fp: grandes
+  place: avant
+  pour: tout
+  source: claude
+- ms: joli
+  fs: jolie
+  mp: jolis
+  fp: jolies
+  place: avant
+  pour: tout
+  source: claude
+- ms: long
+  fs: longue
+  mp: longs
+  fp: longues
+  place: avant
+  pour: lieu
+  source: claude
+- ms: gentil
+  fs: gentille
+  mp: gentils
+  fp: gentilles
+  place: avant
+  pour: personne animal
+  source: claude
+- ms: noir
+  fs: noire
+  mp: noirs
+  fp: noires
+  place: apres
+  pour: animal objet nature
+  source: claude
+- ms: blanc
+  fs: blanche
+  mp: blancs
+  fp: blanches
+  place: apres
+  pour: animal objet nature
+  source: claude
+- ms: vert
+  fs: verte
+  mp: verts
+  fp: vertes
+  place: apres
+  pour: objet nature
+  source: claude
+- ms: bleu
+  fs: bleue
+  mp: bleus
+  fp: bleues
+  place: apres
+  pour: objet nature
+  source: claude
+- ms: rond
+  fs: ronde
+  mp: ronds
+  fp: rondes
+  place: apres
+  pour: objet nature
+  source: claude
+- ms: lourd
+  fs: lourde
+  mp: lourds
+  fp: lourdes
+  place: apres
+  pour: objet
+  source: claude
+- ms: content
+  fs: contente
+  mp: contents
+  fp: contentes
+  place: apres
+  pour: personne animal
+  source: claude
+- ms: méchant
+  fs: méchante
+  mp: méchants
+  fp: méchantes
+  place: apres
+  pour: animal
+  source: claude
+- ms: fort
+  fs: forte
+  mp: forts
+  fp: fortes
+  place: apres
+  pour: personne animal
+  source: claude

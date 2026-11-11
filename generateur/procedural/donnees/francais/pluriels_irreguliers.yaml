@@ -1,0 +1,109 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.2), écrite par Claude avec
+# scripts/accords/construire_accords.py, comparée à Lexique 3.83 (scripts/accords/verifier_accords.py).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/pluriels_irreguliers --par "…"
+description: Les pluriels irréguliers du CE2 (-al/-aux, -eau/-eaux, -eu/-eux, -ou/-oux) ; l'erreur typique de l'élève (le
+  pluriel en -s), écrite à la main.
+sources:
+  claude:
+    nom: Liste écrite par Claude ; genres, pluriels et formes comparés à Lexique 3.83
+    url: http://www.lexique.org
+    consulte: '2026-11-11'
+    licence: CC BY-SA 4.0 (Lexique 3), pour la comparaison seulement
+proprietes:
+  singulier: texte
+  pluriel: texte
+  regle: texte
+  erreur: texte
+cle:
+- singulier
+lignes:
+- singulier: cheval
+  pluriel: chevaux
+  regle: -al → -aux
+  erreur: chevals
+  source: claude
+- singulier: animal
+  pluriel: animaux
+  regle: -al → -aux
+  erreur: animals
+  source: claude
+- singulier: journal
+  pluriel: journaux
+  regle: -al → -aux
+  erreur: journals
+  source: claude
+- singulier: hôpital
+  pluriel: hôpitaux
+  regle: -al → -aux
+  erreur: hôpitals
+  source: claude
+- singulier: oiseau
+  pluriel: oiseaux
+  regle: -eau → -eaux
+  erreur: oiseaus
+  source: claude
+- singulier: bateau
+  pluriel: bateaux
+  regle: -eau → -eaux
+  erreur: bateaus
+  source: claude
+- singulier: château
+  pluriel: châteaux
+  regle: -eau → -eaux
+  erreur: châteaus
+  source: claude
+- singulier: gâteau
+  pluriel: gâteaux
+  regle: -eau → -eaux
+  erreur: gâteaus
+  source: claude
+- singulier: cadeau
+  pluriel: cadeaux
+  regle: -eau → -eaux
+  erreur: cadeaus
+  source: claude
+- singulier: chapeau
+  pluriel: chapeaux
+  regle: -eau → -eaux
+  erreur: chapeaus
+  source: claude
+- singulier: jeu
+  pluriel: jeux
+  regle: -eu → -eux
+  erreur: jeus
+  source: claude
+- singulier: feu
+  pluriel: feux
+  regle: -eu → -eux
+  erreur: feus
+  source: claude
+- singulier: cheveu
+  pluriel: cheveux
+  regle: -eu → -eux
+  erreur: cheveus
+  source: claude
+- singulier: bijou
+  pluriel: bijoux
+  regle: -ou → -oux (bijou, caillou, chou, genou, hibou, joujou, pou)
+  erreur: bijous
+  source: claude
+- singulier: caillou
+  pluriel: cailloux
+  regle: -ou → -oux (bijou, caillou, chou, genou, hibou, joujou, pou)
+  erreur: caillous
+  source: claude
+- singulier: genou
+  pluriel: genoux
+  regle: -ou → -oux (bijou, caillou, chou, genou, hibou, joujou, pou)
+  erreur: genous
+  source: claude
+- singulier: hibou
+  pluriel: hiboux
+  regle: -ou → -oux (bijou, caillou, chou, genou, hibou, joujou, pou)
+  erreur: hibous
+  source: claude
+- singulier: chou
+  pluriel: choux
+  regle: -ou → -oux (bijou, caillou, chou, genou, hibou, joujou, pou)
+  erreur: chous
+  source: claude
