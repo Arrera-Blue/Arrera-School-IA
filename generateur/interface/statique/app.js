@@ -1409,7 +1409,10 @@
     const remarques = $("#remarques");
     remarques.replaceChildren(...(resultat.remarques || []).map((t) => el("li", { texte: t })));
     const chemin = $("#chemin");
-    if (resultat.procedural) {
+    if (resultat.procedural && resultat.procedural.tables) {
+      chemin.textContent = `Questions tirées par le programme (${resultat.procedural.notion}), réponses lues dans des ` +
+        "tables que vous avez relues : justes par construction. Aucun énoncé n'est écrit par le modèle.";
+    } else if (resultat.procedural) {
       chemin.textContent = `Calculs faits par le programme (${resultat.procedural.notion}) : réponses justes par ` +
         "construction. Le modèle ne fait que réécrire certains énoncés.";
     } else {
@@ -2226,6 +2229,7 @@
     const faux = relecture.questions.filter((q) => q.n4 === "faux").length;
     let n4;
     if (faux) n4 = `N4 : ${faux} calcul(s) faux`;
+    else if (relecture.tables) n4 = "N4 : pas de calcul ; réponses lues dans des tables que vous avez relues, justes par construction";
     else if (relecture.procedural) n4 = "N4 : calculs faits par le programme, justes par construction";
     else if (x.matiere !== "maths") n4 = "N4 : hors mathématiques, aucun calcul à recalculer — le fond est à relire par vous";
     else if (relecture.a_relire) n4 = `N4 : ${verifiees} calcul(s) vérifié(s), ${relecture.a_relire} question(s) à relire`;
