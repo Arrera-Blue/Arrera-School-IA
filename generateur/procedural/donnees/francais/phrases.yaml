@@ -1,0 +1,531 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.3), écrite par Claude avec
+# scripts/phrase/construire_phrases.py, comparée à Lexique 3.83 (scripts/phrase/verifier_phrases.py).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/phrases --par "…"
+description: 'Des phrases simples, courtes : leur type, si elles sont négatives ou exclamatives (des formes, pour le programme
+  du cycle 2), si leur signe final est imposé par un mot, et la nature de chacun de leurs mots dans la phrase (« mots » :
+  mot/nature, le signe final à part). Aucun prénom : les noms propres sont des villes ou des fleuves.'
+sources:
+  claude:
+    nom: Phrases écrites par Claude ; la nature de chaque mot comparée aux catégories de Lexique 3.83
+    url: http://www.lexique.org
+    consulte: '2026-11-12'
+    licence: CC BY-SA 4.0 (Lexique 3), pour la comparaison seulement
+proprietes:
+  phrase: texte
+  mots: texte
+  type:
+  - declarative
+  - interrogative
+  - imperative
+  negative:
+  - oui
+  - non
+  exclamative:
+  - oui
+  - non
+  signe_impose:
+  - oui
+  - non
+  depuis:
+  - CP
+  - CE1
+  - CE2
+cle:
+- phrase
+lignes:
+- phrase: Le chat dort.
+  mots: Le/determinant chat/nom dort/verbe .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Le petit chien court.
+  mots: Le/determinant petit/adjectif chien/nom court/verbe .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: La maman lit un livre.
+  mots: La/determinant maman/nom lit/verbe un/determinant livre/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Les enfants jouent dans la cour.
+  mots: Les/determinant enfants/nom jouent/verbe dans/preposition la/determinant cour/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Il mange une pomme rouge.
+  mots: Il/pronom mange/verbe une/determinant pomme/nom rouge/adjectif .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Nous allons à l'école.
+  mots: Nous/pronom allons/verbe à/preposition l'/determinant école/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Elle chante une jolie chanson.
+  mots: Elle/pronom chante/verbe une/determinant jolie/adjectif chanson/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Le soleil brille.
+  mots: Le/determinant soleil/nom brille/verbe .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Mon frère a un vélo bleu.
+  mots: Mon/determinant frère/nom a/verbe un/determinant vélo/nom bleu/adjectif .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: La fleur est belle.
+  mots: La/determinant fleur/nom est/verbe belle/adjectif .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Les oiseaux chantent le matin.
+  mots: Les/determinant oiseaux/nom chantent/verbe le/determinant matin/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Tu as un gros chien.
+  mots: Tu/pronom as/verbe un/determinant gros/adjectif chien/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Le train arrive vite.
+  mots: Le/determinant train/nom arrive/verbe vite/adverbe .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE2
+  source: claude
+- phrase: Paris est une grande ville.
+  mots: Paris/nom_propre est/verbe une/determinant grande/adjectif ville/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE1
+  source: claude
+- phrase: La Loire est un long fleuve.
+  mots: La/determinant Loire/nom_propre est/verbe un/determinant long/adjectif fleuve/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE1
+  source: claude
+- phrase: Le bébé pleure fort.
+  mots: Le/determinant bébé/nom pleure/verbe fort/adverbe .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE2
+  source: claude
+- phrase: Vous parlez bien.
+  mots: Vous/pronom parlez/verbe bien/adverbe .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE2
+  source: claude
+- phrase: Lyon est une belle ville.
+  mots: Lyon/nom_propre est/verbe une/determinant belle/adjectif ville/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE1
+  source: claude
+- phrase: La neige tombe doucement.
+  mots: La/determinant neige/nom tombe/verbe doucement/adverbe .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE2
+  source: claude
+- phrase: Ils aiment les gâteaux.
+  mots: Ils/pronom aiment/verbe les/determinant gâteaux/nom .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Ma sœur porte une robe verte.
+  mots: Ma/determinant sœur/nom porte/verbe une/determinant robe/nom verte/adjectif .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Le facteur passe tôt.
+  mots: Le/determinant facteur/nom passe/verbe tôt/adverbe .
+  type: declarative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE2
+  source: claude
+- phrase: Le chat ne dort pas.
+  mots: Le/determinant chat/nom ne/negation dort/verbe pas/negation .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Je ne mange pas.
+  mots: Je/pronom ne/negation mange/verbe pas/negation .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Elle ne chante pas.
+  mots: Elle/pronom ne/negation chante/verbe pas/negation .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Nous ne jouons pas dehors.
+  mots: Nous/pronom ne/negation jouons/verbe pas/negation dehors/adverbe .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CE2
+  source: claude
+- phrase: Il n'aime pas la soupe.
+  mots: Il/pronom n'/negation aime/verbe pas/negation la/determinant soupe/nom .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Les enfants ne crient pas.
+  mots: Les/determinant enfants/nom ne/negation crient/verbe pas/negation .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Tu ne viens jamais.
+  mots: Tu/pronom ne/negation viens/verbe jamais/negation .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Le bus n'arrive pas.
+  mots: Le/determinant bus/nom n'/negation arrive/verbe pas/negation .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Mon ami ne lit pas.
+  mots: Mon/determinant ami/nom ne/negation lit/verbe pas/negation .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: La porte n'est pas ouverte.
+  mots: La/determinant porte/nom n'/negation est/verbe pas/negation ouverte/adjectif .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Vous ne parlez pas.
+  mots: Vous/pronom ne/negation parlez/verbe pas/negation .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Le chien n'est pas méchant.
+  mots: Le/determinant chien/nom n'/negation est/verbe pas/negation méchant/adjectif .
+  type: declarative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Où est le chat ?
+  mots: Où/interrogatif est/verbe le/determinant chat/nom ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Tu viens ?
+  mots: Tu/pronom viens/verbe ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Quand part le train ?
+  mots: Quand/interrogatif part/verbe le/determinant train/nom ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Où vont les enfants ?
+  mots: Où/interrogatif vont/verbe les/determinant enfants/nom ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Qui mange la pomme ?
+  mots: Qui/interrogatif mange/verbe la/determinant pomme/nom ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Qui a un vélo ?
+  mots: Qui/interrogatif a/verbe un/determinant vélo/nom ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Tu aimes les bonbons ?
+  mots: Tu/pronom aimes/verbe les/determinant bonbons/nom ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Où est ma gomme ?
+  mots: Où/interrogatif est/verbe ma/determinant gomme/nom ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Qui chante ?
+  mots: Qui/interrogatif chante/verbe ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Vous venez demain ?
+  mots: Vous/pronom venez/verbe demain/adverbe ?
+  type: interrogative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE2
+  source: claude
+- phrase: Range ta chambre.
+  mots: Range/verbe ta/determinant chambre/nom .
+  type: imperative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Ferme la porte.
+  mots: Ferme/verbe la/determinant porte/nom .
+  type: imperative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Mange ta soupe.
+  mots: Mange/verbe ta/determinant soupe/nom .
+  type: imperative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Écoute la maîtresse.
+  mots: Écoute/verbe la/determinant maîtresse/nom .
+  type: imperative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Viens ici.
+  mots: Viens/verbe ici/adverbe .
+  type: imperative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CE2
+  source: claude
+- phrase: Prends ton cartable.
+  mots: Prends/verbe ton/determinant cartable/nom .
+  type: imperative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Ne cours pas.
+  mots: Ne/negation cours/verbe pas/negation .
+  type: imperative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Lave tes mains.
+  mots: Lave/verbe tes/determinant mains/nom .
+  type: imperative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Regarde le ciel.
+  mots: Regarde/verbe le/determinant ciel/nom .
+  type: imperative
+  negative: non
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Ne touche pas le feu.
+  mots: Ne/negation touche/verbe pas/negation le/determinant feu/nom .
+  type: imperative
+  negative: oui
+  exclamative: non
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Quel beau jardin !
+  mots: Quel/determinant beau/adjectif jardin/nom !
+  type: declarative
+  negative: non
+  exclamative: oui
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Comme il fait chaud !
+  mots: Comme/exclamatif il/pronom fait/verbe chaud/adjectif !
+  type: declarative
+  negative: non
+  exclamative: oui
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Quelle belle robe !
+  mots: Quelle/determinant belle/adjectif robe/nom !
+  type: declarative
+  negative: non
+  exclamative: oui
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Que tu es grand !
+  mots: Que/exclamatif tu/pronom es/verbe grand/adjectif !
+  type: declarative
+  negative: non
+  exclamative: oui
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Le gâteau est délicieux !
+  mots: Le/determinant gâteau/nom est/verbe délicieux/adjectif !
+  type: declarative
+  negative: non
+  exclamative: oui
+  signe_impose: non
+  depuis: CP
+  source: claude
+- phrase: Quel joli chat !
+  mots: Quel/determinant joli/adjectif chat/nom !
+  type: declarative
+  negative: non
+  exclamative: oui
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Comme la mer est belle !
+  mots: Comme/exclamatif la/determinant mer/nom est/verbe belle/adjectif !
+  type: declarative
+  negative: non
+  exclamative: oui
+  signe_impose: oui
+  depuis: CP
+  source: claude
+- phrase: Elle court vite !
+  mots: Elle/pronom court/verbe vite/adverbe !
+  type: declarative
+  negative: non
+  exclamative: oui
+  signe_impose: non
+  depuis: CE2
+  source: claude
