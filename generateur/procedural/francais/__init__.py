@@ -12,17 +12,17 @@ MATIERE = "francais"
 CYCLE_2 = ("CP", "CE1", "CE2")
 
 # les notions de français qu'aucun générateur ne couvre : une demande qui en cite une part au modèle (sans accents,
-# en début de mot) ; « nature », « vocabulaire »… en sortiront quand leurs générateurs arriveront (1.3, 1.4)
+# en début de mot) ; « vocabulaire », « synonyme »… en sortiront quand leur générateur arrivera (1.4)
 AUTRES_NOTIONS = re.compile(r"\b(?:homophone|passe simple|subjonctif|conditionnel|imperatif|plus-que-parfait|"
                             r"futur anterieur|participe passe|2e groupe|deuxieme groupe|lecture|comprehension|"
-                            r"poesie|poeme|conte|dictee|redaction|production d'ecrit|oral|nature|"
-                            r"vocabulaire|synonyme|antonyme|contraire|ponctuation)")
+                            r"poesie|poeme|conte|dictee|redaction|production d'ecrit|oral|discours rapporte|"
+                            r"vocabulaire|synonyme|antonyme|contraire)")
 
 
 def generateurs() -> tuple:
     """Les modules de la matière. Import local : le paquet reste léger à charger."""
-    from generateur.procedural.francais import accords, conjugaison
-    return (conjugaison, accords)
+    from generateur.procedural.francais import accords, conjugaison, phrase
+    return (conjugaison, accords, phrase)
 
 
 def avant_ou_egale(classe: str, depuis: str) -> bool:

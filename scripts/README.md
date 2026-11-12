@@ -42,6 +42,16 @@ Après une modification, la table n'est plus relue : la faire relire et valider
 
 Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.2.
 
+## `phrase/` : la table des phrases (`generateur/procedural/donnees/francais/phrases.yaml`)
+
+| Script | Rôle | Demande |
+|---|---|---|
+| `construire_phrases.py` | `phrases.yaml` : 62 phrases, leur type, leurs formes, la nature de chaque mot ; **la source de la table** | `pyyaml` |
+| `verifier_phrases.py` | le second contrôle : la nature de chaque mot parmi les catégories que Lexique 3.83 lui donne | `Lexique383.tsv` (à part) |
+| `page_relecture_phrases.py` | la page de relecture de la table, pour l'enseignant | `pyyaml` |
+
+Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.3.
+
 ## `essais/` : des essais ponctuels
 
 | Script | Rôle |
