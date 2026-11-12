@@ -49,12 +49,16 @@ POURQUOI_TYPE = {
 SIGNES = {".": "le point (.)", "?": "le point d'interrogation (?)", "!": "le point d'exclamation (!)"}
 # plusieurs formulations : deux questions d'un exercice n'ont jamais le même énoncé (N3 le refuserait)
 FORMULES_FORME = {
+    # six chacune : un objectif seul (« les formes de phrases ») doit pouvoir donner 15 questions différentes
     "negative": ("Quelle phrase est à la forme négative ?", "Laquelle de ces phrases est négative ?",
-                 "Trouve la phrase à la forme négative.", "Quelle phrase contient une négation ?"),
+                 "Trouve la phrase à la forme négative.", "Quelle phrase contient une négation ?",
+                 "Une seule phrase est négative : laquelle ?", "Quelle phrase est écrite à la forme négative ?"),
     "affirmative": ("Quelle phrase est à la forme affirmative ?", "Laquelle de ces phrases est affirmative ?",
-                    "Trouve la phrase à la forme affirmative.", "Quelle phrase n'est pas négative ?"),
+                    "Trouve la phrase à la forme affirmative.", "Quelle phrase n'est pas négative ?",
+                    "Une seule phrase est affirmative : laquelle ?", "Quelle phrase est écrite à la forme affirmative ?"),
     "exclamative": ("Quelle phrase est exclamative ?", "Laquelle de ces phrases est exclamative ?",
-                    "Trouve la phrase exclamative.", "Quelle phrase exprime une émotion ?"),
+                    "Trouve la phrase exclamative.", "Quelle phrase exprime une émotion ?",
+                    "Une seule phrase est exclamative : laquelle ?", "Quelle phrase se dit avec une émotion ?"),
 }
 
 

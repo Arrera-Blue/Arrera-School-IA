@@ -1,0 +1,150 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.4), écrite par Claude avec
+# scripts/vocabulaire/construire_vocabulaire.py, comparée à Lexique 3.83 (scripts/vocabulaire/verifier_vocabulaire.py).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/prefixes --par "…"
+description: Des mots et le préfixe qui fait leur contraire ; les préfixes pièges ne font aucun vrai mot (Lexique 3.83).
+sources:
+  claude:
+    nom: Listes écrites par Claude ; mots, classes et pièges comparés à Lexique 3.83
+    url: http://www.lexique.org
+    consulte: '2026-11-12'
+    licence: CC BY-SA 4.0 (Lexique 3), pour la comparaison seulement
+proprietes:
+  mot: texte
+  prefixe:
+  - in-
+  - im-
+  - il-
+  - ir-
+  - dé-
+  - dés-
+  - mal-
+  - mé-
+  contraire: texte
+  pieges: texte
+  depuis:
+  - CP
+  - CE1
+  - CE2
+cle:
+- mot
+lignes:
+- mot: possible
+  prefixe: im-
+  contraire: impossible
+  pieges: in- dé- mal-
+  depuis: CE1
+  source: claude
+- mot: patient
+  prefixe: im-
+  contraire: impatient
+  pieges: in- dé- mal-
+  depuis: CE1
+  source: claude
+- mot: poli
+  prefixe: im-
+  contraire: impoli
+  pieges: in- il- ir-
+  depuis: CE1
+  source: claude
+- mot: juste
+  prefixe: in-
+  contraire: injuste
+  pieges: im- dé- mal-
+  depuis: CE1
+  source: claude
+- mot: utile
+  prefixe: in-
+  contraire: inutile
+  pieges: im- dé- mal-
+  depuis: CE1
+  source: claude
+- mot: connu
+  prefixe: in-
+  contraire: inconnu
+  pieges: im- dé- mal-
+  depuis: CE1
+  source: claude
+- mot: visible
+  prefixe: in-
+  contraire: invisible
+  pieges: im- dé- mal-
+  depuis: CE1
+  source: claude
+- mot: capable
+  prefixe: in-
+  contraire: incapable
+  pieges: im- dé- mal-
+  depuis: CE1
+  source: claude
+- mot: lisible
+  prefixe: il-
+  contraire: illisible
+  pieges: in- im- dé-
+  depuis: CE2
+  source: claude
+- mot: régulier
+  prefixe: ir-
+  contraire: irrégulier
+  pieges: in- im- dé-
+  depuis: CE2
+  source: claude
+- mot: faire
+  prefixe: dé-
+  contraire: défaire
+  pieges: in- im- mal-
+  depuis: CE1
+  source: claude
+- mot: coller
+  prefixe: dé-
+  contraire: décoller
+  pieges: in- im- mal-
+  depuis: CE1
+  source: claude
+- mot: plier
+  prefixe: dé-
+  contraire: déplier
+  pieges: in- im- mal-
+  depuis: CE1
+  source: claude
+- mot: boucher
+  prefixe: dé-
+  contraire: déboucher
+  pieges: in- im- mal-
+  depuis: CE1
+  source: claude
+- mot: habiller
+  prefixe: dés-
+  contraire: déshabiller
+  pieges: in- im- dé-
+  depuis: CE1
+  source: claude
+- mot: heureux
+  prefixe: mal-
+  contraire: malheureux
+  pieges: in- im- dé-
+  depuis: CE1
+  source: claude
+- mot: adroit
+  prefixe: mal-
+  contraire: maladroit
+  pieges: in- im- dé-
+  depuis: CE2
+  source: claude
+- mot: honnête
+  prefixe: mal-
+  contraire: malhonnête
+  pieges: in- im- dé-
+  depuis: CE2
+  source: claude
+- mot: propre
+  prefixe: mal-
+  contraire: malpropre
+  pieges: in- dé- il-
+  depuis: CE2
+  source: claude
+- mot: content
+  prefixe: mé-
+  contraire: mécontent
+  pieges: in- im- dé-
+  depuis: CE1
+  source: claude

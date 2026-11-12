@@ -1,0 +1,203 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.4), écrite par Claude avec
+# scripts/vocabulaire/construire_vocabulaire.py, comparée à Lexique 3.83 (scripts/vocabulaire/verifier_vocabulaire.py).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/lettres_muettes --par "…"
+description: Un mot, sa lettre muette finale, le mot de la famille qui la fait entendre ; les lettres pièges ne font aucun
+  vrai mot (Lexique 3.83).
+sources:
+  claude:
+    nom: Listes écrites par Claude ; mots, classes et pièges comparés à Lexique 3.83
+    url: http://www.lexique.org
+    consulte: '2026-11-12'
+    licence: CC BY-SA 4.0 (Lexique 3), pour la comparaison seulement
+proprietes:
+  mot: texte
+  lettre:
+  - t
+  - d
+  - s
+  - x
+  - p
+  - c
+  famille: texte
+  pieges: texte
+  depuis:
+  - CP
+  - CE1
+  - CE2
+cle:
+- mot
+lignes:
+- mot: chat
+  lettre: t
+  famille: chaton
+  pieges: d x p
+  depuis: CP
+  source: claude
+- mot: petit
+  lettre: t
+  famille: petite
+  pieges: d s x
+  depuis: CP
+  source: claude
+- mot: grand
+  lettre: d
+  famille: grande
+  pieges: t s x
+  depuis: CP
+  source: claude
+- mot: gros
+  lettre: s
+  famille: grosse
+  pieges: t d x
+  depuis: CP
+  source: claude
+- mot: blanc
+  lettre: c
+  famille: blanche
+  pieges: t d s
+  depuis: CP
+  source: claude
+- mot: lait
+  lettre: t
+  famille: laitier
+  pieges: x p c
+  depuis: CP
+  source: claude
+- mot: dent
+  lettre: t
+  famille: dentiste
+  pieges: d s x
+  depuis: CP
+  source: claude
+- mot: chaud
+  lettre: d
+  famille: chaude
+  pieges: s p c
+  depuis: CP
+  source: claude
+- mot: gris
+  lettre: s
+  famille: grise
+  pieges: t d x
+  depuis: CP
+  source: claude
+- mot: rond
+  lettre: d
+  famille: ronde
+  pieges: t s x
+  depuis: CP
+  source: claude
+- mot: plat
+  lettre: t
+  famille: plate
+  pieges: d s x
+  depuis: CP
+  source: claude
+- mot: froid
+  lettre: d
+  famille: froide
+  pieges: t s x
+  depuis: CP
+  source: claude
+- mot: sport
+  lettre: t
+  famille: sportif
+  pieges: d s x
+  depuis: CE1
+  source: claude
+- mot: tapis
+  lettre: s
+  famille: tapisser
+  pieges: d x p
+  depuis: CE1
+  source: claude
+- mot: camp
+  lettre: p
+  famille: camper
+  pieges: t d s
+  depuis: CE1
+  source: claude
+- mot: galop
+  lettre: p
+  famille: galoper
+  pieges: t d s
+  depuis: CE1
+  source: claude
+- mot: bord
+  lettre: d
+  famille: border
+  pieges: t s x
+  depuis: CE1
+  source: claude
+- mot: bavard
+  lettre: d
+  famille: bavarder
+  pieges: t s x
+  depuis: CE1
+  source: claude
+- mot: retard
+  lettre: d
+  famille: retarder
+  pieges: t s x
+  depuis: CE1
+  source: claude
+- mot: marchand
+  lettre: d
+  famille: marchande
+  pieges: s x p
+  depuis: CE1
+  source: claude
+- mot: haut
+  lettre: t
+  famille: hauteur
+  pieges: d s x
+  depuis: CE1
+  source: claude
+- mot: fruit
+  lettre: t
+  famille: fruitier
+  pieges: d s x
+  depuis: CE1
+  source: claude
+- mot: toit
+  lettre: t
+  famille: toiture
+  pieges: d s x
+  depuis: CE1
+  source: claude
+- mot: lourd
+  lettre: d
+  famille: lourde
+  pieges: t s x
+  depuis: CP
+  source: claude
+- mot: court
+  lettre: t
+  famille: courte
+  pieges: d x p
+  depuis: CP
+  source: claude
+- mot: fort
+  lettre: t
+  famille: forte
+  pieges: d x p
+  depuis: CP
+  source: claude
+- mot: vert
+  lettre: t
+  famille: verte
+  pieges: d x p
+  depuis: CP
+  source: claude
+- mot: lent
+  lettre: t
+  famille: lente
+  pieges: d s x
+  depuis: CP
+  source: claude
+- mot: bas
+  lettre: s
+  famille: basse
+  pieges: d x p
+  depuis: CP
+  source: claude
