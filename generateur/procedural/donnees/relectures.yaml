@@ -1,8 +1,24 @@
 # Les relectures des tables de référence (generateur/procedural/tables.py) : écrit par
 # « python -m generateur.procedural.tables relire » ; ne pas modifier à la main.
+francais/adjectifs:
+  empreinte: 96388706bd77a231ad1362da0c321baa76543dc6eb9eeae158ab571562aadbf7
+  le: '2026-11-12'
+  par: Lois
 francais/conjugaisons:
   empreinte: d77ff7152a3baa21892329bfa79c2dd4b2e1d5993f57933a7136c98d044af0d2
   le: '2026-11-11'
+  par: Lois
+francais/feminins:
+  empreinte: 5a57e512b3225a661139b3159f56449eb16fb4869ba378bb0bf79a03fdf69fd5
+  le: '2026-11-12'
+  par: Lois
+francais/noms:
+  empreinte: e3759c96e673fb53ef92948d831ed430a58793cfc1af7c21c0802308a0b4e25f
+  le: '2026-11-12'
+  par: Lois
+francais/pluriels_irreguliers:
+  empreinte: eec51829da6f38356aa32bfb4ef71a29815a1a6e9fc3d409f9641e48405ea5e7
+  le: '2026-11-12'
   par: Lois
 francais/terminaisons:
   empreinte: 179b277b037a920948a486ece30232879ce8db68f07136bcbfae689c561e7d9b
