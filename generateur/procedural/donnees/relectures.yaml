@@ -16,6 +16,10 @@ francais/noms:
   empreinte: e3759c96e673fb53ef92948d831ed430a58793cfc1af7c21c0802308a0b4e25f
   le: '2026-11-12'
   par: Lois
+francais/phrases:
+  empreinte: cdc6fa84a78252cc9da0d27e17cc2ed0a06f737bbbd89fa0cb5ea3e944483995
+  le: '2026-11-12'
+  par: Lois
 francais/pluriels_irreguliers:
   empreinte: eec51829da6f38356aa32bfb4ef71a29815a1a6e9fc3d409f9641e48405ea5e7
   le: '2026-11-12'
