@@ -1,0 +1,217 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.4), écrite par Claude avec
+# scripts/vocabulaire/construire_vocabulaire.py, comparée à Lexique 3.83 (scripts/vocabulaire/verifier_vocabulaire.py).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/categories --par "…"
+description: Des mots rangés sous un terme générique (un seul par mot).
+sources:
+  claude:
+    nom: Listes écrites par Claude ; mots, classes et pièges comparés à Lexique 3.83
+    url: http://www.lexique.org
+    consulte: '2026-11-12'
+    licence: CC BY-SA 4.0 (Lexique 3), pour la comparaison seulement
+proprietes:
+  mot: texte
+  categorie: texte
+  pluriel: texte
+cle:
+- mot
+lignes:
+- mot: pomme
+  categorie: fruit
+  pluriel: fruits
+  source: claude
+- mot: poire
+  categorie: fruit
+  pluriel: fruits
+  source: claude
+- mot: banane
+  categorie: fruit
+  pluriel: fruits
+  source: claude
+- mot: cerise
+  categorie: fruit
+  pluriel: fruits
+  source: claude
+- mot: fraise
+  categorie: fruit
+  pluriel: fruits
+  source: claude
+- mot: abricot
+  categorie: fruit
+  pluriel: fruits
+  source: claude
+- mot: raisin
+  categorie: fruit
+  pluriel: fruits
+  source: claude
+- mot: prune
+  categorie: fruit
+  pluriel: fruits
+  source: claude
+- mot: carotte
+  categorie: légume
+  pluriel: légumes
+  source: claude
+- mot: poireau
+  categorie: légume
+  pluriel: légumes
+  source: claude
+- mot: navet
+  categorie: légume
+  pluriel: légumes
+  source: claude
+- mot: radis
+  categorie: légume
+  pluriel: légumes
+  source: claude
+- mot: chou
+  categorie: légume
+  pluriel: légumes
+  source: claude
+- mot: haricot
+  categorie: légume
+  pluriel: légumes
+  source: claude
+- mot: table
+  categorie: meuble
+  pluriel: meubles
+  source: claude
+- mot: chaise
+  categorie: meuble
+  pluriel: meubles
+  source: claude
+- mot: armoire
+  categorie: meuble
+  pluriel: meubles
+  source: claude
+- mot: lit
+  categorie: meuble
+  pluriel: meubles
+  source: claude
+- mot: canapé
+  categorie: meuble
+  pluriel: meubles
+  source: claude
+- mot: étagère
+  categorie: meuble
+  pluriel: meubles
+  source: claude
+- mot: pantalon
+  categorie: vêtement
+  pluriel: vêtements
+  source: claude
+- mot: robe
+  categorie: vêtement
+  pluriel: vêtements
+  source: claude
+- mot: chemise
+  categorie: vêtement
+  pluriel: vêtements
+  source: claude
+- mot: manteau
+  categorie: vêtement
+  pluriel: vêtements
+  source: claude
+- mot: jupe
+  categorie: vêtement
+  pluriel: vêtements
+  source: claude
+- mot: chaussette
+  categorie: vêtement
+  pluriel: vêtements
+  source: claude
+- mot: piano
+  categorie: instrument de musique
+  pluriel: instruments de musique
+  source: claude
+- mot: guitare
+  categorie: instrument de musique
+  pluriel: instruments de musique
+  source: claude
+- mot: violon
+  categorie: instrument de musique
+  pluriel: instruments de musique
+  source: claude
+- mot: flûte
+  categorie: instrument de musique
+  pluriel: instruments de musique
+  source: claude
+- mot: tambour
+  categorie: instrument de musique
+  pluriel: instruments de musique
+  source: claude
+- mot: trompette
+  categorie: instrument de musique
+  pluriel: instruments de musique
+  source: claude
+- mot: moineau
+  categorie: oiseau
+  pluriel: oiseaux
+  source: claude
+- mot: pigeon
+  categorie: oiseau
+  pluriel: oiseaux
+  source: claude
+- mot: merle
+  categorie: oiseau
+  pluriel: oiseaux
+  source: claude
+- mot: aigle
+  categorie: oiseau
+  pluriel: oiseaux
+  source: claude
+- mot: hibou
+  categorie: oiseau
+  pluriel: oiseaux
+  source: claude
+- mot: corbeau
+  categorie: oiseau
+  pluriel: oiseaux
+  source: claude
+- mot: abeille
+  categorie: insecte
+  pluriel: insectes
+  source: claude
+- mot: fourmi
+  categorie: insecte
+  pluriel: insectes
+  source: claude
+- mot: mouche
+  categorie: insecte
+  pluriel: insectes
+  source: claude
+- mot: papillon
+  categorie: insecte
+  pluriel: insectes
+  source: claude
+- mot: coccinelle
+  categorie: insecte
+  pluriel: insectes
+  source: claude
+- mot: moustique
+  categorie: insecte
+  pluriel: insectes
+  source: claude
+- mot: marteau
+  categorie: outil
+  pluriel: outils
+  source: claude
+- mot: scie
+  categorie: outil
+  pluriel: outils
+  source: claude
+- mot: tournevis
+  categorie: outil
+  pluriel: outils
+  source: claude
+- mot: pince
+  categorie: outil
+  pluriel: outils
+  source: claude
+- mot: râteau
+  categorie: outil
+  pluriel: outils
+  source: claude
+- mot: pelle
+  categorie: outil
+  pluriel: outils
+  source: claude
