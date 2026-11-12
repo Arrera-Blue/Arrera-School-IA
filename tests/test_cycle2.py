@@ -257,3 +257,26 @@ def test_l_attendu_du_cycle_2_est_propose(phrase, attendu):
     analyse_ = analyse.analyser(phrase)
     assert analyse_.requete["attendu"] == attendu and analyse_.sources["attendu"] == "devine"
     assert programmes.attendu(attendu).qcm
+
+
+# --- lot 1 : chaque objectif du français donne assez de questions différentes ---------------------------
+
+# l'exception connue, assumée (12/11) : la ponctuation de fin de phrase au CE2 (les phrases au signe imposé par un mot
+# sont 11 ; en ajouter demanderait de relire de nouveau la table des phrases)
+AU_PLUS = {("phrase", "CE2", "francais.ce2.phrase-simple.05"): 10}
+
+
+def test_chaque_objectif_du_francais_donne_15_questions_differentes():
+    """Un enseignant qui vise un seul objectif : 15 questions (le maximum du QCM), toutes différentes ; sinon le tirage
+    s'arrête (« le générateur ne trouve plus de question nouvelle »)."""
+    import random
+
+    from generateur import procedural
+    for module in procedural.matieres()["francais"].generateurs():
+        for niveau in module.NIVEAUX:
+            attendus = sorted({a for g in module.GENRES for a in procedural.attendus_du_genre(module, g.__name__, niveau)})
+            for attendu in attendus + [None]:
+                genres = procedural.genres_pour(module, attendu, niveau) if attendu else None
+                nombre = AU_PLUS.get((module.NOM, niveau, attendu), 15)
+                squelettes = procedural.tirer(module.NOM, nombre, random.Random(1), genres, niveau)
+                assert len({s.enonce for s in squelettes}) == nombre, (module.NOM, niveau, attendu)

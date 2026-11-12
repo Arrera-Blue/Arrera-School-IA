@@ -1,0 +1,141 @@
+# Table de référence (générateur procédural du français, lot 1, étape 1.4), écrite par Claude avec
+# scripts/vocabulaire/construire_vocabulaire.py, comparée à Lexique 3.83 (scripts/vocabulaire/verifier_vocabulaire.py).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/familles --par "…"
+description: Un mot, un mot de sa famille, et des pièges qui lui ressemblent sans en être (écrits à la main).
+sources:
+  claude:
+    nom: Listes écrites par Claude ; mots, classes et pièges comparés à Lexique 3.83
+    url: http://www.lexique.org
+    consulte: '2026-11-12'
+    licence: CC BY-SA 4.0 (Lexique 3), pour la comparaison seulement
+proprietes:
+  mot: texte
+  parent: texte
+  pieges: texte
+  depuis:
+  - CP
+  - CE1
+  - CE2
+cle:
+- mot
+lignes:
+- mot: dent
+  parent: dentiste
+  pieges: danse dinde dans
+  depuis: CP
+  source: claude
+- mot: fleur
+  parent: fleuriste
+  pieges: flamme flûte fleuve
+  depuis: CP
+  source: claude
+- mot: lait
+  parent: laitier
+  pieges: laine lettre laid
+  depuis: CP
+  source: claude
+- mot: jardin
+  parent: jardinier
+  pieges: jambon jaune garçon
+  depuis: CP
+  source: claude
+- mot: chant
+  parent: chanteur
+  pieges: champ chance chameau
+  depuis: CP
+  source: claude
+- mot: glace
+  parent: glacier
+  pieges: glisser grâce place
+  depuis: CP
+  source: claude
+- mot: neige
+  parent: neiger
+  pieges: nez nage nièce
+  depuis: CP
+  source: claude
+- mot: ami
+  parent: amitié
+  pieges: amande ampoule ambulance
+  depuis: CP
+  source: claude
+- mot: école
+  parent: écolier
+  pieges: échelle écureuil éclair
+  depuis: CP
+  source: claude
+- mot: terre
+  parent: terrier
+  pieges: tarte tête terrible
+  depuis: CE1
+  source: claude
+- mot: mer
+  parent: marin
+  pieges: mère maire merci
+  depuis: CE1
+  source: claude
+- mot: boulanger
+  parent: boulangerie
+  pieges: boule boulon bouleau
+  depuis: CE1
+  source: claude
+- mot: lent
+  parent: lentement
+  pieges: lentille lampe lion
+  depuis: CE1
+  source: claude
+- mot: froid
+  parent: refroidir
+  pieges: fraise frère froisser
+  depuis: CE1
+  source: claude
+- mot: cheval
+  parent: chevalier
+  pieges: cheveu chèvre chevreuil
+  depuis: CE1
+  source: claude
+- mot: long
+  parent: longueur
+  pieges: loup lourd louche
+  depuis: CE1
+  source: claude
+- mot: sel
+  parent: salière
+  pieges: selle sale seul
+  depuis: CE2
+  source: claude
+- mot: livre
+  parent: livret
+  pieges: lièvre ligne lime
+  depuis: CE2
+  source: claude
+- mot: chat
+  parent: chaton
+  pieges: château chapeau chance
+  depuis: CP
+  source: claude
+- mot: nuage
+  parent: nuageux
+  pieges: nager neige nouveau
+  depuis: CP
+  source: claude
+- mot: soleil
+  parent: ensoleillé
+  pieges: sommeil solide sorcier
+  depuis: CP
+  source: claude
+- mot: jour
+  parent: journée
+  pieges: jouer joue jouet
+  depuis: CP
+  source: claude
+- mot: porte
+  parent: portail
+  pieges: poste poche perle
+  depuis: CP
+  source: claude
+- mot: pomme
+  parent: pommier
+  pieges: pompier paume poème
+  depuis: CP
+  source: claude

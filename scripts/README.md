@@ -52,6 +52,16 @@ Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.2.
 
 Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.3.
 
+## `vocabulaire/` : les tables du vocabulaire (`generateur/procedural/donnees/francais/`)
+
+| Script | Rôle | Demande |
+|---|---|---|
+| `construire_vocabulaire.py` | `contraires`, `prefixes`, `familles`, `lettres_muettes`, `categories`, `niveaux_de_langue` ; **la source de ces tables** ; Lexique 3.83 y choisit les pièges qui ne sont pas de vrais mots | `pyyaml`, `Lexique383.tsv` (à part) |
+| `verifier_vocabulaire.py` | le second contrôle : mots, classes, pièges, un seul rangement par mot, comparés à Lexique 3.83 | `Lexique383.tsv` (à part) |
+| `page_relecture_vocabulaire.py` | la page de relecture des six tables, pour l'enseignant | `pyyaml` |
+
+Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.4.
+
 ## `essais/` : des essais ponctuels
 
 | Script | Rôle |
