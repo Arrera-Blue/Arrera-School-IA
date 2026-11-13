@@ -339,7 +339,8 @@ def _verifier(corps: Demande) -> dict:
         if not programmes.existe(corps.attendu):
             raise HTTPException(422, f"attendu du programme inconnu : {corps.attendu}")
         de_l_attendu, _, reste = corps.attendu.partition(".")
-        classe = reste.split(".")[0]
+        # l'identifiant écrit la classe en minuscules (« francais.ce1… ») : on la compare telle que la demande l'écrit
+        classe = next((n for n in programmes.NIVEAUX if programmes.segment(n) == reste.split(".")[0]), reste)
         if (matiere and matiere != de_l_attendu) or (niveau and niveau != classe):
             raise HTTPException(422, f"l'attendu choisi est du programme de {de_l_attendu}, {classe} : il ne "
                                      f"correspond pas à la matière et à la classe demandées")
