@@ -6,7 +6,7 @@ francais/adjectifs:
   par: Lois
 francais/categories:
   empreinte: ba92031e5d3b3e24a54a7acbd9b735b112ab105fe64f35f679bff3d01b089a5b
-  le: '2026-11-12'
+  le: '2026-11-13'
   par: Lois
 francais/conjugaisons:
   empreinte: d77ff7152a3baa21892329bfa79c2dd4b2e1d5993f57933a7136c98d044af0d2
@@ -14,11 +14,11 @@ francais/conjugaisons:
   par: Lois
 francais/contraires:
   empreinte: 7eba34b79b9b9e6ce6eaab292fffc2cb8b3a993745b9909688dab8321eefc185
-  le: '2026-11-12'
+  le: '2026-11-13'
   par: Lois
 francais/familles:
   empreinte: dc43907574a35599d500262bd8027131efbe051558d967c60b19bb1dd9781127
-  le: '2026-11-12'
+  le: '2026-11-13'
   par: Lois
 francais/feminins:
   empreinte: 5a57e512b3225a661139b3159f56449eb16fb4869ba378bb0bf79a03fdf69fd5
@@ -26,11 +26,11 @@ francais/feminins:
   par: Lois
 francais/lettres_muettes:
   empreinte: 69e47ec5794c00ea566929662310c0dfd1bfc51426893a55da80b4b7bab70312
-  le: '2026-11-12'
+  le: '2026-11-13'
   par: Lois
 francais/niveaux_de_langue:
   empreinte: 30f32d3fed0c2fda0825ae8523313738e6b2ec983adc1697946e6d6351508951
-  le: '2026-11-12'
+  le: '2026-11-13'
   par: Lois
 francais/noms:
   empreinte: e3759c96e673fb53ef92948d831ed430a58793cfc1af7c21c0802308a0b4e25f
@@ -46,7 +46,7 @@ francais/pluriels_irreguliers:
   par: Lois
 francais/prefixes:
   empreinte: 3e2496308944a742329ec2a47e82117a402b7b6df5d6f8015994b01cd9cb17c8
-  le: '2026-11-12'
+  le: '2026-11-13'
   par: Lois
 francais/terminaisons:
   empreinte: 179b277b037a920948a486ece30232879ce8db68f07136bcbfae689c561e7d9b
