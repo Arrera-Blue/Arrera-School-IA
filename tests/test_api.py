@@ -456,6 +456,19 @@ def test_generer_un_exercice_vise_puis_filtrer_la_banque(client):
     assert trouves("maths.6e.fractions.08") == [] == trouves("maths.5e.nombres-relatifs")
 
 
+def test_un_attendu_du_cp_au_ce2_est_accepte(client):
+    """L'identifiant écrit « ce1 », la demande « CE1 » : la génération était refusée (« ne correspond pas à la classe
+    demandée ») pour tout attendu proposé par l'analyse au cycle 2 (critère de fin du lot 1, 13/11)."""
+    for corps in ({"niveau": "CE1", "matiere": "francais"}, {}):
+        tache = client.post("/api/generations", json={"type": "qcm", "attendu": "francais.ce1.orthographe-grammaticale.04",
+                                                      "fournisseur": "maquette", **corps})
+        assert tache.status_code == 202, tache.text
+        ident = client.file.attendre(tache.json()["id"], 10)["exercice"]
+        assert client.get(f"/api/exercices/{ident}").json()["exercice"]["niveau"] == "CE1"
+    refus = client.post("/api/generations", json={"type": "qcm", "niveau": "CE2", "attendu": "francais.ce1.orthographe-grammaticale"})
+    assert refus.status_code == 422 and "ne correspond pas" in refus.json()["detail"]
+
+
 # --- classes et élèves (E3) ----------------------------------------------------------------------------
 
 LISTE = "DUPONT;Marie\nLE GOFF Anne-Sophie\nMARTIN;Alice;12/03/2014"
