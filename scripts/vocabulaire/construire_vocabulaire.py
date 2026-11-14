@@ -11,7 +11,8 @@ par Claude :
 - `lettres_muettes` : un mot, sa lettre muette finale, le mot de la famille qui la fait entendre (chat, t, chaton), et
   **les lettres pièges** : seulement celles qui ne font aucun vrai mot (« chas » existe : s n'est pas proposé) ;
 - `categories` : des mots rangés sous un terme générique (pomme : un fruit), un seul pour chaque mot ;
-- `niveaux_de_langue` : des trios familier, courant, soutenu (bagnole, voiture, automobile).
+- `niveaux_de_langue` : des trios familier, courant, soutenu (bagnole, voiture, automobile) ; `aussi` : un autre mot qui
+  a aussi ce sens, jamais proposé comme piège (« ouvrage » veut aussi dire travail : critère de fin du lot 1, 13/11).
 
 Usage : python -I construire_vocabulaire.py <Lexique383.tsv> <generateur/procedural/donnees>
 (Lexique 3.83 sert à choisir les pièges qui ne sont pas de vrais mots ; puis verifier_vocabulaire.py.)"""
@@ -104,6 +105,9 @@ NIVEAUX_DE_LANGUE = [  # (familier, courant, soutenu)
     ("baraque", "maison", "demeure"), ("godasse", "chaussure", "soulier"), ("trouille", "peur", "effroi"),
     ("moche", "laid", "disgracieux"), ("bouffer", "manger", "se restaurer"),
 ]
+# d'autres mots de la table qui ont aussi ce sens : jamais proposés comme pièges (« Quel mot soutenu veut dire
+# « travail » ? » : « ouvrage » serait juste aussi, « se mettre à l'ouvrage ») ; « - » : aucun
+AUSSI = {"travail": "ouvrage"}
 
 SOURCE = {"claude": {"nom": "Listes écrites par Claude ; mots, classes et pièges comparés à Lexique 3.83",
                      "url": "http://www.lexique.org", "consulte": "2026-11-12",
@@ -130,7 +134,8 @@ def tables(mots_de_lexique: set[str]) -> dict[str, dict]:
                         "depuis": depuis, "source": "claude"})
     categories = [{"mot": m, "categorie": s, "pluriel": p, "source": "claude"}
                   for (s, p), mots in CATEGORIES.items() for m in mots]
-    niveaux = [{"familier": f, "courant": c, "soutenu": s, "source": "claude"} for f, c, s in NIVEAUX_DE_LANGUE]
+    niveaux = [{"familier": f, "courant": c, "soutenu": s, "aussi": AUSSI.get(c, "-"), "source": "claude"}
+               for f, c, s in NIVEAUX_DE_LANGUE]
 
     def table(description, proprietes, cle, lignes):
         return {"description": description, "sources": SOURCE, "proprietes": proprietes, "cle": cle, "lignes": lignes}
@@ -152,8 +157,10 @@ def tables(mots_de_lexique: set[str]) -> dict[str, dict]:
                                   "depuis": CLASSES}, ["mot"], muettes),
         "categories": table("Des mots rangés sous un terme générique (un seul par mot).",
                             {"mot": "texte", "categorie": "texte", "pluriel": "texte"}, ["mot"], categories),
-        "niveaux_de_langue": table("Des trios familier, courant, soutenu.",
-                                   {"familier": "texte", "courant": "texte", "soutenu": "texte"}, ["courant"], niveaux),
+        "niveaux_de_langue": table("Des trios familier, courant, soutenu ; « aussi » : un autre mot de la table qui a "
+                                   "aussi ce sens, jamais proposé comme piège (« - » : aucun).",
+                                   {"familier": "texte", "courant": "texte", "soutenu": "texte", "aussi": "texte"},
+                                   ["courant"], niveaux),
     }
 
 

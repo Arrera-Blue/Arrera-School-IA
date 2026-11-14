@@ -110,7 +110,11 @@ MOTS_DES_MATIERES = {
                 r"propositions? (?:relative|subordonnee|independante)|adjectif|adverbe|pronom|determinant|"
                 r"participe|indicatif|dictee|litterature|fable|moliere|conte|lecture|ponctuation|"
                 r"synonyme|antonyme|champ lexical|discours|narrat|theatre|"
-                r"masculin|feminin|singulier|pluriel|ordre alphabetique|syllabe|lettres? muettes?",
+                r"masculin|feminin|singulier|pluriel|ordre alphabetique|syllabe|lettres? muettes?|"
+                # le cycle 2 (critère de fin du lot 1, 13/11 : la matière n'était pas trouvée)
+                r"types? de phrases?|formes? (?:negative|affirmative|exclamative)|"
+                r"phrases? (?:negative|affirmative|exclamative|interrogative|declarative|imperative)|"
+                r"contraires?\b|familles? de mots|niveaux? de langue|prefixe|mots? generiques?",
     "histoire-geo": r"histoire|hist-geo|geographi|revolution|guerres?\b|moyen age|antiquite|rois?\b|empire|"
                     r"napoleon|louis xiv|renaissance|republique|colonis|decolonis|mondialisation|continent|"
                     r"capitale|urbanisation|chretiente|croisade|egypte|grece|grecs?\b|rome\b|romains?\b|"

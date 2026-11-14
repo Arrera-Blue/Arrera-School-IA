@@ -25,8 +25,8 @@ def relues(tmp_path, monkeypatch):
     copie = tmp_path / "donnees"
     shutil.copytree(tables.DOSSIER, copie)
     monkeypatch.setattr(tables, "DOSSIER", copie)
-    for nom in c.TABLES:
-        tables.relire("francais", nom, "Essai")
+    for matiere, nom in tables.lister():  # toutes : l'aiguillage ne dépend pas de l'état des relectures du dépôt
+        tables.relire(matiere, nom, "Essai")
     return copie
 
 
@@ -125,7 +125,7 @@ def test_au_cp_seulement_conjuguer_etre_et_avoir():
     ({"notion": "la conjugaison et les homophones", "matiere": "francais", "niveau": "CE2"}, None),  # autre notion
     ({"notion": "le passé simple", "matiere": "francais", "niveau": "CE2"}, None),
     ({"notion": "la conjugaison", "matiere": "francais", "niveau": "6e"}, None),                    # pas sa classe
-    ({"attendu": "francais.cp.relations-mots.03", "matiere": "francais", "niveau": "CP"}, None),   # pas son objectif
+    ({"attendu": "francais.cp.relations-mots.03", "matiere": "francais", "niveau": "CP"}, "vocabulaire"),  # pas le sien
 ])
 def test_l_aiguillage(relues, demande, generateur):
     assert procedural.aiguiller(demande) == generateur

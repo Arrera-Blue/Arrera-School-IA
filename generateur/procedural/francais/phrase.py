@@ -10,8 +10,8 @@ programme de la classe (« ne », « où ») ni d'un mot qui revient deux fois d
 
 import random
 
-from generateur.procedural import Retirer, Squelette, distracteurs, tables
-from generateur.procedural.francais import CYCLE_2, avant_ou_egale
+from generateur.procedural import Precision, Retirer, Squelette, distracteurs, tables
+from generateur.procedural.francais import CYCLE_2, avant_ou_egale, une
 
 NOM, TITRE, NOTION, NIVEAU = "phrase", "La phrase", "phrase", "CE1"
 MATIERE, NIVEAUX = "francais", CYCLE_2  # NIVEAU : la classe par défaut ; NIVEAUX : celles où il s'applique
@@ -21,6 +21,19 @@ MOTS_CLES = ("type de phrase", "types de phrases", "phrase declarative", "phrase
              "classes de mots", "classe grammaticale", "classes grammaticales", "ponctuation", "point d'interrogation",
              "point d'exclamation")
 TABLES = ("phrases",)
+# les notions précises, de la plus précise à la plus générale (« le point d'exclamation » est la ponctuation, pas la
+# phrase exclamative) ; la négation se reconnaît en cherchant la phrase négative, ou la seule qui ne l'est pas
+PRECISIONS = (
+    Precision(r"ponctuation|point d'interrogation|point d'exclamation|signes? de fin", "la ponctuation", ("ponctuation",)),
+    Precision(r"formes? negatives?|phrases? negatives?|\bnegation", "la forme négative", ("forme",),
+              (("forme", ("negative", "affirmative")),)),
+    Precision(r"formes? affirmatives?|phrases? affirmatives?", "la forme affirmative", ("forme",),
+              (("forme", ("affirmative", "negative")),)),
+    Precision(r"exclamati", "la phrase exclamative", ("forme",), (("forme", ("exclamative",)),)),
+    Precision(r"types? de phrases?|declarative|interrogative|imperative", "les types de phrases", ("type_de_phrase",)),
+    Precision(r"\bnature|classes? (?:de|des) mots|classes? grammaticales?", "la nature des mots", ("nature",)),
+    Precision(r"formes? de (?:la )?phrases?", "les formes de phrases", ("forme",)),
+)
 
 # les classes de mots du programme, classe par classe (le nom propre au CE1, l'adverbe au CE2)
 LIBELLES = {
@@ -49,16 +62,23 @@ POURQUOI_TYPE = {
 SIGNES = {".": "le point (.)", "?": "le point d'interrogation (?)", "!": "le point d'exclamation (!)"}
 # plusieurs formulations : deux questions d'un exercice n'ont jamais le même énoncé (N3 le refuserait)
 FORMULES_FORME = {
-    # six chacune : un objectif seul (« les formes de phrases ») doit pouvoir donner 15 questions différentes
+    # neuf chacune : une notion seule (« la forme négative » : la négative et l'affirmative) doit pouvoir donner 15
+    # questions différentes (critère de fin du lot 1 : six n'en donnaient que 12)
     "negative": ("Quelle phrase est à la forme négative ?", "Laquelle de ces phrases est négative ?",
                  "Trouve la phrase à la forme négative.", "Quelle phrase contient une négation ?",
-                 "Une seule phrase est négative : laquelle ?", "Quelle phrase est écrite à la forme négative ?"),
+                 "Une seule phrase est négative : laquelle ?", "Quelle phrase est écrite à la forme négative ?",
+                 "Parmi ces phrases, laquelle est négative ?", "Choisis la phrase à la forme négative.",
+                 "Repère la phrase négative."),
     "affirmative": ("Quelle phrase est à la forme affirmative ?", "Laquelle de ces phrases est affirmative ?",
                     "Trouve la phrase à la forme affirmative.", "Quelle phrase n'est pas négative ?",
-                    "Une seule phrase est affirmative : laquelle ?", "Quelle phrase est écrite à la forme affirmative ?"),
+                    "Une seule phrase est affirmative : laquelle ?", "Quelle phrase est écrite à la forme affirmative ?",
+                    "Parmi ces phrases, laquelle est affirmative ?", "Choisis la phrase à la forme affirmative.",
+                    "Repère la phrase affirmative."),
     "exclamative": ("Quelle phrase est exclamative ?", "Laquelle de ces phrases est exclamative ?",
                     "Trouve la phrase exclamative.", "Quelle phrase exprime une émotion ?",
-                    "Une seule phrase est exclamative : laquelle ?", "Quelle phrase se dit avec une émotion ?"),
+                    "Une seule phrase est exclamative : laquelle ?", "Quelle phrase se dit avec une émotion ?",
+                    "Parmi ces phrases, laquelle est exclamative ?", "Choisis la phrase exclamative.",
+                    "Repère la phrase exclamative."),
 }
 
 
@@ -79,8 +99,9 @@ def sans_signe(phrase: dict) -> str:
 
 def type_de_phrase(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     """« Quel type de phrase : « Range ta chambre. » ? » → impérative ; les mauvaises réponses : les deux autres types.
-    Pas de phrase exclamative (« Quel beau jardin ! » : une forme, pour le programme)."""
-    p = rng.choice(phrases(niveau, exclamative="non"))
+    Pas de phrase exclamative (« Quel beau jardin ! » : une forme, pour le programme). Le type est tiré d'abord, puis une
+    phrase de ce type : sinon la déclarative, la plus fréquente de la table, était la réponse 5 fois sur 5."""
+    p = une(rng, phrases(niveau, exclamative="non", type=rng.choice(sorted(TYPES))))
     return Squelette(
         genre=f"{NOM}.type_de_phrase",
         enonce=f"Quel type de phrase : « {p['phrase']} » ?",
@@ -91,14 +112,17 @@ def type_de_phrase(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     )
 
 
-def forme(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
+def forme(rng: random.Random, niveau: str = NIVEAU, criteres: dict | None = None) -> Squelette:
     """« Quelle phrase est à la forme négative ? » → Je ne mange pas. ; trois phrases affirmatives (ou l'inverse) ; ou
-    « Quelle phrase est exclamative ? »."""
-    cherche = rng.choice(tuple(FORMULES_FORME))
+    « Quelle phrase est exclamative ? ». Au CP, pour la négation, seulement des phrases déclaratives sans exclamation :
+    la négation seule les distingue (« Tu aimes les bonbons ? », affirmative, troublait). `criteres` : {"forme":
+    (…)}, les formes cherchées (une notion précise : « la phrase négative »)."""
+    cherche = une(rng, [c for c in FORMULES_FORME if c in (criteres or {}).get("forme", (c,))])
     oui = {"negative": {"negative": "oui"}, "affirmative": {"negative": "non"}, "exclamative": {"exclamative": "oui"}}
     non = {"negative": {"negative": "non"}, "affirmative": {"negative": "oui"}, "exclamative": {"exclamative": "non"}}
-    bonne = rng.choice(phrases(niveau, **oui[cherche]))
-    fausses = rng.sample(phrases(niveau, **non[cherche]), 3)
+    simples = {"type": "declarative", "exclamative": "non"} if niveau == "CP" and cherche != "exclamative" else {}
+    bonne = rng.choice(phrases(niveau, **oui[cherche], **simples))
+    fausses = rng.sample(phrases(niveau, **non[cherche], **simples), 3)
     enonce = rng.choice(FORMULES_FORME[cherche])
     if cherche == "negative":
         negation = [m for m, n in mots(bonne) if n == "negation"]
@@ -122,15 +146,16 @@ def forme(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
 
 def nature(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     """« Dans « Le petit chat dort. », le mot « petit » est : » → un adjectif ; les mauvaises réponses : d'autres classes
-    de mots du programme de la classe. (« quelle est la nature de… » dépassait 12 mots avec une phrase de 6.)"""
-    p = rng.choice(phrases(niveau))
-    liste = mots(p)
+    de mots du programme de la classe. (« quelle est la nature de… » dépassait 12 mots avec une phrase de 6.) La classe
+    de mots est tirée d'abord, puis un mot de cette classe : sinon le verbe, présent dans chaque phrase, revenait 7
+    fois sur 10."""
     libelles = LIBELLES[niveau]
-    candidats = [(m, n) for m, n in liste if n in libelles
-                 and sum(x.lower() == m.lower() for x, _ in liste) == 1]
+    sa_nature = rng.choice(sorted(libelles))
+    candidats = [(p, m) for p in phrases(niveau) for m, n in mots(p) if n == sa_nature
+                 and sum(x.lower() == m.lower() for x, _ in mots(p)) == 1]
     if not candidats:
-        raise Retirer("aucun mot de cette phrase n'est au programme de la classe")
-    mot, sa_nature = rng.choice(candidats)
+        raise Retirer("aucun mot de cette classe dans les phrases de la classe")
+    p, mot = rng.choice(candidats)
     autres = [v for k, v in libelles.items() if k != sa_nature]
     rng.shuffle(autres)
     return Squelette(

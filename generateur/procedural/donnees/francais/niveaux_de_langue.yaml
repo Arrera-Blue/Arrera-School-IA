@@ -1,7 +1,8 @@
 # Table de référence (générateur procédural du français, lot 1, étape 1.4), écrite par Claude avec
 # scripts/vocabulaire/construire_vocabulaire.py, comparée à Lexique 3.83 (scripts/vocabulaire/verifier_vocabulaire.py).
 # À relire par l'utilisateur : python -m generateur.procedural.tables relire francais/niveaux_de_langue --par "…"
-description: Des trios familier, courant, soutenu.
+description: 'Des trios familier, courant, soutenu ; « aussi » : un autre mot de la table qui a aussi ce sens, jamais proposé
+  comme piège (« - » : aucun).'
 sources:
   claude:
     nom: Listes écrites par Claude ; mots, classes et pièges comparés à Lexique 3.83
@@ -12,38 +13,47 @@ proprietes:
   familier: texte
   courant: texte
   soutenu: texte
+  aussi: texte
 cle:
 - courant
 lignes:
 - familier: bagnole
   courant: voiture
   soutenu: automobile
+  aussi: '-'
   source: claude
 - familier: bouquin
   courant: livre
   soutenu: ouvrage
+  aussi: '-'
   source: claude
 - familier: boulot
   courant: travail
   soutenu: labeur
+  aussi: ouvrage
   source: claude
 - familier: baraque
   courant: maison
   soutenu: demeure
+  aussi: '-'
   source: claude
 - familier: godasse
   courant: chaussure
   soutenu: soulier
+  aussi: '-'
   source: claude
 - familier: trouille
   courant: peur
   soutenu: effroi
+  aussi: '-'
   source: claude
 - familier: moche
   courant: laid
   soutenu: disgracieux
+  aussi: '-'
   source: claude
 - familier: bouffer
   courant: manger
   soutenu: se restaurer
+  aussi: '-'
   source: claude
