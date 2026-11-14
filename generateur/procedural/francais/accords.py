@@ -10,7 +10,7 @@ mauvaises réponses sont d'autres formes du même mot, prises dans les tables, o
 
 import random
 
-from generateur.procedural import Retirer, Squelette, distracteurs, tables
+from generateur.procedural import Precision, Retirer, Squelette, distracteurs, tables
 from generateur.procedural.francais import CYCLE_2, avant_ou_egale
 
 NOM, TITRE, NOTION, NIVEAU = "accords", "Les accords", "accords", "CE1"
@@ -18,6 +18,22 @@ MATIERE, NIVEAUX = "francais", CYCLE_2  # NIVEAU : la classe par défaut ; NIVEA
 MOTS_CLES = ("accord", "accorder", "masculin", "feminin", "singulier", "pluriel", "chaine d'accords",
              "groupe nominal", "determinant", "sujet et le verbe", "sujet-verbe", "sujet et verbe")
 TABLES = ("noms", "adjectifs", "pluriels_irreguliers", "feminins", "conjugaisons", "terminaisons")
+# les notions précises, de la plus précise à la plus générale (« les pluriels en -aux » n'est pas « le pluriel »)
+PRECISIONS = (
+    Precision(r"(?:pluriels?|feminins?) et (?:les )?(?:pluriels?|feminins?) (?:irreguliers?|particuliers?|difficiles?)",
+              "les pluriels et les féminins particuliers", ("pluriel_irregulier", "feminin_irregulier")),
+    Precision(r"pluriels? (?:irreguliers?|particuliers?|en -?(?:x|aux|al|eau|eu|ou)\b)|\b(?:noms? )?en -(?:al|aux)\b",
+              "les pluriels particuliers", ("pluriel_irregulier",)),
+    Precision(r"feminins? (?:irreguliers?|particuliers?|difficiles?)", "les féminins particuliers", ("feminin_irregulier",)),
+    Precision(r"sujet[ -]et (?:le |du )?verbe|sujet-verbe|accords? du verbe|accorder le verbe|verbe avec (?:son|le) sujet",
+              "l'accord du sujet et du verbe", ("sujet_verbe",)),
+    Precision(r"groupe nominal|chaine d'accords?|\bgn\b|accords? de l'adjectif|accorder l'adjectif",
+              "l'accord dans le groupe nominal", ("determinant", "accord_gn", "pluriel_irregulier", "feminin_irregulier")),
+    Precision(r"\bmasculin|\bfeminin", "le masculin et le féminin", ("masculin_feminin", "accord_gn", "feminin_irregulier")),
+    Precision(r"\bsinguliers?\b|\bpluriels?\b", "le singulier et le pluriel",
+              ("singulier_pluriel", "determinant", "accord_gn", "pluriel_irregulier")),
+    Precision(r"\bdeterminants?\b", "le déterminant", ("determinant",)),
+)
 
 GENRE = {"m": "masculin", "f": "féminin"}
 FORME = {("m", "s"): "ms", ("f", "s"): "fs", ("m", "p"): "mp", ("f", "p"): "fp"}

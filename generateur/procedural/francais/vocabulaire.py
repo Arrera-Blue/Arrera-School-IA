@@ -11,7 +11,7 @@ l'enseignant, dont les pièges ont été choisis pour n'être jamais justes (Lex
 import random
 import unicodedata
 
-from generateur.procedural import Retirer, Squelette, distracteurs, tables
+from generateur.procedural import Precision, Retirer, Squelette, distracteurs, tables
 from generateur.procedural.francais import CYCLE_2, avant_ou_egale
 
 NOM, TITRE, NOTION, NIVEAU = "vocabulaire", "Le vocabulaire", "vocabulaire", "CE1"
@@ -21,6 +21,18 @@ MOTS_CLES = ("vocabulaire", "ordre alphabetique", "dictionnaire", "contraire", "
              "langage familier", "langage soutenu", "familier", "soutenu", "lettre muette", "lettres muettes",
              "prefixe")
 TABLES = ("noms", "contraires", "prefixes", "familles", "lettres_muettes", "categories", "niveaux_de_langue")
+# les notions précises, de la plus précise à la plus générale (« les contraires avec un préfixe » : les préfixes seuls)
+PRECISIONS = (
+    Precision(r"ordre alphabetique|dictionnaire", "l'ordre alphabétique", ("ordre_alphabetique",)),
+    Precision(r"lettres? muettes?|lettres? finales?", "les lettres muettes", ("lettre_muette",)),
+    Precision(r"contraires? (?:avec|par|grace a) (?:un |des |les )?prefixes?|prefixes?", "les préfixes",
+              ("contraire_prefixe",)),
+    Precision(r"contraires?|antonymes?", "les contraires", ("contraire", "contraire_prefixe")),
+    Precision(r"familles? de mots|meme famille", "les familles de mots", ("famille",)),
+    Precision(r"generiques?|categories?", "les mots génériques", ("generique",)),
+    Precision(r"niveaux? de langue|registres? de langue|langage (?:familier|courant|soutenu)|\bfamilier|\bsoutenu",
+              "les niveaux de langue", ("niveau_de_langue",)),
+)
 
 REGISTRES = ("familier", "courant", "soutenu")
 
@@ -93,6 +105,7 @@ def contraire(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         distracteurs=distracteurs(bon, autres, min(3, len(autres))),
         explication=f"« {mot} » et « {bon} » ont des sens opposés : ce sont des contraires.",
         cle=("contraire", mot),
+        sujet=("contraire", l["mot"]),  # « allumer » puis « éteindre » : la même paire
     )
 
 
@@ -162,7 +175,8 @@ def niveau_de_langue(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     """« Quel mot familier veut dire « voiture » ? » → bagnole ; « En classe, on ne dit pas « bagnole » mais : » →
     voiture ; « Quel mot soutenu veut dire « voiture » ? » → automobile (pas au CP : deux niveaux seulement). Une seule
     réponse a le bon sens **et** le bon niveau : les pièges ont le bon sens et un autre niveau (automobile), ou le bon
-    niveau et un autre sens (bouquin)."""
+    niveau et un autre sens (bouquin). Un mot qui a aussi ce sens (la colonne « aussi » : « ouvrage » veut aussi dire
+    travail) n'est jamais un piège."""
     trios = _table("niveaux_de_langue").lignes
     trio = rng.choice(trios)
     autres = [t for t in trios if t is not trio]
@@ -175,6 +189,7 @@ def niveau_de_langue(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         enonce = f"Quel mot {cherche} veut dire « {trio['courant']} » ?"
         meme_sens = [] if niveau == "CP" else [trio[r] for r in REGISTRES if r not in (cherche, "courant")]
         pieges = meme_sens + [t[cherche] for t in autres]
+    pieges = [p for p in pieges if p not in trio["aussi"].split()]
     bon = trio[cherche]
     niveaux = ("familier", "courant") if niveau == "CP" else REGISTRES
     return Squelette(
@@ -182,9 +197,12 @@ def niveau_de_langue(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         enonce=enonce,
         reponse=bon,
         distracteurs=distracteurs(bon, pieges),
-        explication=(f"« {bon} » est le mot {cherche} qui veut dire « {trio['courant']} ». Pour dire la même chose : "
-                     + ", ".join(f"« {trio[r]} » ({r})" for r in niveaux) + "."),
+        # « En classe… » : « laid est le mot courant qui veut dire laid » tournait en rond (critère de fin, 13/11)
+        explication=((f"« {trio['familier']} » est un mot familier ; en classe, on dit « {bon} », le mot courant."
+                      if cherche == "courant" else f"« {bon} » est le mot {cherche} qui veut dire « {trio['courant']} ».")
+                     + " Pour dire la même chose : " + ", ".join(f"« {trio[r]} » ({r})" for r in niveaux) + "."),
         cle=("niveau_de_langue", enonce),
+        sujet=("niveau_de_langue", trio["courant"]),  # « boulot » puis « labeur » : le même sens
     )
 
 

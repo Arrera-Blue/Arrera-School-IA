@@ -592,9 +592,10 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
     nombre = demande.get("nb_questions") or 5
     debut = time.monotonic()
 
-    # un attendu du programme : seulement les genres qui le travaillent (E2.5)
-    genres = procedural.genres_pour(module, demande["attendu"], niveau) if demande.get("attendu") else None
-    squelettes = procedural.tirer(notion, nombre, rng, genres, niveau)
+    # un attendu du programme : seulement les genres qui le travaillent (E2.5) ; une notion précise (« les
+    # contraires », « l'imparfait ») : seulement ses genres, et ses critères
+    choix = procedural.selection(module, demande, niveau)
+    squelettes = procedural.tirer(notion, nombre, rng, choix.genres, niveau, choix.criteres)
     print(f"→ génération procédurale ({module.NOTION}) : {nombre} questions tirées (graine {graine})", flush=True)
     origine = ("réponses lues dans des tables relues par l'enseignant" if getattr(module, "TABLES", ())
                else "calculs faits par le programme")
@@ -609,7 +610,7 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
     if habille.appel:
         print(f"→ réponse reçue en {habille.appel['duree_s']} s{detail_appel(habille.appel)}", flush=True)
     enonces, par_question = habille.enonces, habille.par_question
-    instance = procedural.assembler(notion, niveau, squelettes, enonces, rng)
+    instance = procedural.assembler(notion, niveau, squelettes, enonces, rng, choix.titres)
     # N2 : le générateur doit produire un QCM conforme au schéma, comme le modèle
     valider(instance, schema_de_sortie(registre.charger("qcm").schema, demande))
 
@@ -630,7 +631,7 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
                     print(f"   ⚠ question {n} : refusée après habillage ({e.niveau}) → énoncé-gabarit", flush=True)
                 else:
                     genre = next(g for g in module.GENRES if squelettes[i].genre.endswith(f".{g.__name__}"))
-                    squelettes[i] = procedural.tirer_une(genre, rng, deja, niveau)
+                    squelettes[i] = procedural.tirer_une(genre, rng, deja, niveau, choix.criteres.get(genre.__name__))
                     enonces[i] = squelettes[i].enonce
                     par_question[i] = {"habillage": "gabarit", "retiree": message}
                     print(f"   ⚠ question {n} : refusée ({e.niveau}) → tirée à nouveau", flush=True)
@@ -659,6 +660,10 @@ def generer_procedural(demande: dict, notion: str, fournisseur, graine: int | No
         "prompt_origine": demande.get("demande_enseignant") or demande,
         "demande": demande,
     }
+    if choix.titres:  # la notion précise : une question régénérée la respecte aussi
+        instance["meta"]["precision"] = {"titres": choix.titres, "genres": [g.__name__ for g in choix.genres],
+                                         "criteres": {g: {k: list(v) for k, v in c.items()}
+                                                      for g, c in choix.criteres.items()}}
     if tables_lues := procedural.empreintes_des_tables(module):
         instance["meta"]["tables"] = tables_lues  # la version des tables d'où viennent les réponses
     travailles = [a for s in squelettes for a in procedural.attendus_du_genre(module, s.genre.split(".")[-1], niveau)]
@@ -782,6 +787,8 @@ def _retirer_question(instance: dict, numero: int, meta: dict, valider_fond: Cal
     origines = meta.get("questions") or []
     nom_du_genre = origines[numero - 1]["genre"] if numero <= len(origines) else ""
     genre = next((g for g in module.GENRES if nom_du_genre.endswith(f".{g.__name__}")), None)
+    precision = meta.get("precision") or {}
+    possibles = [g for g in module.GENRES if g.__name__ in precision.get("genres", ())] or list(module.GENRES)
     graine = random.SystemRandom().randrange(1_000_000)
     rng = random.Random(graine)
     ancienne = instance["questions"][numero - 1]
@@ -790,7 +797,9 @@ def _retirer_question(instance: dict, numero: int, meta: dict, valider_fond: Cal
                                               f"question {numero}")
     derniere = None
     for _ in range(ESSAIS_DE_TIRAGE):
-        squelette = procedural.tirer_une(genre or rng.choice(module.GENRES), rng, set(), instance.get("niveau"))
+        tire = genre or rng.choice(possibles)
+        squelette = procedural.tirer_une(tire, rng, set(), instance.get("niveau"),
+                                         (precision.get("criteres") or {}).get(tire.__name__))
         question = procedural.question(squelette, squelette.enonce, rng)
         if question["enonce"] == ancienne["enonce"]:
             continue

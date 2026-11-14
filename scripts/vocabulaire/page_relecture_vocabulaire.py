@@ -51,8 +51,10 @@ for l in categories:
 t += [f"- **{c}** : {', '.join(m)}" for c, m in par_categorie.items()]
 niveaux = lignes("niveaux_de_langue")
 t += [""] + titre("niveaux_de_langue", "Les niveaux de langue", len(niveaux))
-t += ["> Au CP, seulement familier et courant.", "", "| Familier | Courant | Soutenu |", "|---|---|---|"]
-t += [f"| {l['familier']} | {l['courant']} | {l['soutenu']} |" for l in niveaux]
+t += ["> Au CP, seulement familier et courant. **Aussi** : un autre mot de la table qui a aussi ce sens, jamais proposé",
+      "> comme piège (« Quel mot soutenu veut dire « travail » ? » : « ouvrage » serait juste aussi).", "",
+      "| Familier | Courant | Soutenu | Aussi (jamais piège) |", "|---|---|---|---|"]
+t += [f"| {l['familier']} | {l['courant']} | {l['soutenu']} | {'' if l['aussi'] == '-' else l['aussi']} |" for l in niveaux]
 page.parent.mkdir(parents=True, exist_ok=True)
 page.write_text("\n".join(t) + "\n", encoding="utf-8")
 print(f"{page} : 6 tables")

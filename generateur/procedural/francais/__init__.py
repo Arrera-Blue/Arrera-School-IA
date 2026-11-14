@@ -6,7 +6,10 @@ prises dans les tables ; l'explication sort d'une règle. Aucun énoncé n'est �
 Un générateur dont une table n'est pas relue n'est jamais proposé (procedural.candidats).
 """
 
+import random
 import re
+
+from generateur.procedural import Retirer
 
 MATIERE = "francais"
 CYCLE_2 = ("CP", "CE1", "CE2")
@@ -23,6 +26,18 @@ def generateurs() -> tuple:
     """Les modules de la matière. Import local : le paquet reste léger à charger."""
     from generateur.procedural.francais import accords, conjugaison, phrase, vocabulaire
     return (conjugaison, accords, phrase, vocabulaire)
+
+
+def respecte(ligne: dict, criteres: dict | None) -> bool:
+    """La ligne d'une table respecte-t-elle les critères d'une notion précise ({"temps": ("imparfait",)}) ?"""
+    return all(ligne.get(cle) in valeurs for cle, valeurs in (criteres or {}).items())
+
+
+def une(rng: random.Random, lignes: list):
+    """Une ligne tirée au sort ; aucune (les critères d'une notion précise n'en laissent pas) : on tire autrement."""
+    if not lignes:
+        raise Retirer("aucune ligne de la table ne répond à la demande")
+    return rng.choice(lignes)
 
 
 def avant_ou_egale(classe: str, depuis: str) -> bool:

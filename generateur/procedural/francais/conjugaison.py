@@ -9,14 +9,33 @@ dans la table (jamais une forme inventée) ; l'explication sort de la règle (`f
 
 import random
 
-from generateur.procedural import Retirer, Squelette, distracteurs, tables
-from generateur.procedural.francais import CYCLE_2, avant_ou_egale
+from generateur.procedural import Precision, Retirer, Squelette, distracteurs, tables
+from generateur.procedural.francais import CYCLE_2, avant_ou_egale, respecte, une
 
 NOM, TITRE, NOTION, NIVEAU = "conjugaison", "La conjugaison", "conjugaison", "CE1"
 MATIERE, NIVEAUX = "francais", CYCLE_2  # NIVEAU : la classe par défaut ; NIVEAUX : celles où il s'applique
 MOTS_CLES = ("conjugaison", "conjuguer", "conjugue", "present de l'indicatif", "au present", "imparfait", "futur",
              "passe compose", "verbe etre", "verbe avoir", "etre et avoir", "terminaison", "infinitif")
 TABLES = ("conjugaisons", "terminaisons")
+# les notions précises, de la plus précise à la plus générale : un temps, des verbes, une sorte de question. Le temps et
+# les verbes choisissent la ligne de la question ; les mauvaises réponses peuvent venir d'un autre temps (l'erreur
+# typique). La terminaison n'est demandée qu'au présent et à l'imparfait, et aux verbes en -er.
+PRECISIONS = (
+    Precision(r"\bpasse compose\b", "le passé composé", ("forme",), (("temps", ("passe_compose",)),)),
+    Precision(r"\bimparfait\b", "l'imparfait", ("forme", "terminaison"), (("temps", ("imparfait",)),)),
+    Precision(r"\bfutur\b", "le futur", ("forme",), (("temps", ("futur",)),)),
+    Precision(r"\bpresent\b", "le présent", ("forme", "terminaison"), (("temps", ("present",)),)),
+    Precision(r"\betre et avoir\b|\bavoir et etre\b|\bauxiliaires?\b", "être et avoir", (),
+              (("infinitif", ("être", "avoir")),)),
+    Precision(r"\bverbes? etre\b", "le verbe être", (), (("infinitif", ("être",)),)),
+    Precision(r"\bverbes? avoir\b", "le verbe avoir", (), (("infinitif", ("avoir",)),)),
+    Precision(r"verbes? en -?er\b|\b(?:1er|premier) groupe", "les verbes en -er", (), (("groupe", ("1",)),)),
+    Precision(r"verbes? irreguliers?|\b(?:3e|troisieme) groupe", "les verbes irréguliers", (), (("groupe", ("3",)),)),
+    Precision(r"\binfinitif", "l'infinitif", ("infinitif",)),
+    Precision(r"\bterminaisons?\b|\bradical\b", "le radical et la terminaison", ("terminaison",)),
+    Precision(r"\b(?:reconnaitre|trouver|identifier) (?:le|les) temps\b|\bquel temps\b", "reconnaître le temps",
+              ("temps",)),
+)
 
 TEMPS = {"present": ("au présent", "le présent"), "imparfait": ("à l'imparfait", "l'imparfait"),
          "futur": ("au futur", "le futur"), "passe_compose": ("au passé composé", "le passé composé")}
@@ -29,9 +48,11 @@ def _table(nom: str) -> tables.Table:
     return tables.charger(MATIERE, nom)
 
 
-def lignes(niveau: str, **criteres) -> list[dict]:
-    """Les lignes de la table des conjugaisons qui servent à cette classe."""
-    return [l for l in _table("conjugaisons").filtrer(**criteres) if avant_ou_egale(niveau, l["depuis"])]
+def lignes(niveau: str, criteres: dict | None = None, **egalites) -> list[dict]:
+    """Les lignes de la table des conjugaisons qui servent à cette classe (et qui respectent les critères d'une notion
+    précise, s'il y en a)."""
+    return [l for l in _table("conjugaisons").filtrer(**egalites)
+            if avant_ou_egale(niveau, l["depuis"]) and respecte(l, criteres)]
 
 
 def avec_le_pronom(pronom: str, forme: str) -> str:
@@ -73,10 +94,10 @@ def regle(ligne: dict, pronom: str) -> str:
 
 # --- les genres --------------------------------------------------------------------------------------------
 
-def forme(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
+def forme(rng: random.Random, niveau: str = NIVEAU, criteres: dict | None = None) -> Squelette:
     """« Complète au présent : nous … (chanter) » → chantons ; les mauvaises réponses : les autres personnes du
     même temps (chante, chantez, chantent : l'erreur la plus fréquente), puis la même personne à un autre temps."""
-    ligne = rng.choice(lignes(niveau))
+    ligne = une(rng, lignes(niveau, criteres))
     pronom = _pronom(rng, ligne)
     meme_temps = [l["forme"] for l in lignes(niveau, infinitif=ligne["infinitif"], temps=ligne["temps"])
                   if l["personne"] != ligne["personne"]]
@@ -94,10 +115,10 @@ def forme(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     )
 
 
-def temps(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
+def temps(rng: random.Random, niveau: str = NIVEAU, criteres: dict | None = None) -> Squelette:
     """« À quel temps est le verbe : nous chanterons ? » → le futur ; les mauvaises réponses : les trois autres temps.
     Une forme que la même personne écrit pareil à un autre temps serait ambiguë : tirée à nouveau."""
-    ligne = rng.choice(lignes(niveau))
+    ligne = une(rng, lignes(niveau, criteres))
     autres = lignes(niveau, infinitif=ligne["infinitif"], personne=ligne["personne"])
     if [l["temps"] for l in autres if l["forme"] == ligne["forme"]] != [ligne["temps"]]:
         raise Retirer("la même forme à deux temps")
@@ -113,10 +134,10 @@ def temps(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     )
 
 
-def infinitif(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
+def infinitif(rng: random.Random, niveau: str = NIVEAU, criteres: dict | None = None) -> Squelette:
     """« Quel est l'infinitif du verbe : ils jouaient ? » → jouer ; les mauvaises réponses : d'autres formes du même
     verbe (joue, jouait, jouons), qui ne sont pas l'infinitif."""
-    ligne = rng.choice(lignes(niveau))
+    ligne = une(rng, lignes(niveau, criteres))
     pronom = _pronom(rng, ligne)
     autres = [l["forme"] for l in lignes(niveau, infinitif=ligne["infinitif"]) if l["forme"] != ligne["forme"]]
     rng.shuffle(autres)
@@ -132,12 +153,12 @@ def infinitif(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     )
 
 
-def terminaison(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
+def terminaison(rng: random.Random, niveau: str = NIVEAU, criteres: dict | None = None) -> Squelette:
     """« Quelle est la terminaison de : vous chantez ? » → -ez ; verbes en -er, au présent et à l'imparfait (au futur,
     les manuels ne coupent pas tous le mot au même endroit) ; les mauvaises réponses : les terminaisons des autres
     personnes au même temps."""
-    temps_ = rng.choice(("present", "imparfait"))
-    ligne = rng.choice(lignes(niveau, groupe="1", temps=temps_))
+    temps_ = une(rng, [t for t in ("present", "imparfait") if t in (criteres or {}).get("temps", (t,))])
+    ligne = une(rng, lignes(niveau, criteres, groupe="1", temps=temps_))
     pronom = _pronom(rng, ligne)
     bonne = _terminaison(temps_, ligne["personne"])
     autres = [t["terminaison"] for t in _table("terminaisons").filtrer(temps=temps_) if t["terminaison"] != bonne]

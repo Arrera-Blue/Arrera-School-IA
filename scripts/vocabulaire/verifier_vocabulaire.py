@@ -8,7 +8,8 @@ CC BY-SA 4.0 : téléchargé à part) :
 - lettres muettes : le mot finit par sa lettre, le mot de la famille commence par lui (on y entend la lettre) ; aucune
   lettre piège ne fait un vrai mot ;
 - catégories : chaque mot existe (nom) et n'est rangé qu'une fois ;
-- niveaux de langue : chaque mot existe (une expression de plusieurs mots n'est pas cherchée).
+- niveaux de langue : chaque mot existe (une expression de plusieurs mots n'est pas cherchée) ; un mot « aussi » (qui a
+  aussi ce sens, jamais un piège) est un mot de la table, d'un autre trio.
 
 Usage : python -I verifier_vocabulaire.py <Lexique383.tsv> <generateur/procedural/donnees>"""
 import csv
@@ -82,10 +83,14 @@ for l in cats:
 for mot, fois in Counter(l["mot"] for l in cats).items():
     if fois > 1:
         ecarts.append(f"catégories : « {mot} » rangé {fois} fois")
-for l in table("niveaux_de_langue"):
+trios = table("niveaux_de_langue")
+for l in trios:
     for registre in ("familier", "courant", "soutenu"):
         if " " not in l[registre]:
             existe(l[registre], f"niveau de langue ({registre})")
+    for mot in l["aussi"].split():
+        if mot != "-" and not any(mot in (t["familier"], t["soutenu"]) for t in trios if t is not l):
+            ecarts.append(f"niveau de langue {l['courant']} : « {mot} » (aussi) n'est pas un mot d'un autre trio")
 print(f"{n} vérifications ; {len(ecarts)} écart(s)")
 for e in ecarts:
     print("  ✗", e)

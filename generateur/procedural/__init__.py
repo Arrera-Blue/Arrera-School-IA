@@ -11,11 +11,14 @@ Un sous-dossier par matière (`maths/` ; le cycle 2 : docs/Generateur-Procedural
 défaut), `NIVEAUX` (celles où il s'applique), `MOTS_CLES`, `GENRES`, `ATTENDUS`, et `TABLES` s'il lit ses réponses
 dans des tables de référence (tables.py). Un genre peut recevoir la classe (`genre(rng, niveau)` : la conjugaison du
 CP n'est pas celle du CE2) et ne servir qu'à certaines classes (`CLASSES_DU_GENRE = {nom du genre: (classes…)}`).
+Un générateur large (la conjugaison, le vocabulaire) déclare ses notions précises (`PRECISIONS`, `Precision`) : « les
+contraires » ne tire que des contraires, « l'imparfait » que l'imparfait (critère de fin du lot 1, 13/11).
 Ce paquet-ci est commun : le squelette d'une question, les distracteurs, l'aiguillage, le tirage, l'assemblage.
 """
 
 import inspect
 import random
+import re
 import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -42,6 +45,24 @@ class Squelette:
     # les mêmes, pour la seule question finale : « Quel est son nouveau prix ? », pas « le montant de la remise »
     demande: tuple[str, ...] = field(default=())
     demande_interdits: tuple[str, ...] = field(default=())
+    # ce dont parle la question (la paire allumer / éteindre, le trio boulot / travail / labeur) : deux questions du
+    # même sujet ne viennent dans un exercice que s'il ne reste pas assez d'autres sujets (pas de redondance : l'une
+    # donnerait la réponse de l'autre)
+    sujet: tuple | None = None
+
+
+@dataclass(frozen=True)
+class Precision:
+    """Une notion plus précise que son générateur : « les contraires » dans le vocabulaire, « l'imparfait » dans la
+    conjugaison. `motif` : les mots qui la nomment (texte sans accents) ; `titre` : ajouté au titre de l'exercice ;
+    `genres` : les genres qui la travaillent (vide : elle n'en écarte aucun) ; `criteres` : ce que leurs questions
+    doivent respecter ((("temps", ("imparfait",)),) : une ligne de la table dont le temps est l'imparfait), donné à
+    ces genres (`genre(rng, niveau, criteres)`), à eux seuls (« l'imparfait et l'infinitif » : l'infinitif de
+    n'importe quelle forme)."""
+    motif: str
+    titre: str
+    genres: tuple[str, ...] = ()
+    criteres: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 class Retirer(Exception):
@@ -126,6 +147,85 @@ def genres_pour(module, cible: str, niveau: str | None) -> list[Genre]:
             if any(programmes.couvre(cible, a) for a in attendus_du_genre(module, g.__name__, niveau))]
 
 
+def texte_de(demande: dict) -> str:
+    """La notion et la phrase de l'enseignant, sans accents : ce que lisent les mots-clés et les notions précises."""
+    return sans_accents(" ".join(str(demande.get(c) or "") for c in ("notion", "demande_enseignant")))
+
+
+def preciser(module, demande: dict) -> list[Precision]:
+    """Les notions précises que la demande nomme, de la plus précise à la plus générale (l'ordre de `PRECISIONS`) : ce
+    qu'une notion a lu ne compte plus pour les suivantes (« les pluriels en -aux » n'est pas aussi « le pluriel »)."""
+    texte, trouvees = texte_de(demande), []
+    for precision in getattr(module, "PRECISIONS", ()):
+        motif = re.compile(precision.motif)
+        if motif.search(texte):
+            trouvees.append(precision)
+            texte = motif.sub(" ", texte)
+    return trouvees
+
+
+@dataclass(frozen=True)
+class Selection:
+    """Ce que le générateur tire pour une demande : les genres, les critères de chacun ({nom du genre : critères}),
+    les notions précises nommées."""
+    genres: list
+    criteres: dict[str, dict]
+    titres: list[str]
+
+
+def _utilisable(genre: Genre, niveau: str | None, criteres: dict) -> bool:
+    """Le genre sait-il tirer une question qui respecte les critères (« être et avoir » : pas de terminaison, les
+    terminaisons n'étant demandées qu'aux verbes en -er) ?"""
+    if "criteres" not in inspect.signature(genre).parameters:
+        return False
+    rng = random.Random(0)
+    for _ in range(50):
+        try:
+            _appeler(genre, rng, niveau, criteres)
+            return True
+        except Retirer:
+            continue
+    return False
+
+
+def selection(module, demande: dict, niveau: str | None) -> Selection:
+    """Les genres de la classe ; ceux de l'attendu du programme, s'il y en a un ; ceux des notions précises nommées
+    (« les contraires »), s'il y en a. Vide : le générateur ne sait pas faire cette demande (« la ponctuation » au CP :
+    la demande part au modèle)."""
+    genres = [g for g in module.GENRES if niveau is None or niveau in classes_du_genre(module, g)]
+    if cible := demande.get("attendu"):
+        du_programme = genres_pour(module, cible, niveau)
+        genres = [g for g in genres if g in du_programme]
+    precisions = preciser(module, demande)
+    if noms := {n for p in precisions for n in p.genres}:
+        genres = [g for g in genres if g.__name__ in noms]
+    criteres: dict[str, dict] = {}
+    for g in genres:  # « le présent et le futur » : les deux temps ; « le futur des verbes en -er » : les deux critères
+        siens: dict[str, tuple] = {}
+        for p in precisions:
+            if not p.genres or g.__name__ in p.genres:
+                for cle, valeurs in p.criteres:
+                    siens[cle] = tuple(dict.fromkeys((*siens.get(cle, ()), *valeurs)))
+        if siens:
+            criteres[g.__name__] = siens
+    genres = [g for g in genres if g.__name__ not in criteres or _utilisable(g, niveau, criteres[g.__name__])]
+    # au titre, une notion déjà comprise dans une autre n'est pas répétée (« les pluriels et les féminins
+    # particuliers » dans la notion, « les pluriels en -aux » dans la phrase)
+    titres = [p.titre for i, p in enumerate(precisions)
+              if p.criteres or not p.genres or not any(set(p.genres) <= set(q.genres) for q in precisions[:i])]
+    return Selection(genres, {n: c for n, c in criteres.items() if n in {g.__name__ for g in genres}},
+                     list(dict.fromkeys(titres)))
+
+
+def titre(module, titres: list[str]) -> str:
+    """« Le vocabulaire : les contraires », « La conjugaison : le futur, les verbes en -er » ; le titre du générateur
+    seul s'il est trop long pour le schéma (80)."""
+    if not titres:
+        return module.TITRE
+    complet = f"{module.TITRE} : {', '.join(titres)}"
+    return complet if len(complet) <= 80 else module.TITRE
+
+
 def aiguiller(demande: dict) -> str | None:
     """Le générateur qui couvre la demande, ou None pour la chaîne habituelle (modèle → N1…N4 → reprise).
 
@@ -138,25 +238,26 @@ def aiguiller(demande: dict) -> str | None:
     fractions.
 
     Seuls les générateurs de la matière et de la classe demandées comptent (`candidats`) : « le calcul mental »
-    pour des CP n'est pas celui de 6e."""
+    pour des CP n'est pas celui de 6e. Une notion précise que le générateur n'a pas dans cette classe (« la
+    ponctuation » au CP) part au modèle (`selection` vide)."""
     modules = candidats(demande)
     if not modules:
         return None
+    niveau = demande.get("niveau")
     if cible := demande.get("attendu"):
-        niveau = demande.get("niveau")
         scores = []
         for nom, module in modules.items():
-            genres = genres_pour(module, cible, niveau)
+            genres = selection(module, demande, niveau).genres
             distincts = {a for g in genres for a in attendus_du_genre(module, g.__name__, niveau)}
             scores.append((len(distincts), len(genres), nom))
         meilleur = max(scores)
         return meilleur[2] if meilleur[1] else None
-    texte = sans_accents(" ".join(str(demande.get(c) or "") for c in ("notion", "demande_enseignant")))
+    texte = texte_de(demande)
     couvertes = [nom for nom, module in modules.items()
                  if any(m in texte for m in module.MOTS_CLES) and not any(x in texte for x in getattr(module, "EXCLUS", ()))]
     if len(couvertes) != 1 or matieres()[modules[couvertes[0]].MATIERE].AUTRES_NOTIONS.search(texte):
         return None
-    return couvertes[0]
+    return couvertes[0] if selection(modules[couvertes[0]], demande, niveau).genres else None
 
 
 # --- tirage et assemblage ------------------------------------------------------------------------
@@ -164,11 +265,16 @@ def aiguiller(demande: dict) -> str | None:
 ESSAIS_MAX = 200
 
 
-def _appeler(genre: Genre, rng: random.Random, niveau: str | None) -> Squelette:
-    """Le genre, avec la classe s'il la demande (`genre(rng, niveau)`) ; les genres des maths ne la demandent pas."""
-    if niveau is not None and "niveau" in inspect.signature(genre).parameters:
-        return genre(rng, niveau=niveau)
-    return genre(rng)
+def _appeler(genre: Genre, rng: random.Random, niveau: str | None, criteres: dict | None = None) -> Squelette:
+    """Le genre, avec la classe s'il la demande (`genre(rng, niveau)`) ; les genres des maths ne la demandent pas. Les
+    critères d'une notion précise, s'il y en a (`genre(rng, niveau, criteres)`)."""
+    parametres = inspect.signature(genre).parameters
+    options = {}
+    if niveau is not None and "niveau" in parametres:
+        options["niveau"] = niveau
+    if criteres and "criteres" in parametres:
+        options["criteres"] = criteres
+    return genre(rng, **options)
 
 
 def classes_du_genre(module, genre: Genre) -> tuple[str, ...]:
@@ -176,24 +282,40 @@ def classes_du_genre(module, genre: Genre) -> tuple[str, ...]:
     return tuple(getattr(module, "CLASSES_DU_GENRE", {}).get(genre.__name__, module.NIVEAUX))
 
 
-def tirer_une(genre: Genre, rng: random.Random, deja: set, niveau: str | None = None) -> Squelette:
-    """Une question du genre, différente de celles déjà tirées."""
-    for _ in range(ESSAIS_MAX):
+def tirer_une(genre: Genre, rng: random.Random, deja: set, niveau: str | None = None,
+              criteres: dict | None = None) -> Squelette:
+    """Une question du genre, différente de celles déjà tirées ; d'un autre sujet, tant que c'est possible (la moitié
+    des essais : ensuite, une question nouvelle d'un sujet déjà vu vaut mieux que pas de question)."""
+    secours = None
+    for essai in range(ESSAIS_MAX):
         try:
-            squelette = _appeler(genre, rng, niveau)
+            squelette = _appeler(genre, rng, niveau, criteres)
         except Retirer:
             continue
-        if squelette.cle not in deja:
-            deja.add(squelette.cle)
-            return squelette
+        if squelette.cle in deja:
+            continue
+        if squelette.sujet is not None and ("sujet", squelette.sujet) in deja and essai < ESSAIS_MAX // 2:
+            secours = secours or squelette
+            continue
+        return _retenir(squelette, deja)
+    if secours is not None:
+        return _retenir(secours, deja)
     raise RuntimeError("le générateur ne trouve plus de question nouvelle : demander moins de questions")
 
 
+def _retenir(squelette: Squelette, deja: set) -> Squelette:
+    deja.add(squelette.cle)
+    if squelette.sujet is not None:
+        deja.add(("sujet", squelette.sujet))
+    return squelette
+
+
 def tirer(notion: str, nombre: int, rng: random.Random, genres: list[Genre] | None = None,
-          niveau: str | None = None) -> list[Squelette]:
+          niveau: str | None = None, criteres: dict[str, dict] | None = None) -> list[Squelette]:
     """`nombre` questions de la notion, de genres variés : chaque genre une fois, dans un ordre tiré au sort,
-    avant qu'un genre revienne. `genres` : seulement ceux-là (ceux d'un attendu du programme). `niveau` : la classe,
-    donnée aux genres qui la demandent ; seuls servent les genres de cette classe."""
+    avant qu'un genre revienne. `genres` : seulement ceux-là (`selection`). `niveau` : la classe, donnée aux genres qui
+    la demandent ; seuls servent les genres de cette classe. `criteres` : ceux des notions précises, genre par genre
+    (`selection`)."""
     module = notions()[notion]
     genres = [g for g in (genres or module.GENRES) if niveau is None or niveau in classes_du_genre(module, g)]
     if not genres:
@@ -202,7 +324,7 @@ def tirer(notion: str, nombre: int, rng: random.Random, genres: list[Genre] | No
     while len(ordre) < nombre:
         ordre += rng.sample(genres, len(genres))
     deja: set = set()
-    return [tirer_une(g, rng, deja, niveau) for g in ordre[:nombre]]
+    return [tirer_une(g, rng, deja, niveau, (criteres or {}).get(g.__name__)) for g in ordre[:nombre]]
 
 
 def empreintes_des_tables(module) -> dict[str, str]:
@@ -221,7 +343,7 @@ def question(squelette: Squelette, enonce: str, rng: random.Random) -> dict:
 
 
 def assembler(notion: str, niveau: str, squelettes: list[Squelette], enonces: list[str],
-              rng: random.Random) -> dict:
+              rng: random.Random, titres: list[str] | None = None) -> dict:
     module = notions()[notion]
-    return {"type": "qcm", "titre": module.TITRE, "matiere": module.MATIERE, "niveau": niveau, "notion": module.NOTION,
+    return {"type": "qcm", "titre": titre(module, titres or []), "matiere": module.MATIERE, "niveau": niveau, "notion": module.NOTION,
             "questions": [question(s, e, rng) for s, e in zip(squelettes, enonces)]}
