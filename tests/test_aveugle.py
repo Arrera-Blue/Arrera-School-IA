@@ -297,3 +297,98 @@ def test_la_commande_aveugle(comparaison, monkeypatch, capsys):
     assert "Écrit dans" in lancer("bilan", "--meme-si-pas-fini")
     assert len(list(aveugle.racine().iterdir())) == 1
 
+
+
+# --- les deux chemins : le modèle seul contre le générateur procédural (critère de fin d'un lot du cycle 2) ----------
+
+DEMANDES = [{"phrase": "l'imparfait en CE2", "graine": 4},
+            {"phrase": "les pluriels en -aux et les féminins particuliers, CE2",
+             "formulaire": {"notion": "pluriels et féminins particuliers"}}]
+
+
+@pytest.fixture
+def chemins(comparaison, tmp_path, monkeypatch):
+    """Les tables du générateur copiées et relues : il est proposé, quel que soit l'état des relectures du dépôt."""
+    from generateur.procedural import tables
+    import shutil
+    copie = tmp_path / "tables"
+    shutil.copytree(tables.DOSSIER, copie)
+    monkeypatch.setattr(tables, "DOSSIER", copie)
+    for matiere, nom in tables.lister():
+        tables.relire(matiere, nom, "Essai")
+    return comparaison | {"dossier": tmp_path / "entrainement" / "aveugle" / "chemins"}
+
+
+def test_les_deux_chemins_sur_des_demandes_reelles(chemins, tmp_path):
+    c = chemins
+    plan = aveugle.preparer_chemins(DEMANDES, c["dossier"])
+    assert aveugle.des_chemins(plan) and aveugle.cotes(plan) == ("modele", "procedural")
+    d1, d2 = plan["demandes"]
+    assert d1["demande"]["attendu"] == "francais.ce2.orthographe-grammaticale.03"  # l'attendu proposé, gardé
+    assert d2["demande"]["notion"] == "pluriels et féminins particuliers" and d2["demande"]["niveau"] == "CE2"
+    lignes = []
+    assert aveugle.generer(c["dossier"], lignes.append) == {"genere": 4}
+    assert set(c["appels"]) == {None}  # le modèle de base, jamais un adaptateur
+    assert lignes[0].startswith("Modèle seul : 2 demande(s)") and "mélangés" in lignes[-1]
+    # la graine donnée : le même exercice que celui déjà relu
+    deja = generation.generer(dict(d1["demande"]), mode="procedural", graine=4)
+    original = json.loads((c["dossier"] / "originaux" / "procedural-01.json").read_text())
+    assert original["meta"]["origine"] == "procedural" and original["questions"] == deja["questions"]
+    # mélangés : la meta ne garde que ce que les deux chemins ont en commun
+    cle = json.loads((c["dossier"] / "cle.json").read_text())
+    instances = aveugle.chemins(c["dossier"])["banque"]
+    for ident, quoi in cle.items():
+        x = json.loads((instances / f"{ident}.json").read_text())
+        assert set(x["meta"]) <= set(aveugle.GARDES) | {"id", "date", "statut", "aveugle"}, quoi["modele"]
+        assert x["meta"]["demande"] == plan["demandes"][quoi["n"] - 1]["demande"]
+    assert not list((tmp_path / "banque").glob("*.json"))  # rien dans la banque de l'enseignant
+
+
+def test_le_bilan_des_deux_chemins(chemins):
+    c = chemins
+    aveugle.preparer_chemins(DEMANDES, c["dossier"])
+    aveugle.generer(c["dossier"], lambda _: None)
+    cle = json.loads((c["dossier"] / "cle.json").read_text())
+    config.rediriger(aveugle.chemins(c["dossier"]))
+    for ident, quoi in cle.items():  # le générateur accepté ; le modèle : une réponse fausse (deux motifs), un accepté
+        rejet = quoi["modele"] == "modele" and quoi["n"] == 1
+        banque.decider(ident, "rejeter" if rejet else "accepter",
+                       motifs=["reponse_fausse", "plusieurs_justes"] if rejet else None)
+    texte = aveugle.bilan(c["dossier"])
+    b = json.loads((c["dossier"] / "bilan.json").read_text())
+    assert b["regle"] == {"tous_justes": True, "plus_juste": True, "remplie": True}
+    # un exercice, même rejeté pour deux motifs de réponse fausse
+    assert (b["modeles"]["procedural"]["acceptes"], b["modeles"]["modele"]["reponses_fausses"]) == (2, 1)
+    assert "Une seule personne relit" in texte and "Les décisions sont de Claude" not in texte
+    assert texte.startswith("# Relecture à l'aveugle : le modèle seul contre le générateur procédural")
+    assert "| **Acceptés à la relecture** | **1 sur 2** | **2 sur 2** |" in texte
+    assert ("| 1 | l'imparfait en CE2 | ✗ rejeté : une bonne réponse est fausse, plusieurs propositions sont justes | "
+            "✓ accepté |") in texte
+    assert "Les deux conditions sont remplies." in texte
+    # des décisions déléguées à Claude : le bilan le dit
+    ident = next(i for i, q in cle.items() if q["modele"] == "procedural")
+    banque.decider(ident, "accepter", f"{aveugle.PAR_CLAUDE} (Opus 5.5) (relecture à l'aveugle déléguée par l'enseignant)")
+    assert "Les décisions sont de Claude" in aveugle.bilan(c["dossier"])
+
+
+def test_la_commande_aveugle_chemins(chemins, monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(cli, "_rester_eveille", lambda: None)
+    fichier = tmp_path / "demandes.json"
+    fichier.write_text(json.dumps(DEMANDES, ensure_ascii=False), encoding="utf-8")
+
+    def lancer(*arguments):
+        monkeypatch.setattr(sys, "argv", ["entrainement", "aveugle", *arguments])
+        cli.main()
+        return capsys.readouterr().out
+
+    with pytest.raises(SystemExit, match="préciser les demandes"):
+        lancer("chemins")
+    vrai = aveugle.generer
+    monkeypatch.setattr(aveugle, "generer", lambda dossier, afficher: Counter())  # coupée avant la 1re génération
+    sortie = lancer("chemins", "--demandes", str(fichier))
+    assert "2 demandes, chacune par le modèle seul puis par le générateur procédural" in sortie and "Pas fini" in sortie
+    with pytest.raises(SystemExit, match="des deux chemins .* n'est pas finie"):
+        lancer("generer", "--adaptateur", str(chemins["adaptateur"]))
+    monkeypatch.setattr(aveugle, "generer", vrai)
+    sortie = lancer("chemins")  # reprise, sans redire les demandes
+    assert "Reprise de la comparaison" in sortie and "4 exercices mélangés" in sortie
