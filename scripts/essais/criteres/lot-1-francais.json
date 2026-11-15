@@ -1,0 +1,105 @@
+[
+ {
+  "phrase": "la conjugaison au présent pour des CE1",
+  "graine": 675464,
+  "exercice": "qcm-conjugaison-ce1-20261115-143257"
+ },
+ {
+  "phrase": "les verbes être et avoir au présent, CP",
+  "graine": 654544,
+  "exercice": "qcm-conjugaison-cp-20261115-143259"
+ },
+ {
+  "phrase": "le futur des verbes en -er pour mes CE2, 10 questions",
+  "graine": 265582,
+  "exercice": "qcm-conjugaison-ce2-20261115-143259"
+ },
+ {
+  "phrase": "l'imparfait en CE2",
+  "graine": 464681,
+  "exercice": "qcm-conjugaison-ce2-20261115-143301"
+ },
+ {
+  "phrase": "retrouver l'infinitif d'un verbe conjugué, CE1",
+  "graine": 731802,
+  "exercice": "qcm-conjugaison-ce1-20261115-143302"
+ },
+ {
+  "phrase": "le singulier et le pluriel des noms pour des CP",
+  "graine": 412458,
+  "exercice": "qcm-accords-cp-20261115-143303"
+ },
+ {
+  "phrase": "masculin et féminin en CE1",
+  "graine": 48551,
+  "exercice": "qcm-accords-ce1-20261115-143303"
+ },
+ {
+  "phrase": "les accords dans le groupe nominal, CE2, 10 questions",
+  "graine": 407561,
+  "exercice": "qcm-accords-ce2-20261115-143304"
+ },
+ {
+  "phrase": "l'accord du sujet et du verbe pour mes CE1",
+  "graine": 562236,
+  "exercice": "qcm-accords-ce1-20261115-143305"
+ },
+ {
+  "phrase": "les pluriels en -aux et les féminins particuliers, CE2",
+  "formulaire": {
+   "notion": "pluriels et féminins particuliers"
+  },
+  "graine": 232774,
+  "exercice": "qcm-accords-ce2-20261115-143306"
+ },
+ {
+  "phrase": "les types de phrases en CE1",
+  "graine": 316337,
+  "exercice": "qcm-phrase-ce1-20261115-143307"
+ },
+ {
+  "phrase": "la phrase négative pour des CE2",
+  "graine": 774516,
+  "exercice": "qcm-phrase-ce2-20261115-143308"
+ },
+ {
+  "phrase": "la ponctuation pour des CE2",
+  "graine": 104760,
+  "exercice": "qcm-phrase-ce2-20261115-143309"
+ },
+ {
+  "phrase": "la nature des mots : nom, verbe, adjectif, CE2, 10 questions",
+  "graine": 868684,
+  "exercice": "qcm-phrase-ce2-20261115-143309-2"
+ },
+ {
+  "phrase": "la forme affirmative et la forme négative au CP",
+  "graine": 752363,
+  "exercice": "qcm-phrase-cp-20261115-143311"
+ },
+ {
+  "phrase": "l'ordre alphabétique au CP",
+  "graine": 256787,
+  "exercice": "qcm-vocabulaire-cp-20261115-143311"
+ },
+ {
+  "phrase": "les contraires en CE1, 10 questions",
+  "graine": 511231,
+  "exercice": "qcm-vocabulaire-ce1-20261115-143312"
+ },
+ {
+  "phrase": "les familles de mots CE2",
+  "graine": 883125,
+  "exercice": "qcm-vocabulaire-ce2-20261115-143314"
+ },
+ {
+  "phrase": "les lettres muettes pour des CP",
+  "graine": 295974,
+  "exercice": "qcm-vocabulaire-cp-20261115-143315"
+ },
+ {
+  "phrase": "les niveaux de langue en CE2",
+  "graine": 635871,
+  "exercice": "qcm-vocabulaire-ce2-20261115-143316"
+ }
+]

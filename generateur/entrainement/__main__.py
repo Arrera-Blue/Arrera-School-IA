@@ -1,7 +1,8 @@
 """python -m generateur.entrainement nuit | bilan | prerelecture | corriger | jeu (plan IA, IA3) | entrainer | convertir |
-aveugle generer | aveugle bilan (IA4)."""
+aveugle generer | aveugle chemins | aveugle bilan (IA4 ; le critère de fin des lots du cycle 2)."""
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -66,6 +67,12 @@ def main() -> None:
     g.add_argument("--nombre", type=int, default=aveugle.NOMBRE, help=f"demandes (défaut : {aveugle.NOMBRE})")
     g.add_argument("--graine", type=int, default=aveugle.GRAINE)
     g.add_argument("--nouvelle", action="store_true", help="une nouvelle comparaison, même si la dernière n'est pas finie")
+    ch = vsous.add_parser("chemins", help="le modèle seul contre le générateur procédural, sur des demandes réelles (le "
+                                          "critère de fin d'un lot du cycle 2) ; reprend la dernière si elle n'est pas finie")
+    ch.add_argument("--demandes", type=Path, help="un fichier JSON : [{\"phrase\", \"formulaire\"?, \"graine\"?}] "
+                                                  "(scripts/essais/criteres/)")
+    ch.add_argument("--graine", type=int, default=aveugle.GRAINE, help="le mélange")
+    ch.add_argument("--nouvelle", action="store_true", help="une nouvelle comparaison, même si la dernière n'est pas finie")
     vb = vsous.add_parser("bilan", help="dévoiler les modèles une fois tout relu : bilan.md (défaut : la dernière comparaison)")
     vb.add_argument("dossier", type=Path, nargs="?")
     vb.add_argument("--meme-si-pas-fini", action="store_true", help="dévoiler avant la fin de la relecture")
@@ -143,7 +150,8 @@ def main() -> None:
 
 def _aveugle(args) -> None:
     """aveugle generer : reprendre la dernière comparaison si elle n'est pas finie, sinon en commencer une (il faut
-    l'adaptateur) ; aveugle bilan : dévoiler les modèles."""
+    l'adaptateur) ; aveugle chemins : de même, le modèle seul contre le générateur procédural (il faut les demandes) ;
+    aveugle bilan : dévoiler les modèles, ou les chemins."""
     if args.action == "bilan":
         dossier = args.dossier or aveugle.dernier()
         print(aveugle.bilan(dossier, args.meme_si_pas_fini))
@@ -155,12 +163,25 @@ def _aveugle(args) -> None:
     except ValueError:
         en_cours = None
     if en_cours and not aveugle.melanges(en_cours) and not args.nouvelle:
-        prevu = aveugle.lire_plan(en_cours)["adaptateur"]
-        if args.adaptateur and args.adaptateur.resolve() != aveugle._absolu(prevu["chemin"]).resolve():
-            raise ValueError(f"la comparaison {en_cours.name} n'est pas finie, avec l'adaptateur {prevu['nom']} : la "
-                             "reprendre (sans --adaptateur), ou en commencer une autre (--nouvelle)")
+        plan = aveugle.lire_plan(en_cours)
+        if (args.action == "chemins") != aveugle.des_chemins(plan):
+            autre = "des deux chemins (aveugle chemins)" if aveugle.des_chemins(plan) else "des deux modèles (aveugle generer)"
+            raise ValueError(f"la comparaison {en_cours.name} {autre} n'est pas finie : la reprendre, ou en commencer une "
+                             "autre (--nouvelle)")
+        if args.action == "generer":
+            prevu = plan["adaptateur"]
+            if args.adaptateur and args.adaptateur.resolve() != aveugle._absolu(prevu["chemin"]).resolve():
+                raise ValueError(f"la comparaison {en_cours.name} n'est pas finie, avec l'adaptateur {prevu['nom']} : la "
+                                 "reprendre (sans --adaptateur), ou en commencer une autre (--nouvelle)")
         dossier = en_cours
         print(f"Reprise de la comparaison {dossier.name} : {len(aveugle.reste_a_faire(dossier))} génération(s) à faire.")
+    elif args.action == "chemins":
+        if not args.demandes:
+            raise ValueError("préciser les demandes : --demandes scripts/essais/criteres/<lot>.json")
+        dossier = aveugle.racine() / f"{datetime.now():%Y%m%d-%H%M}"
+        plan = aveugle.preparer_chemins(json.loads(args.demandes.read_text(encoding="utf-8")), dossier, args.graine)
+        print(f"Comparaison {dossier.name} : {len(plan['demandes'])} demandes, chacune par le modèle seul puis par le "
+              "générateur procédural. Environ 1 min par exercice du modèle.", flush=True)
     else:
         if not args.adaptateur:
             raise ValueError("préciser le modèle entraîné : --adaptateur modeles/adaptateurs/<nom>.gguf")

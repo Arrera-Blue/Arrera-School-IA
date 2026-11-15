@@ -21,6 +21,15 @@ reprises, la contre-vérification), une fois avec chaque modèle. Rien n'entre d
         sortie/              leurs pages HTML
         cle.json             quel modèle a écrit quel exercice : lu par le bilan seulement
         bilan.md, bilan.json
+
+**Les deux chemins** (critère de fin d'un lot du générateur procédural du cycle 2 : docs/Generateur-Procedural/
+cycle-2-cp-ce1-ce2.md §7) : le même outil compare le modèle seul et le générateur procédural sur des demandes réelles,
+écrites comme un enseignant et analysées comme dans l'interface (les règles, l'attendu proposé gardé) ; chaque
+exercice du générateur peut reprendre la graine d'un exercice déjà relu (le même exercice). Les exercices mélangés ne
+gardent que ce que les deux chemins ont en commun (la demande, le programme, la validation) : l'origine, les tables,
+les genres des questions ou la contre-vérification, que seul le modèle reçoit, diraient le chemin.
+
+    python -m generateur.entrainement aveugle chemins --demandes scripts/essais/criteres/lot-1-francais.json
 """
 
 import copy
@@ -36,11 +45,15 @@ from pathlib import Path
 
 from generateur import entrainement, procedural, programmes
 from generateur.entrainement import nuit, relecture
-from generateur.moteur import banque, config, generation, securite
+from generateur.moteur import analyse, banque, config, generation, securite
 from generateur.moteur.validation import ErreurValidation
 
 MODELES = ("base", "entraine")
-LIBELLES = {"base": "Modèle de base", "entraine": "Modèle entraîné"}
+CHEMINS = ("modele", "procedural")
+LIBELLES = {"base": "Modèle de base", "entraine": "Modèle entraîné", "modele": "Modèle seul",
+            "procedural": "Générateur procédural"}
+# les deux chemins : ce que la meta d'un exercice mélangé garde (tout le reste dirait le chemin)
+GARDES = ("demande", "programme", "validation")
 NOMBRE = 15
 QUESTIONS = 5
 GRAINE = 2026
@@ -50,6 +63,8 @@ CACHES = ("adaptateur", "machine", "duree_s", "tentatives", "tentatives_par_ques
           "contre_verification_s", "entrainement")
 # les motifs de rejet qui disent qu'une réponse cochée est fausse : la 1re condition de la décision (IA4.4)
 REPONSES_FAUSSES = ("reponse_fausse", "plusieurs_justes")
+# le début du texte d'une décision prise par Claude, quand l'enseignant la lui délègue (IA4, relecture n° 2 ; lot 1)
+PAR_CLAUDE = "Décision de Claude"
 
 
 def racine() -> Path:
@@ -153,6 +168,35 @@ def lire_plan(dossier: Path) -> dict:
     return json.loads((dossier / "plan.json").read_text(encoding="utf-8"))
 
 
+def cotes(plan: dict) -> tuple[str, ...]:
+    """Ce qui est comparé : les deux modèles (IA4.3), ou les deux chemins (« chemins »)."""
+    return tuple(plan.get("cotes") or MODELES)
+
+
+def des_chemins(plan: dict) -> bool:
+    return plan.get("nature") == "chemins"
+
+
+def preparer_chemins(demandes: list[dict], dossier: Path, graine: int = GRAINE) -> dict:
+    """Une comparaison des deux chemins. `demandes` : [{"phrase", "formulaire"?, "graine"?}] ; chaque phrase est
+    analysée comme dans l'interface (les règles, l'attendu proposé gardé, 5 questions sans nombre écrit) ;
+    « formulaire » : ce que l'enseignant complète dans le formulaire quand l'analyse ne l'a pas trouvé ; « graine » :
+    celle d'un exercice du générateur déjà relu, pour tirer le même."""
+    if not demandes:
+        raise ValueError("aucune demande")
+    lignes = []
+    for n, d in enumerate(demandes, start=1):
+        requete = dict(analyse.analyser(d["phrase"]).requete)
+        requete |= {k: v for k, v in (d.get("formulaire") or {}).items() if not requete.get(k)}
+        lignes.append({"n": n, "phrase": d["phrase"], "graine": d.get("graine"),
+                       "demande": {k: v for k, v in requete.items() if v is not None}})
+    plan = {"date": datetime.now().isoformat(timespec="seconds"), "graine": graine, "nature": "chemins",
+            "cotes": list(CHEMINS), "demandes": lignes}
+    dossier.mkdir(parents=True)
+    (dossier / "plan.json").write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
+    return plan
+
+
 # --- générer --------------------------------------------------------------------------------------------------
 
 def journal(dossier: Path) -> Path:
@@ -167,7 +211,7 @@ def dernieres_entrees(dossier: Path) -> dict[tuple[str, int], dict]:
 def reste_a_faire(dossier: Path, plan: dict | None = None) -> list[tuple[str, dict]]:
     plan = plan or lire_plan(dossier)
     entrees = dernieres_entrees(dossier)
-    return [(m, d) for m in MODELES for d in plan["demandes"]
+    return [(m, d) for m in cotes(plan) for d in plan["demandes"]
             if (entrees.get((m, d["n"])) or {}).get("resultat") not in FAITS]
 
 
@@ -178,10 +222,14 @@ def melanges(dossier: Path) -> bool:
 def faire(dossier: Path, modele: str, d: dict, noms) -> dict:
     """Une génération : l'exercice gardé dans originaux/ (ou le rejet), et la ligne du journal qui le dit."""
     demande = d["demande"]
-    entree = {"modele": modele, "n": d["n"], "attendu": demande["attendu"], "date": datetime.now().isoformat(timespec="seconds")}
+    entree = {"modele": modele, "n": d["n"], "attendu": demande.get("attendu"),
+              "date": datetime.now().isoformat(timespec="seconds")}
     debut = time.monotonic()
     try:
-        instance = generation.generer(dict(demande), mode="ia", noms_proteges=noms)
+        if modele == "procedural":  # le générateur, et la graine de l'exercice déjà relu s'il y en a une
+            instance = generation.generer(dict(demande), mode="procedural", graine=d.get("graine"), noms_proteges=noms)
+        else:
+            instance = generation.generer(dict(demande), mode="ia", noms_proteges=noms)
         fichier = dossier / "originaux" / f"{modele}-{d['n']:02d}.json"
         fichier.parent.mkdir(exist_ok=True)
         fichier.write_text(json.dumps(instance, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -192,6 +240,8 @@ def faire(dossier: Path, modele: str, d: dict, noms) -> dict:
         entree |= {"resultat": "rejete", "niveau": e.niveau, "erreurs": e.erreurs[:3]}
     except securite.DemandeRefusee as e:
         entree |= {"resultat": "refuse", "categorie": e.categorie}
+    except generation.AucunGenerateur:
+        entree |= {"resultat": "refuse", "categorie": "aucun générateur"}
     except Exception as e:  # le modèle en panne, un défaut du code : la suite continue, la génération sera refaite
         entree |= {"resultat": "erreur", "erreur": f"{type(e).__name__} : {e}"[:300]}
     entree["duree_totale_s"] = round(time.monotonic() - debut, 1)
@@ -208,7 +258,7 @@ def _ligne(rang: int, total: int, entree: dict) -> str:
     resultat = {"genere": f"✓ {entree.get('tentatives', 1)} tentative(s), {entree.get('signalements', 0)} signalement(s)",
                 "rejete": f"✗ rejeté ({entree.get('niveau')})", "refuse": f"✗ demande refusée ({entree.get('categorie')})",
                 "erreur": f"⚠ erreur, à refaire : {entree.get('erreur')}"}[entree["resultat"]]
-    return f"[{rang}/{total}] {entree['attendu']} — {resultat}, {entree['duree_totale_s']} s"
+    return f"[{rang}/{total}] {entree['attendu'] or 'demande ' + str(entree['n'])} — {resultat}, {entree['duree_totale_s']} s"
 
 
 def generer(dossier: Path, afficher: Callable[[str], None] = print) -> Counter:
@@ -216,8 +266,8 @@ def generer(dossier: Path, afficher: Callable[[str], None] = print) -> Counter:
     modèle entraîné (un seul chargement de chacun). S'arrête après 3 erreurs de suite. Quand tout est fait, mélange les
     exercices pour la relecture à l'aveugle."""
     plan = lire_plan(dossier)
-    chemin = _absolu(plan["adaptateur"]["chemin"])
-    if not chemin.is_file() or empreinte(chemin) != plan["adaptateur"]["sha256"]:
+    chemin = None if des_chemins(plan) else _absolu(plan["adaptateur"]["chemin"])
+    if chemin is not None and (not chemin.is_file() or empreinte(chemin) != plan["adaptateur"]["sha256"]):
         raise ValueError(f"l'adaptateur {chemin} a changé ou disparu depuis le début de la comparaison : en commencer "
                          "une nouvelle (--nouvelle)")
     config.rediriger({"rejets": dossier / "rejets", "sortie": dossier / "brut"})  # ni la vraie banque, ni le lot
@@ -225,11 +275,11 @@ def generer(dossier: Path, afficher: Callable[[str], None] = print) -> Counter:
     noms = nuit.noms_proteges()
     resultats: Counter = Counter()
     rang = de_suite = 0
-    for modele in MODELES:
+    for modele in cotes(plan):
         siennes = [d for m, d in a_faire if m == modele]
         if not siennes:
             continue
-        generation.utiliser_adaptateur(None if modele == "base" else chemin)
+        generation.utiliser_adaptateur(chemin if modele == "entraine" else None)  # les chemins : le modèle de base
         _liberer()
         afficher(f"{LIBELLES[modele]}" + (f" ({plan['adaptateur']['nom']})" if modele == "entraine" else "")
                  + f" : {len(siennes)} demande(s).")
@@ -254,11 +304,13 @@ def generer(dossier: Path, afficher: Callable[[str], None] = print) -> Counter:
 
 # --- mélanger -------------------------------------------------------------------------------------------------
 
-def anonymiser(instance: dict, ident: str, date: datetime) -> dict:
+def anonymiser(instance: dict, ident: str, date: datetime, gardes: tuple[str, ...] | None = None) -> dict:
     """L'exercice tel que le voit l'enseignant à l'aveugle : rien dans la meta ne dit quel modèle l'a écrit (ni
-    l'adaptateur, ni la durée, ni les tentatives) ; un identifiant et une date qui suivent l'ordre tiré au sort."""
+    l'adaptateur, ni la durée, ni les tentatives) ; un identifiant et une date qui suivent l'ordre tiré au sort.
+    `gardes` : seulement ces clés de la meta (les deux chemins : GARDES)."""
     x = copy.deepcopy(instance)
-    meta = {k: v for k, v in (x.get("meta") or {}).items() if k not in CACHES}
+    meta = {k: v for k, v in (x.get("meta") or {}).items()
+            if (k in gardes if gardes is not None else k not in CACHES)}
     x["meta"] = meta | {"id": ident, "date": date.isoformat(timespec="seconds"), "statut": banque.GENERE, "aveugle": True}
     return x
 
@@ -276,7 +328,8 @@ def melanger(dossier: Path) -> dict[str, dict]:
     cle = {}
     for rang, (modele, n, instance) in enumerate(produits, start=1):
         ident = f"aveugle-{rang:02d}"
-        banque.enregistrer(anonymiser(instance, ident, debut + timedelta(minutes=rang)))
+        banque.enregistrer(anonymiser(instance, ident, debut + timedelta(minutes=rang),
+                                      GARDES if des_chemins(plan) else None))
         cle[ident] = {"modele": modele, "n": n, "original": f"originaux/{modele}-{n:02d}.json"}
     (dossier / "cle.json").write_text(json.dumps(cle, ensure_ascii=False, indent=2), encoding="utf-8")
     return cle
@@ -301,7 +354,7 @@ def compter(dossier: Path) -> dict:
     entrees = dernieres_entrees(dossier)
     par_cle = {(c["modele"], c["n"]): ident for ident, c in cle.items()}
     modeles = {}
-    for m in MODELES:
+    for m in cotes(plan):
         gens = [entrees.get((m, d["n"])) or {} for d in plan["demandes"]]
         produits = [e for e in gens if e.get("resultat") == "genere"]
         relus = [lot.get(ident) for ident, c in cle.items() if c["modele"] == m]
@@ -320,13 +373,18 @@ def compter(dossier: Path) -> dict:
             "acceptes": statuts[banque.ACCEPTE], "rejetes": statuts[banque.REJETE], "pas_decides": statuts[banque.GENERE],
             "motifs": dict(motifs), "rejets_sans_motif": sum(1 for i in relus if i and banque.statut(i) == banque.REJETE
                                                              and not _decision(i).get("motifs")),
-            "reponses_fausses": sum(motifs[x] for x in REPONSES_FAUSSES),
+            # des exercices, pas des motifs : un exercice rejeté pour une réponse fausse et pour plusieurs justes
+            # compte une fois (la somme des motifs le comptait deux fois)
+            "reponses_fausses": sum(1 for i in relus if i and banque.statut(i) == banque.REJETE
+                                    and set(_decision(i).get("motifs") or []) & set(REPONSES_FAUSSES)),
+            "decisions_de_claude": sum(1 for i in relus if i and (_decision(i).get("motif") or "").startswith(PAR_CLAUDE)),
             "questions_modifiees": sum(len((i or {}).get("meta", {}).get("modifications") or []) for i in relus),
         }
     demandes = []
     for d in plan["demandes"]:
-        ligne = {"n": d["n"], "attendu": d["demande"]["attendu"], "test": d.get("test", False)}
-        for m in MODELES:
+        ligne = {"n": d["n"], "attendu": d["demande"].get("attendu"), "phrase": d.get("phrase"),
+                 "test": d.get("test", False)}
+        for m in cotes(plan):
             e = entrees.get((m, d["n"])) or {}
             ident = par_cle.get((m, d["n"]))
             instance = lot.get(ident) if ident else None
@@ -335,11 +393,17 @@ def compter(dossier: Path) -> dict:
                         "motifs": _decision(instance).get("motifs") or [] if instance else [],
                         "modifiees": len((instance or {}).get("meta", {}).get("modifications") or [])}
         demandes.append(ligne)
-    b, e = modeles["base"], modeles["entraine"]
-    regle = {"pas_plus_de_reponses_fausses": e["reponses_fausses"] <= b["reponses_fausses"],
-             "mieux_accepte": e["acceptes"] > b["acceptes"]}
-    return {"plan": {k: plan[k] for k in ("date", "graine", "jeu", "adaptateur")}, "nombre": len(plan["demandes"]),
-            "modeles": modeles, "demandes": demandes, "regle": regle | {"remplie": all(regle.values())}}
+    if des_chemins(plan):  # le critère de fin d'un lot : tous justes, et plus justes que le modèle seul
+        m, p = modeles["modele"], modeles["procedural"]
+        regle = {"tous_justes": p["produits"] == len(plan["demandes"]) and p["reponses_fausses"] == 0,
+                 "plus_juste": p["reponses_fausses"] < m["reponses_fausses"]}
+    else:
+        b, e = modeles["base"], modeles["entraine"]
+        regle = {"pas_plus_de_reponses_fausses": e["reponses_fausses"] <= b["reponses_fausses"],
+                 "mieux_accepte": e["acceptes"] > b["acceptes"]}
+    return {"plan": {k: plan.get(k) for k in ("date", "graine", "jeu", "adaptateur", "nature", "cotes")},
+            "nombre": len(plan["demandes"]), "modeles": modeles, "demandes": demandes,
+            "regle": regle | {"remplie": all(regle.values())}}
 
 
 def _case(x: dict) -> str:
@@ -356,6 +420,8 @@ def _case(x: dict) -> str:
 
 
 def ecrire_bilan(dossier: Path, c: dict) -> str:
+    if c["plan"].get("nature") == "chemins":
+        return ecrire_bilan_chemins(dossier, c)
     b, e = c["modeles"]["base"], c["modeles"]["entraine"]
     n = c["nombre"]
     adaptateur = c["plan"]["adaptateur"]
@@ -406,6 +472,60 @@ def ecrire_bilan(dossier: Path, c: dict) -> str:
         "- Une seule personne relit, et elle a construit le projet ; elle ne sait pas quel modèle a écrit l'exercice, "
         "mais les deux versions d'une même demande se reconnaissent.",
         "- Le modèle entraîné a appris sur un petit jeu ; le modèle de base reste le même Gemma 4 E4B, 4 bits.", ""]
+    md = "\n".join(texte)
+    (dossier / "bilan.md").write_text(md, encoding="utf-8")
+    (dossier / "bilan.json").write_text(json.dumps(c, ensure_ascii=False, indent=2), encoding="utf-8")
+    return md
+
+
+def ecrire_bilan_chemins(dossier: Path, c: dict) -> str:
+    """Le bilan des deux chemins : le modèle seul contre le générateur procédural."""
+    m, p = c["modeles"]["modele"], c["modeles"]["procedural"]
+    n, r = c["nombre"], c["regle"]
+    secondes = lambda v: "—" if v is None else f"{v:g} s".replace(".", ",")
+    sur_n = lambda v: f"{v} sur {n}"
+    oui = lambda v: "oui" if v else "non"
+
+    def ligne(libelle: str, cle: str, fmt=str) -> str:
+        return f"| {libelle} | {fmt(m[cle])} | {fmt(p[cle])} |"
+
+    motifs = sorted(set(m["motifs"]) | set(p["motifs"]), key=lambda x: list(banque.MOTIFS_DE_REJET).index(x)
+                    if x in banque.MOTIFS_DE_REJET else 99)
+    texte = [
+        "# Relecture à l'aveugle : le modèle seul contre le générateur procédural", "",
+        f"Comparaison du {c['plan']['date'][:10]} ({dossier.name}) : **{n} demandes réelles**, écrites comme un "
+        "enseignant et analysées comme dans l'interface, chacune passée par le modèle seul (le modèle de base, les "
+        "contrôles N1 → N4, les reprises, la contre-vérification) et par le générateur procédural. Les exercices ont "
+        "été relus mélangés, sans rien dans la meta qui dise le chemin.", "",
+        "| | Modèle seul | Générateur procédural |", "|---|---|---|",
+        ligne("Exercices produits (N1 → N4 passés)", "produits", sur_n),
+        ligne("Rejetés par N1 → N4 après les reprises", "rejetes_par_les_controles"),
+        ligne("Durée de génération (médiane)", "duree_mediane_s", secondes),
+        f"| **Acceptés à la relecture** | **{m['acceptes']} sur {n}** | **{p['acceptes']} sur {n}** |",
+        ligne("Rejetés à la relecture", "rejetes"),
+        *[f"| … {banque.MOTIFS_DE_REJET.get(x, x).lower()} | {m['motifs'].get(x, 0)} | {p['motifs'].get(x, 0)} |"
+          for x in motifs],
+        ligne("Questions modifiées à la main", "questions_modifiees"),
+        ligne("Pas encore décidés", "pas_decides"), "",
+        "## Le critère de fin", "",
+        f"Le générateur doit être **tous justes** (ses {n} exercices produits, aucun rejeté pour une réponse fausse ou "
+        f"plusieurs réponses justes : **{oui(r['tous_justes'])}**) **et plus juste que le modèle seul** (moins "
+        f"d'exercices rejetés pour une réponse fausse ou plusieurs réponses justes : {p['reponses_fausses']} contre "
+        f"{m['reponses_fausses']} : **{oui(r['plus_juste'])}**). "
+        + ("Les deux conditions sont remplies." if r["remplie"] else "Les deux conditions ne sont pas remplies."), "",
+        "## Demande par demande", "",
+        "| | Demande | Modèle seul | Générateur procédural |", "|---|---|---|---|",
+        *[f"| {d['n']} | {d['phrase'] or d['attendu']} | {_case(d['modele'])} | {_case(d['procedural'])} |"
+          for d in c["demandes"]], "",
+        "## Les limites", "",
+        f"- {n} demandes : un écart d'un ou deux exercices tient au hasard autant qu'au chemin.",
+        ("- **Les décisions sont de Claude** (Opus 5.5), à la demande de l'enseignant, d'après sa pré-relecture : Claude "
+         "avait déjà relu les exercices du générateur, et leur style se reconnaît ; ce n'est pas une relecture à "
+         "l'aveugle." if m["decisions_de_claude"] + p["decisions_de_claude"] else
+         "- Une seule personne relit, et elle a construit le projet ; la meta ne dit pas le chemin, mais le style des "
+         "énoncés le laisse deviner (les énoncés du générateur suivent des formulations fixes)."),
+        "- Les exercices du générateur reprennent ceux que l'enseignant avait déjà acceptés : il les relit une seconde "
+        "fois, cette fois sans savoir lesquels ce sont.", ""]
     md = "\n".join(texte)
     (dossier / "bilan.md").write_text(md, encoding="utf-8")
     (dossier / "bilan.json").write_text(json.dumps(c, ensure_ascii=False, indent=2), encoding="utf-8")
