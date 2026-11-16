@@ -9,7 +9,8 @@
         prerelecture/              les paquets d'avis de Claude sur l'échantillon (prerelecture.py), tels qu'il les a écrits
         jeux/                      les jeux de données figés (jeu.py)
         aveugle/                   les comparaisons du modèle de base et du modèle entraîné, relues à l'aveugle (IA4.3,
-                                   aveugle.py)
+                                   aveugle.py) ; ou des deux chemins, le modèle seul et le générateur procédural (le
+                                   critère de fin d'un lot du cycle 2, `aveugle chemins`)
 
 Le lot se range comme la banque (`utiliser` redirige ses dossiers pour tout le processus) : la génération, la relecture,
 les corrections à la main s'y font avec le code habituel, sans jamais toucher aux exercices de l'enseignant.

@@ -755,7 +755,11 @@ def verifier_question(n: int, q: dict) -> Verdict:
 
 
 def verifier(instance: dict) -> list[Verdict]:
-    """Un verdict par question. Hors maths, rien n'est recalculé : tout est « à relire » (architecture §9.4)."""
+    """Un verdict par question. Le français : les formes verbales inventées et l'ordre alphabétique (n4_francais.py,
+    16/11) ; les autres matières : rien n'est recalculé, tout est « à relire » (architecture §9.4)."""
+    if instance.get("matiere") == "francais":
+        from generateur.moteur.validation import n4_francais  # import local : n4_francais s'appuie sur ce module
+        return n4_francais.verifier(instance)
     if instance.get("matiere") != "maths":
         return [Verdict(A_RELIRE) for _ in instance["questions"]]
     return [verifier_question(n, q) for n, q in enumerate(instance["questions"], start=1)]
