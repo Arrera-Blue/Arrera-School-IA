@@ -132,7 +132,10 @@ MOTS_DES_MATIERES = {
            r"microbe|bacterie|virus|nutrition|muscle|plantes?\b|animaux|animal\b|etres? vivants?|"
            r"evolution des especes|fossile|geologi|corps humain|systeme nerveux|puberte|alimentation|"
            r"biodiversite|sang\b|sanguin|circulation sanguine|coeur\b|poumon|neurone|gene\b|genes\b|heredite|"
-           r"vaccin",
+           r"vaccin|"
+           # le vivant du cycle 2 (lot 2, étape 2.2 : au cycle 2, les SVT deviennent « sciences et technologie »)
+           r"herbivore|carnivore|omnivore|chaines? alimentaires?|larves?|metamorphose|mammiferes?|insectes?|"
+           r"locomotion|germination|regimes? alimentaires?|cinq sens|organes? des sens",
     "physique-chimie": r"physique|chimie|electricit|circuits? electrique|tension electrique|intensite|atomes?\b|"
                        r"molecule|masse volumique|vitesse|energie|lumiere|melange|dissolution|"
                        r"etats? de la matiere|etats? de l'eau|transformation chimique|combustion|gravitation|forces?\b|"

@@ -83,6 +83,15 @@ Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.4.
 Les tables sont écrites à la main (petites, chaque ligne avec sa source : le programme d'abord, sinon Wikipédia ou le
 Wiktionnaire) : `docs/Generateur-Procedural/lot-2-questionner-le-monde.md` §11.2.
 
+## `sciences_et_technologie/` : les tables du vivant (`generateur/procedural/donnees/sciences-et-technologie/`)
+
+| Script | Rôle | Demande |
+|---|---|---|
+| `page_relecture_vivant.py` | la page de relecture des 9 tables (vivant ou non, animaux, régimes, sens, plante, vie d'une plante, petits, locomotion, chaînes), avec leurs sources et ce qui n'est jamais demandé | `pyyaml` |
+
+Les tables sont écrites à la main, chaque ligne avec sa source (le programme, sinon la page Wikipédia ou Wiktionnaire
+lue) : `docs/Generateur-Procedural/lot-2-questionner-le-monde.md` §11.3.
+
 ## `lexique/` : la liste des mots de Lexique 3.83 (`generateur/moteur/validation/lexique/`)
 
 | Script | Rôle | Demande |

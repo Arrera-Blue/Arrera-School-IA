@@ -1,0 +1,69 @@
+# Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude ; chaque ligne cite la page
+# Wikipédia de l'animal, lue le 16/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6). Monde fermé :
+# chaque animal a un groupe et un régime. `regime` : « - » quand il n'est jamais demandé, parce que discuté ou
+# variable (l'araignée : une espèce est herbivore ; l'escargot : « la plupart » sont phytophages ; la baleine, la
+# tortue, la grenouille, l'abeille, la fourmi, la chauve-souris : selon l'espèce ou l'âge). `confusion` : le groupe où
+# les élèves rangent souvent l'animal à tort (le dauphin « poisson »), proposé d'abord comme mauvaise réponse ; « - » :
+# aucune.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/animaux --par "…"
+description: Des animaux, leur groupe dans la classification et leur régime alimentaire.
+sources:
+  wp_vache: {nom: "Wikipédia, « Vache » (« un herbivore ruminant appartenant à la famille des bovidés »)", url: "https://fr.wikipedia.org/wiki/Vache", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_lapin: {nom: "Wikipédia, « Lapin de garenne » (« Le lapin est herbivore et cæcotrophe »)", url: "https://fr.wikipedia.org/wiki/Lapin_de_garenne", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_cheval: {nom: "Wikipédia, « Cheval » (« un grand mammifère herbivore et ongulé à sabot unique »)", url: "https://fr.wikipedia.org/wiki/Cheval", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_mouton: {nom: "Wikipédia, « Mouton » (« mammifère herbivore ruminant »)", url: "https://fr.wikipedia.org/wiki/Mouton", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_girafe: {nom: "Wikipédia, « Girafe » (mammifère ; « La girafe passe plus de douze heures par jour à brouter »)", url: "https://fr.wikipedia.org/wiki/Girafe", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_lion: {nom: "Wikipédia, « Lion » (mammifère ; « Un mâle adulte se nourrit de 7 kg de viande chaque jour »)", url: "https://fr.wikipedia.org/wiki/Lion", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_loup: {nom: "Wikipédia, « Loup gris » (mammifère ; « spécialisé dans la chasse en coopération […] de grands ongulés »)", url: "https://fr.wikipedia.org/wiki/Loup_gris", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_chat: {nom: "Wikipédia, « Chat » (mammifère ; « Son régime alimentaire est strictement carnivore »)", url: "https://fr.wikipedia.org/wiki/Chat", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_cochon: {nom: "Wikipédia, « Cochon domestique » (« mammifère domestique omnivore de la famille des Suidae »)", url: "https://fr.wikipedia.org/wiki/Cochon_domestique", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_ours: {nom: "Wikipédia, « Ours brun » (mammifère ; « Omnivore opportuniste »)", url: "https://fr.wikipedia.org/wiki/Ours_brun", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_dauphin: {nom: "Wikipédia, « Grand dauphin » (mammifère, cétacé ; « Ils se nourrissent principalement de poissons »)", url: "https://fr.wikipedia.org/wiki/Grand_dauphin", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_chauve_souris: {nom: "Wikipédia, « Chiroptera » (« un ordre de mammifères placentaires »)", url: "https://fr.wikipedia.org/wiki/Chiroptera", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_baleine: {nom: "Wikipédia, « Baleine » (« certains mammifères marins de grande taille »)", url: "https://fr.wikipedia.org/wiki/Baleine", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_poule: {nom: "Wikipédia, « Poule domestique » (oiseau ; « L'oiseau est omnivore. »)", url: "https://fr.wikipedia.org/wiki/Poule_domestique", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_aigle: {nom: "Wikipédia, « Aigle royal » (oiseau ; proies, « charognes », « reptiles »)", url: "https://fr.wikipedia.org/wiki/Aigle_royal", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_manchot: {nom: "Wikipédia, « Manchot empereur » (oiseau ; « Son alimentation se compose essentiellement de poissons »)", url: "https://fr.wikipedia.org/wiki/Manchot_empereur", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_requin: {nom: "Wikipédia, « Requin blanc » (poisson cartilagineux, Chondrichthyens ; « pinnipèdes, poissons, tortues marines, cétacés »)", url: "https://fr.wikipedia.org/wiki/Requin_blanc", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_truite: {nom: "Wikipédia, « Truite commune » (poisson ; « insectes et invertébrés »)", url: "https://fr.wikipedia.org/wiki/Truite_commune", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_crocodile: {nom: "Wikipédia, « Crocodile du Nil » (reptile ; « L'éventail de ses proies est très varié »)", url: "https://fr.wikipedia.org/wiki/Crocodile_du_Nil", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_tortue: {nom: "Wikipédia, « Testudines » (reptiles)", url: "https://fr.wikipedia.org/wiki/Testudines", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_serpent: {nom: "Wikipédia, « Serpentes » (« un sous-ordre de squamates carnivores »)", url: "https://fr.wikipedia.org/wiki/Serpentes", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_grenouille: {nom: "Wikipédia, « Grenouille » (« certains amphibiens »)", url: "https://fr.wikipedia.org/wiki/Grenouille", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_abeille: {nom: "Wikipédia, « Abeille » (« un clade d'insectes hyménoptères »)", url: "https://fr.wikipedia.org/wiki/Abeille", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_fourmi: {nom: "Wikipédia, « Fourmi » (« Les fourmis sont des insectes »)", url: "https://fr.wikipedia.org/wiki/Fourmi", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_araignee: {nom: "Wikipédia, « Araneae » (arachnides ; « Contrairement aux insectes, elles ne disposent ni d'ailes ni d'antennes »)", url: "https://fr.wikipedia.org/wiki/Araneae", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_escargot: {nom: "Wikipédia, « Escargot » (« Ce sont tous des mollusques »)", url: "https://fr.wikipedia.org/wiki/Escargot", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+proprietes:
+  nom: texte
+  groupe: [mammifère, oiseau, poisson, reptile, amphibien, insecte, arachnide, mollusque]
+  regime: [herbivore, carnivore, omnivore, '-']
+  confusion: [mammifère, oiseau, poisson, reptile, amphibien, insecte, arachnide, mollusque, '-']
+cle: [nom]
+lignes:
+- {nom: la vache, groupe: mammifère, regime: herbivore, confusion: '-', source: wp_vache}
+- {nom: le lapin, groupe: mammifère, regime: herbivore, confusion: '-', source: wp_lapin}
+- {nom: le cheval, groupe: mammifère, regime: herbivore, confusion: '-', source: wp_cheval}
+- {nom: le mouton, groupe: mammifère, regime: herbivore, confusion: '-', source: wp_mouton}
+- {nom: la girafe, groupe: mammifère, regime: herbivore, confusion: '-', source: wp_girafe}
+- {nom: le lion, groupe: mammifère, regime: carnivore, confusion: '-', source: wp_lion}
+- {nom: le loup, groupe: mammifère, regime: carnivore, confusion: '-', source: wp_loup}
+- {nom: le chat, groupe: mammifère, regime: carnivore, confusion: '-', source: wp_chat}
+- {nom: le cochon, groupe: mammifère, regime: omnivore, confusion: '-', source: wp_cochon}
+- {nom: l'ours brun, groupe: mammifère, regime: omnivore, confusion: '-', source: wp_ours}
+- {nom: le dauphin, groupe: mammifère, regime: carnivore, confusion: poisson, source: wp_dauphin}
+- {nom: la chauve-souris, groupe: mammifère, regime: '-', confusion: oiseau, source: wp_chauve_souris}
+- {nom: la baleine, groupe: mammifère, regime: '-', confusion: poisson, source: wp_baleine}
+- {nom: la poule, groupe: oiseau, regime: omnivore, confusion: '-', source: wp_poule}
+- {nom: l'aigle, groupe: oiseau, regime: carnivore, confusion: '-', source: wp_aigle}
+- {nom: le manchot, groupe: oiseau, regime: carnivore, confusion: poisson, source: wp_manchot}
+- {nom: le requin, groupe: poisson, regime: carnivore, confusion: mammifère, source: wp_requin}
+- {nom: la truite, groupe: poisson, regime: carnivore, confusion: '-', source: wp_truite}
+- {nom: le crocodile, groupe: reptile, regime: carnivore, confusion: amphibien, source: wp_crocodile}
+- {nom: la tortue, groupe: reptile, regime: '-', confusion: amphibien, source: wp_tortue}
+- {nom: le serpent, groupe: reptile, regime: carnivore, confusion: '-', source: wp_serpent}
+- {nom: la grenouille, groupe: amphibien, regime: '-', confusion: reptile, source: wp_grenouille}
+- {nom: l'abeille, groupe: insecte, regime: '-', confusion: '-', source: wp_abeille}
+- {nom: la fourmi, groupe: insecte, regime: '-', confusion: '-', source: wp_fourmi}
+- {nom: l'araignée, groupe: arachnide, regime: '-', confusion: insecte, source: wp_araignee}
+- {nom: l'escargot, groupe: mollusque, regime: '-', confusion: insecte, source: wp_escargot}

@@ -208,7 +208,7 @@ def test_la_matiere_de_la_classe():
 def test_les_generateurs_ranges_par_matiere():
     from generateur import procedural
     paquets = procedural.matieres()
-    assert list(paquets) == ["maths", "francais", "histoire-geo"]  # le français : lot 1 (11/11) ; lot 2 (16/11)
+    assert list(paquets) == ["maths", "francais", "histoire-geo", "sciences-et-technologie"]  # lot 1 (11/11), lot 2 (16/11)
     noms = [m.NOM for p in paquets.values() for m in p.generateurs()]
     assert len(noms) == len(set(noms)) == len(procedural.notions())  # un nom n'est jamais pris deux fois
     for matiere, paquet in paquets.items():

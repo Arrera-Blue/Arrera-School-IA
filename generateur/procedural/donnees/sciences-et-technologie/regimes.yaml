@@ -1,0 +1,17 @@
+# Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude d'après le Wiktionnaire
+# (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6). « seulement » : « des plantes » serait contenu dans
+# « des plantes et des animaux » (N3 le signale), et l'herbivore ne mange que des plantes.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/regimes --par "…"
+description: Les trois régimes alimentaires du programme, et ce que mange un animal de chacun.
+sources:
+  wikt_herbivore: {nom: "Wiktionnaire, « herbivore » (« Qui se nourrit de substances végétales. »)", url: "https://fr.wiktionary.org/wiki/herbivore", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wikt_carnivore: {nom: "Wiktionnaire, « carnivore » (« Qui consomme de la viande. »)", url: "https://fr.wiktionary.org/wiki/carnivore", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wikt_omnivore: {nom: "Wiktionnaire, « omnivore » (« Qui mange de tout. »)", url: "https://fr.wiktionary.org/wiki/omnivore", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+proprietes:
+  regime: [herbivore, carnivore, omnivore]
+  mange: texte
+cle: [regime]
+lignes:
+- {regime: herbivore, mange: seulement des plantes, source: wikt_herbivore}
+- {regime: carnivore, mange: seulement d'autres animaux, source: wikt_carnivore}
+- {regime: omnivore, mange: des plantes et des animaux, source: wikt_omnivore}
