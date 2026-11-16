@@ -46,6 +46,13 @@ def lu(audio: dict, cle: str) -> str:
     ("6 × 7", "6 fois 7"),
     ("18 ÷ 2 = 9", "18 divisé par 2 = 9"),
     ("le 14/07, et/ou", "le 14 sur 07, et/ou"),  # une date est lue comme une fraction : limite connue
+    # étape 1.5 du lot 1 : une terminaison s'épelle (« -ent » ferait « an », et Piper n'en tirait aucun son)
+    ("-ent", "e, n, t"),
+    ("au présent, avec « nous », les verbes en -er se terminent par -ons : nous chantons.",
+     "au présent, avec « nous », les verbes en e, r se terminent par o, n, s : nous chantons."),
+    ("Règle : -al → -aux. Donc cheval → chevaux.", "Règle : a, l devient a, u, x. Donc cheval devient chevaux."),
+    ("in-", "in"), ("dé-", "dé"),  # un préfixe : sans son tiret
+    ("c'est-à-dire", "c'est-à-dire"), ("peut-être", "peut-être"), ("5 - 3 = 2", "5 - 3 = 2"), ("-4", "-4"),
 ])
 def test_les_maths_sont_dites_en_mots(ecrit, dit):
     assert lecture.prononcable(ecrit) == dit
