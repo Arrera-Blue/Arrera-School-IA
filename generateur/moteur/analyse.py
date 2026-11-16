@@ -121,7 +121,11 @@ MOTS_DES_MATIERES = {
                     r"1789|shoah|guerre froide|union europeenne|mediterranee|seigneur|feodal|chateau fort|"
                     r"humanisme|reforme protestante|lumieres|industrialisation|metropole|littoral|"
                     r"monarchie|empereur|pharaon|cites? grecques?|islam|charlemagne|vichy|resistance|"
-                    r"totalitari|democratie athenienne|habiter",
+                    r"totalitari|democratie athenienne|habiter|"
+                    # le cycle 2 : le temps (histoire du CP et du CE1, programme de 2026), l'espace
+                    r"se reperer dans le temps|se reperer dans l'espace|calendrier|saisons?\b|jours de la semaine|"
+                    r"mois de l'annee|frise|periodes? de l'histoire|prehistoire|oceans?\b|points? cardinaux|"
+                    r"fleuves?\b|massifs?\b",
     "svt": r"svt\b|sciences de la vie|biologi|cellule|photosynthese|digestion|respiration|reproduction|"
            r"ecosysteme|volcan|seisme|tectonique|plaques? lithospheri|genetique|adn\b|chromosome|immunit|"
            r"microbe|bacterie|virus|nutrition|muscle|plantes?\b|animaux|animal\b|etres? vivants?|"
@@ -135,13 +139,17 @@ MOTS_DES_MATIERES = {
                        r"changements? d'etat|solubilit|conducteur|isolant|signal|ondes?\b",
     "anglais": r"anglais|english|preterit|present perfect|irregular|verbes irreguliers anglais|vocabulary|"
                r"grammar|simple past|present continuous|modals?\b",
-    "technologie": r"technologi|techno\b|programmation|scratch|algorithm|robot|objets? techniques?|"
+    # « sciences et technologie » (le cycle 2) n'est pas la technologie du collège
+    "technologie": r"(?<!sciences et )(?<!science et )(?:technologi|techno\b)|programmation|scratch|algorithm|robot|objets? techniques?|"
                    r"reseaux? informatiques?|informatique|capteur|actionneur|cahier des charges|"
                    r"impression 3d|chaine d'energie|chaine d'information",
-    # le cycle 2 (questionner le monde) ; l'EMC, les arts plastiques et la musique, de l'école au collège
-    "questionner-le-monde": r"questionner le monde|qlm\b|se reperer dans le temps|se reperer dans l'espace|calendrier|"
-                            r"saisons?\b|jours de la semaine|mois de l'annee|frise|vivant ou non|non vivant|"
-                            r"monde du vivant|monde de la matiere|monde des objets",
+    # le cycle 2 : les sciences et technologie (programme de 2026) ; « questionner le monde », l'ancien nom (2020),
+    # partagé entre elles et l'histoire-géographie (matiere_de_la_classe) ; l'EMC, les arts plastiques et la musique, de
+    # l'école au collège
+    "sciences-et-technologie": r"sciences et technologie|sciences? et techno\b|vivant ou non|non vivant|"
+                               r"sciences?\b(?! de la vie| physiques?| et techno)|"
+                               r"monde du vivant|monde de la matiere|monde des objets",
+    "questionner-le-monde": r"questionner le monde|qlm\b",
     "emc": r"emc\b|enseignement moral|moral et civique|education civique|civique|citoyen|laicite|"
            r"symboles de la republique|marianne|devise de la republique|drapeau|hymne national|marseillaise|"
            r"droits de l'enfant|regles de vie|vivre ensemble|harcelement|discrimination|fraternite",
@@ -157,7 +165,8 @@ MATIERES_RE = {m: re.compile(r"\b(?:" + motifs + ")") for m, motifs in MOTS_DES_
 NOMS_DES_MATIERES = {m: re.compile(r"\b(?:" + motifs + ")") for m, motifs in {
     "maths": r"maths?\b|mathemati", "francais": r"francais\b|langue francaise", "histoire-geo": r"histoire|geographi",
     "svt": r"svt\b|sciences de la vie", "physique-chimie": r"physique|chimie", "anglais": r"anglais|english",
-    "technologie": r"technologi|techno\b", "questionner-le-monde": r"questionner le monde|qlm\b",
+    "technologie": r"(?<!sciences et )(?<!science et )(?:technologi|techno\b)", "questionner-le-monde": r"questionner le monde|qlm\b",
+    "sciences-et-technologie": r"sciences et technologie|sciences? et techno\b",
     "emc": r"emc\b|enseignement moral et civique|education civique", "arts-plastiques": r"arts? plastiques?",
     "education-musicale": r"education musicale|musique\b"}.items()}
 POIDS_DU_NOM = 3
@@ -173,15 +182,30 @@ def lire_matiere(texte: str, permises: list[str]) -> str | None:
     return gagnantes[0] if meilleur and len(gagnantes) == 1 else None
 
 
-# au cycle 2, les sciences, l'histoire et la géographie s'enseignent dans « questionner le monde »
-# (docs/matieres-cp-3e.md) : « les états de l'eau pour des CE1 » n'est pas de la physique-chimie
-VERS_QUESTIONNER_LE_MONDE = ("svt", "physique-chimie", "technologie", "histoire-geo")
+# au cycle 2, les sciences s'enseignent dans « sciences et technologie » (programme de 2026 ; lot 2 :
+# docs/Generateur-Procedural/lot-2-questionner-le-monde.md) : « les états de l'eau pour des CE1 » n'est pas de la
+# physique-chimie. L'histoire et la géographie restent « histoire-géographie ».
+VERS_SCIENCES = ("svt", "physique-chimie", "technologie")
+SCIENCES = ("svt", "physique-chimie", "technologie", "sciences-et-technologie")
+ANCIEN_NOM = ("« questionner le monde » est devenu « sciences et technologie » et « histoire-géographie » "
+              "(programmes de 2026) : à choisir")
 
 
-def matiere_de_la_classe(matiere: str | None, niveau: str | None, permises: list[str]) -> str | None:
-    if (programmes.cycle(niveau) == 2 and matiere in VERS_QUESTIONNER_LE_MONDE
-            and "questionner-le-monde" in permises):
-        return "questionner-le-monde"
+def matiere_de_la_classe(matiere: str | None, niveau: str | None, permises: list[str], texte: str = "") -> str | None:
+    """La matière d'une demande, dans les noms de sa classe. Au cycle 2 : les SVT, la physique-chimie et la technologie
+    deviennent « sciences et technologie » ; « questionner le monde », l'ancien nom (2020), devient l'une des deux
+    matières de 2026 selon les mots de la demande (« les saisons » : histoire-géographie ; « les animaux » : sciences),
+    ou None si rien ne les départage."""
+    if programmes.cycle(niveau) != 2 or "sciences-et-technologie" not in permises:
+        return matiere
+    if matiere in VERS_SCIENCES:
+        return "sciences-et-technologie"
+    if matiere == "questionner-le-monde":
+        simple = sans_accents(texte)
+        sciences = sum(len(MATIERES_RE[m].findall(simple)) for m in SCIENCES)
+        histoire_geo = len(MATIERES_RE["histoire-geo"].findall(simple))
+        return ("sciences-et-technologie" if sciences > histoire_geo else
+                "histoire-geo" if histoire_geo > sciences else None)
     return matiere
 
 
@@ -396,9 +420,9 @@ def analyser(phrase: str, fournisseur: Fournisseur | None = None,
                 notion, sources["notion"] = proposition["notion"].strip(), "modele"
         duree = round(time.monotonic() - debut, 1)
 
-    matiere = matiere_de_la_classe(matiere, niveau, matieres)
+    demandee, matiere = matiere, matiere_de_la_classe(matiere, niveau, matieres, phrase or "")
     if matiere is None:
-        remarques.append("matière non reconnue : à choisir")
+        remarques.append(ANCIEN_NOM if demandee == "questionner-le-monde" else "matière non reconnue : à choisir")
     if notion is None:
         remarques.append("notion non reconnue : à écrire")
     requete = {"type": type_, "matiere": matiere, "niveau": niveau, "notion": notion, "nb_questions": nombre,

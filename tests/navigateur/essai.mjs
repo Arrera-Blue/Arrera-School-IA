@@ -117,6 +117,11 @@ try {
   await jusqua(`!document.querySelector("#form-requete").hidden`);
   verifier("analyse : formulaire pré-rempli", await js(`document.querySelector("#matiere").value === "maths" &&
     document.querySelector("#niveau").value === "6e" && document.querySelector("#nb_questions").value === "5"`));
+  // lot 2 du cycle 2 (16/11) : « questionner le monde » est devenu « sciences et technologie » et « histoire-géographie »
+  verifier("formulaire : « Sciences et technologie » proposé, plus « Questionner le monde »", await js(`(() => {
+    const valeurs = [...document.querySelector("#matiere").options].map((o) => o.value);
+    return valeurs.includes("sciences-et-technologie") && valeurs.includes("histoire-geo")
+      && !valeurs.includes("questionner-le-monde"); })()`));
   await js(`document.querySelector("#btn-generer").click()`);
   await jusqua(`location.hash.startsWith("#/exercice/") && document.querySelectorAll("#ex-questions .question").length === 5`, 60000);
   const ident = await js(`location.hash.slice("#/exercice/".length)`);

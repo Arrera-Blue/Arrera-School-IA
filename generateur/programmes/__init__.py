@@ -2,7 +2,9 @@
 
 Un fichier par matière et par classe (`maths-6e.yaml`…) : les « Objectifs d'apprentissage » du programme en vigueur,
 recopiés MOT POUR MOT, rangés par thème, avec la source (arrêté, NOR, Bulletin officiel). Méthode, vérification et
-corrections : docs/etapes/etape-E2-programmes.md.
+corrections : docs/etapes/etape-E2-programmes.md. Au cycle 2, les sciences et technologie et l'histoire-géographie
+viennent des programmes de 2026, en vigueur au CP depuis la rentrée 2026, au CE1 et au CE2 à la rentrée 2027 ; en
+histoire-géographie, la colonne « Attendus » est relevée aussi (`colonne` : « objectifs » ou « attendus »).
 
 Identifiants : `maths.6e.fractions` désigne un thème, `maths.6e.fractions.09` un attendu de ce thème. Un exercice
 peut viser un attendu précis ou un thème entier ; un filtre sur un thème trouve aussi les exercices de ses attendus
@@ -27,8 +29,11 @@ DOSSIER = Path(__file__).parent
 NIVEAUX = ("CP", "CE1", "CE2", "6e", "5e", "4e", "3e")
 CYCLES = {"CP": 2, "CE1": 2, "CE2": 2, "6e": 3, "5e": 4, "4e": 4, "3e": 4}
 _SEGMENTS = "|".join(n.lower() for n in NIVEAUX)
-ID_THEME = re.compile(rf"^(maths|francais)\.({_SEGMENTS})\.[a-z0-9]+(?:-[a-z0-9]+)*$")
-ID_ATTENDU = re.compile(rf"^(maths|francais)\.({_SEGMENTS})\.[a-z0-9]+(?:-[a-z0-9]+)*\.\d{{2}}$")
+# les matières du référentiel : les maths et le français (E2, étape 0.4) ; les sciences et l'histoire-géographie du
+# cycle 2 (lot 2, programmes de 2026 : docs/Generateur-Procedural/lot-2-questionner-le-monde.md)
+_MATIERES = "maths|francais|sciences-et-technologie|histoire-geo"
+ID_THEME = re.compile(rf"^({_MATIERES})\.({_SEGMENTS})\.[a-z0-9]+(?:-[a-z0-9]+)*$")
+ID_ATTENDU = re.compile(rf"^({_MATIERES})\.({_SEGMENTS})\.[a-z0-9]+(?:-[a-z0-9]+)*\.\d{{2}}$")
 CHAMPS_SOURCE = ("texte", "arrete", "nor", "bo", "url", "en_vigueur", "extrait", "releve")
 
 

@@ -1,0 +1,160 @@
+# Référentiel des attendus — sciences-et-technologie, CE2 (générateur procédural du cycle 2, lot 2, étape 2.0).
+# Libellés recopiés MOT POUR MOT de la colonne « Objectifs d’apprentissage » du programme officiel de 2026 (source
+# ci-dessous ; le PDF du BO, pages 4 à 15 :
+# https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf) ;
+# seuls les identifiants et le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du programme) sont
+# ajoutés. Méthode et corrections : docs/Generateur-Procedural/lot-2-questionner-le-monde.md §11.1.
+matiere: sciences-et-technologie
+niveau: CE2
+cycle: 2
+source:
+  texte: Programme de sciences et technologie du cycle 2 (annexe 1 de l’arrêté)
+  arrete: Arrêté du 5 juin 2026 (JO du 9 juin 2026)
+  nor: MENE2611650A
+  bo: BO n° 24 du 11 juin 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo24/MENE2611650A
+  en_vigueur: au CE2 à la rentrée 2027-2028 (article 3 de l’arrêté) ; en 2026-2027, le CE2 suit encore « Questionner le monde
+    » (BO n° 31 du 30 juillet 2020)
+  extrait: Programme de sciences et technologie du cycle 2 (annexe 1), « Cours élémentaire deuxième année »
+  releve: '2026-11-16'
+themes:
+- id: sciences-et-technologie.ce2.masse-volumes-temps
+  domaine: La matière, les mesures, l’électricité
+  theme: Masse, volumes et mesure du temps
+  attendus:
+  - id: sciences-et-technologie.ce2.masse-volumes-temps.01
+    libelle: Convertir des unités de masse.
+    qcm: true
+  - id: sciences-et-technologie.ce2.masse-volumes-temps.02
+    libelle: Comparer les contenances de différents objets.
+    qcm: false
+  - id: sciences-et-technologie.ce2.masse-volumes-temps.03
+    libelle: Comparer des volumes de liquide en utilisant un verre gradué ou en utilisant un récipient de contenance connue
+      comme une bouteille d’un litre ou d’un demi-litre.
+    qcm: false
+  - id: sciences-et-technologie.ce2.masse-volumes-temps.04
+    libelle: Comparer, estimer, mesurer des durées.
+    qcm: false
+- id: sciences-et-technologie.ce2.etats-matiere
+  domaine: La matière, les mesures, l’électricité
+  theme: États physiques de la matière
+  attendus:
+  - id: sciences-et-technologie.ce2.etats-matiere.01
+    libelle: Différencier les états physiques solide (forme et volume propre) et liquide (volume propre, absence de forme
+      propre et surface horizontale).
+    qcm: true
+- id: sciences-et-technologie.ce2.diversite-vivant
+  domaine: Les êtres vivants dans leur environnement
+  theme: Unité et diversité du vivant
+  attendus:
+  - id: sciences-et-technologie.ce2.diversite-vivant.01
+    libelle: Décrire les caractéristiques des êtres vivants (biologie, écologie, classification).
+    qcm: true
+- id: sciences-et-technologie.ce2.reproduction-croissance
+  domaine: Les êtres vivants dans leur environnement
+  theme: Reproduction, croissance et développement
+  attendus:
+  - id: sciences-et-technologie.ce2.reproduction-croissance.01
+    libelle: 'Ordonner les étapes de la vie d’une plante à fleurs : de la graine à la plante, de la fleur au fruit (germination
+      de la graine, croissance, formation de la fleur, formation du fruit contenant des graines, dispersion des graines).'
+    qcm: true
+  - id: sciences-et-technologie.ce2.reproduction-croissance.02
+    libelle: Mesurer la croissance d’un être vivant (plante ou animal) au cours du temps.
+    qcm: false
+  - id: sciences-et-technologie.ce2.reproduction-croissance.03
+    libelle: Distinguer chez les animaux les formes juvénile, larvaire et adulte, à partir d’exemples. Distinguer les modalités
+      de croissance continue (sans mue) et discontinue (avec des mues).
+    qcm: true
+- id: sciences-et-technologie.ce2.locomotion
+  domaine: Les êtres vivants dans leur environnement
+  theme: Locomotion chez les animaux
+  attendus:
+  - id: sciences-et-technologie.ce2.locomotion.01
+    libelle: Décrire les organes locomoteurs et les associer à un mode de locomotion.
+    qcm: true
+  - id: sciences-et-technologie.ce2.locomotion.02
+    libelle: Décrire les similitudes de forme entre les structures locomotrices et les relier au mode de déplacement dans
+      un milieu de vie donné.
+    qcm: true
+- id: sciences-et-technologie.ce2.environnement-proche
+  domaine: Les êtres vivants dans leur environnement
+  theme: Observer et décrire son environnement proche
+  attendus:
+  - id: sciences-et-technologie.ce2.environnement-proche.01
+    libelle: Observer des environnements variés pour élargir la connaissance des êtres vivants, de leurs interactions et de
+      leurs milieux de vie.
+    qcm: false
+  - id: sciences-et-technologie.ce2.environnement-proche.02
+    libelle: Élaborer une courte chaine alimentaire.
+    qcm: true
+  - id: sciences-et-technologie.ce2.environnement-proche.03
+    libelle: Envisager le sol comme un milieu vivant et observer la diversité des êtres vivants qui le composent (dont les
+      animaux et les champignons).
+    qcm: false
+- id: sciences-et-technologie.ce2.proteger-environnement
+  domaine: Les êtres vivants dans leur environnement
+  theme: Agir pour protéger l’environnement
+  attendus:
+  - id: sciences-et-technologie.ce2.proteger-environnement.01
+    libelle: Identifier les conséquences positives et négatives de certaines activités humaines sur un environnement.
+    qcm: false
+  - id: sciences-et-technologie.ce2.proteger-environnement.02
+    libelle: S’impliquer dans un projet collectif de préservation de l’environnement en lien avec la transition écologique.
+    qcm: false
+  - id: sciences-et-technologie.ce2.proteger-environnement.03
+    libelle: Développer un rapport sensible à la nature.
+    qcm: false
+  - id: sciences-et-technologie.ce2.proteger-environnement.04
+    libelle: Prendre conscience de la nécessité et des possibilités d’agir, tant individuellement que collectivement, pour
+      protéger l’environnement.
+    qcm: false
+- id: sciences-et-technologie.ce2.croissance-mouvement
+  domaine: Le corps humain et la santé
+  theme: Croissance et mouvement
+  attendus:
+  - id: sciences-et-technologie.ce2.croissance-mouvement.01
+    libelle: Modéliser un mouvement de flexion/extension pour identifier le rôle des muscles et des articulations.
+    qcm: true
+  - id: sciences-et-technologie.ce2.croissance-mouvement.02
+    libelle: Observer les changements corporels pendant l’activité physique, en lien avec l’enseignement physique et sportif.
+    qcm: false
+  - id: sciences-et-technologie.ce2.croissance-mouvement.03
+    libelle: Relier l’activité physique avec la variation du rythme respiratoire (inspiration, expiration) et du rythme cardiaque
+      par la mesure du pouls.
+    qcm: true
+- id: sciences-et-technologie.ce2.sante-hygiene
+  domaine: Le corps humain et la santé
+  theme: Santé et hygiène de vie
+  attendus:
+  - id: sciences-et-technologie.ce2.sante-hygiene.01
+    libelle: Constater le lien entre la pratique physique régulière et le bien-être.
+    qcm: false
+  - id: sciences-et-technologie.ce2.sante-hygiene.02
+    libelle: Se familiariser avec quelques notions sur le fonctionnement du cerveau pour mieux apprendre.
+    qcm: false
+- id: sciences-et-technologie.ce2.objets-techniques
+  domaine: Les objets techniques au cœur de la société
+  theme: Les objets techniques au cœur de la société
+  attendus:
+  - id: sciences-et-technologie.ce2.objets-techniques.01
+    libelle: Identifier les dispositifs permettant la saisie, le traitement et la restitution d’informations (clavier, processeur,
+      écran, etc.).
+    qcm: true
+  - id: sciences-et-technologie.ce2.objets-techniques.02
+    libelle: Utiliser un ordinateur ou tablette numérique, pour saisir un texte.
+    qcm: false
+  - id: sciences-et-technologie.ce2.objets-techniques.03
+    libelle: Utiliser un moteur de recherche.
+    qcm: false
+  - id: sciences-et-technologie.ce2.objets-techniques.04
+    libelle: Comprendre qu’un objet technique peut être un assemblage de pièces.
+    qcm: false
+  - id: sciences-et-technologie.ce2.objets-techniques.05
+    libelle: Identifier les différentes pièces d’un objet technique en réalisant des assemblages simples.
+    qcm: false
+  - id: sciences-et-technologie.ce2.objets-techniques.06
+    libelle: Comprendre que, pour un besoin identifié, il existe une diversité d’objets y répondant.
+    qcm: false
+  - id: sciences-et-technologie.ce2.objets-techniques.07
+    libelle: Initier à la programmation d’objets techniques par des algorithmes simples.
+    qcm: false

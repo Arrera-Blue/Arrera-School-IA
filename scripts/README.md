@@ -15,10 +15,22 @@ servent qu'ici.
 | `verifier_mot_pour_mot.py` | chaque libellé retrouvé tel quel dans le texte officiel | — |
 | `extraire_objectifs_c2.py` | les objectifs du français du cycle 2 (CP, CE1, CE2 : un tableau à deux colonnes) | — |
 | `construire_referentiel_c2.py` | `francais-cp.yaml`, `-ce1.yaml`, `-ce2.yaml` (identifiants, champ « qcm ») | `pyyaml` |
-| `verifier_mot_pour_mot_c2.py` | les 182 libellés du cycle 2 retrouvés tels quels | `pyyaml` |
+| `verifier_mot_pour_mot_c2.py` | les libellés du cycle 2 (et les titres des thèmes de 2026) retrouvés tels quels dans le texte officiel | `pyyaml` |
+| `extraire_objectifs_2026.py` | les programmes de 2026 du cycle 2 : sciences et technologie, histoire-géographie ; chaque morceau de texte rangé dans sa colonne par sa position sur la page | `pypdf` |
+| `construire_referentiel_2026.py` | `sciences-et-technologie-cp.yaml`…, `histoire-geo-cp.yaml`… (identifiants, champ « qcm », colonne d'origine) | `pyyaml` |
 
 Méthode : `docs/etapes/etape-E2-programmes.md` (6e, 5e) ; `docs/Generateur-Procedural/cycle-2-cp-ce1-ce2.md` §11.4
-(cycle 2). (`docs/` est à côté du dépôt, non versionné.)
+(français du cycle 2) ; `docs/Generateur-Procedural/lot-2-questionner-le-monde.md` §11.1 (sciences et
+histoire-géographie du cycle 2). (`docs/` est à côté du dépôt, non versionné.)
+
+Les programmes de 2026, de bout en bout (les PDF téléchargés à part, dans un dossier vide) :
+
+```bash
+python -I scripts/programmes/extraire_objectifs_2026.py sciences bo24.pdf 4 15 > sciences.json
+python -I scripts/programmes/extraire_objectifs_2026.py histoire-geo annexe-3-hg-c2.pdf 1 8 > histoire-geo.json
+python -I scripts/programmes/construire_referentiel_2026.py sciences.json histoire-geo.json generateur/programmes
+python -I scripts/programmes/verifier_mot_pour_mot_c2.py <texte officiel.txt> generateur/programmes/histoire-geo-cp.yaml
+```
 
 ## `conjugaison/` : les tables de conjugaison (`generateur/procedural/donnees/francais/`)
 
