@@ -1,0 +1,33 @@
+# Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude ; chaque ligne cite sa
+# source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6). `forme` : une larve change beaucoup en devenant
+# adulte (une métamorphose) ; un jeune ressemble déjà à l'adulte (le programme : « formes juvénile, larvaire et
+# adulte »). `mues` : grandit en faisant des mues (les insectes : « Les mues sont nécessaires à la croissance »), ou
+# sans mue (les mammifères : chez eux, la mue n'est que la chute du pelage) ; « - » : jamais demandé (le têtard, le
+# poussin : leur peau ou leur duvet changent, mais ils ne grandissent pas par des mues).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/petits --par "…"
+description: Des petits d'animaux, l'adulte qu'ils deviennent, larve ou jeune, et s'ils grandissent par des mues.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE2 (BO n° 24 du 11 juin 2026) : « Distinguer chez les animaux les formes juvénile, larvaire et adulte » ; « croissance continue (sans mue) et discontinue (avec des mues) »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-16'}
+  wp_tetard: {nom: "Wikipédia, « Têtard » (« Un têtard est une larve d'amphibien ») ; « Grenouille » (« la larve de la grenouille est appelée un têtard »)", url: "https://fr.wikipedia.org/wiki/T%C3%AAtard", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_chenille: {nom: "Wikipédia, « Chenille (lépidoptère) » (« La chenille est la larve des lépidoptères (papillons). » ; elle « connaîtra quatre ou cinq mues »)", url: "https://fr.wikipedia.org/wiki/Chenille_(l%C3%A9pidopt%C3%A8re)", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_asticot: {nom: "Wikipédia, « Asticot » (« L'asticot est la larve des mouches et d'autres diptères ») ; « Mue (biologie) » (« Les mues sont nécessaires à la croissance », chez les arthropodes, dont les insectes)", url: "https://fr.wikipedia.org/wiki/Asticot", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wikt_poulain: {nom: "Wiktionnaire, « poulain » (« Jeune cheval de la naissance à trois ans. »)", url: "https://fr.wiktionary.org/wiki/poulain", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wikt_veau: {nom: "Wiktionnaire, « veau » (« Petit de la vache »)", url: "https://fr.wiktionary.org/wiki/veau", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wikt_agneau: {nom: "Wiktionnaire, « agneau » (« Petit du bélier et de la brebis. »)", url: "https://fr.wiktionary.org/wiki/agneau", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wikt_chaton: {nom: "Wiktionnaire, « chaton » (« Jeune chat, mâle ou femelle, qui n'a pas encore atteint l'âge adulte. »)", url: "https://fr.wiktionary.org/wiki/chaton", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wikt_poussin: {nom: "Wiktionnaire, « poussin » (« Petit de la poule encore recouvert de duvet. »)", url: "https://fr.wiktionary.org/wiki/poussin", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+proprietes:
+  jeune: texte
+  adulte: texte
+  forme: [larve, jeune]
+  mues: [oui, non, '-']
+cle: [jeune]
+lignes:
+- {jeune: le têtard, adulte: la grenouille, forme: larve, mues: '-', source: wp_tetard}
+- {jeune: la chenille, adulte: le papillon, forme: larve, mues: oui, source: wp_chenille}
+- {jeune: l'asticot, adulte: la mouche, forme: larve, mues: oui, source: wp_asticot}
+- {jeune: le poulain, adulte: le cheval, forme: jeune, mues: non, source: wikt_poulain}
+- {jeune: le veau, adulte: la vache, forme: jeune, mues: non, source: wikt_veau}
+- {jeune: l'agneau, adulte: le mouton, forme: jeune, mues: non, source: wikt_agneau}
+- {jeune: le chaton, adulte: le chat, forme: jeune, mues: non, source: wikt_chaton}
+- {jeune: le poussin, adulte: la poule, forme: jeune, mues: '-', source: wikt_poussin}

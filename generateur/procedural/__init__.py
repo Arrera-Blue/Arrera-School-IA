@@ -6,7 +6,7 @@ distracteurs à partir d'erreurs typiques d'élèves. En maths, le modèle peut 
 docs/etapes/etape-1.7-procedural.md.
 
 Un sous-dossier par matière (`maths/` ; le cycle 2 : docs/Generateur-Procedural/cycle-2-cp-ce1-ce2.md, `francais/`,
-`histoire_geo/` pour la matière « histoire-geo ») : son
+`histoire_geo/` pour la matière « histoire-geo », `sciences_et_technologie/`) : son
 `__init__` déclare `MATIERE`, `AUTRES_NOTIONS` (les notions de la matière qu'aucun générateur ne couvre) et
 `generateurs()` ; chaque module de générateur, `NOM` (unique, toutes matières), `MATIERE`, `NIVEAU` (la classe par
 défaut), `NIVEAUX` (celles où il s'applique), `MOTS_CLES`, `GENRES`, `ATTENDUS`, et `TABLES` s'il lit ses réponses
@@ -114,8 +114,8 @@ def sans_accents(texte: str) -> str:
 
 def matieres() -> dict:
     """Les matières qui ont des générateurs : {matière : son paquet}. Import local : le paquet reste léger à charger."""
-    from generateur.procedural import francais, histoire_geo, maths
-    return {p.MATIERE: p for p in (maths, francais, histoire_geo)}
+    from generateur.procedural import francais, histoire_geo, maths, sciences_et_technologie
+    return {p.MATIERE: p for p in (maths, francais, histoire_geo, sciences_et_technologie)}
 
 
 def notions() -> dict:

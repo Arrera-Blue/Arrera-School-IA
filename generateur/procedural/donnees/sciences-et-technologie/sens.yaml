@@ -1,0 +1,22 @@
+# Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude
+# (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6). Seulement « quel organe pour ce sens ? », jamais
+# « à quoi sert cet organe ? » : l'oreille sert aussi à l'équilibre, le nez à respirer. L'équilibre (un sens du
+# programme) n'est pas demandé : son organe, l'oreille interne, est aussi celui de l'ouïe. `permet` : « Avec quel organe
+# peut-on … ? » ; « - » pour le toucher (la langue sent aussi le chaud, le froid, ce qu'elle touche) : seulement « Quel
+# est l'organe du toucher ? ».
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/sens --par "…"
+description: Les cinq sens, leur organe, et ce qu'ils permettent de faire.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE1 (BO n° 24 du 11 juin 2026) : « vision, audition, odorat, gout, équilibre, toucher »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-16'}
+  wp_sens: {nom: "Wikipédia, « Sens (physiologie) » (« le globe oculaire qui est le véritable organe de la vue » ; « l'organe de l'audition, l'oreille » ; « C'est par la peau que proviennent les sensations du toucher » ; légende : « oreilles, yeux, langue, nez, peau »)", url: "https://fr.wikipedia.org/wiki/Sens_(physiologie)", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+proprietes:
+  sens: texte
+  organe: texte
+  permet: texte
+cle: [sens]
+lignes:
+- {sens: la vue, organe: l'œil, permet: voir, source: wp_sens}
+- {sens: l'ouïe, organe: l'oreille, permet: entendre, source: wp_sens}
+- {sens: l'odorat, organe: le nez, permet: sentir les odeurs, source: wp_sens}
+- {sens: le goût, organe: la langue, permet: reconnaître les saveurs, source: wp_sens}
+- {sens: le toucher, organe: la peau, permet: '-', source: wp_sens}

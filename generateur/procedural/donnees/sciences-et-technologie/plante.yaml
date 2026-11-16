@@ -1,0 +1,32 @@
+# Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude ; chaque ligne cite sa
+# source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6). `role` : ce que fait la partie, dans une
+# question « Quelle partie de la plante … ? » ; « - » : jamais demandé (la feuille capte la lumière, mais une tige verte
+# aussi). Les mauvaises réponses sont les autres parties, jamais la fleur quand on demande le fruit ou la graine (une
+# fleur qui fane porte déjà ses graines). `besoin` et `piege` : la question « De quoi une plante verte a-t-elle besoin
+# pour grandir ? » ; les pièges ont été choisis pour n'être jamais un besoin de la plante (pas « de terre » : une plante
+# pousse sans terre, dans l'eau ; pas « de sels » : elle a besoin de sels minéraux).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/plante --par "…"
+description: Les parties d'une plante et leur rôle ; ce dont une plante a besoin pour grandir.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE1 (BO n° 24 du 11 juin 2026) : « Déterminer des besoins essentiels pour la croissance d’une plante (eau et lumière) » ; « Décrire les différents organes végétatifs d’une plante (racine, tige, feuille) »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-16'}
+  wp_racine: {nom: "Wikipédia, « Racine (botanique) » (« à y puiser l'eau et les éléments nutritifs nécessaires à son développement »)", url: "https://fr.wikipedia.org/wiki/Racine_(botanique)", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_tige: {nom: "Wikipédia, « Tige » (« prolonge la racine et porte les bourgeons et les feuilles »)", url: "https://fr.wikipedia.org/wiki/Tige_(botanique)", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_fruit: {nom: "Wikipédia, « Fruit (botanique) » (« Le fruit se forme à partir de la fleur qui a été pollinisée » ; « l'organe végétal contenant une ou plusieurs graines »)", url: "https://fr.wikipedia.org/wiki/Fruit_(botanique)", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_germination: {nom: "Wikipédia, « Germination » (« le début de développement […] d'une nouvelle plante, à partir d'une graine »)", url: "https://fr.wikipedia.org/wiki/Germination", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  claude: {nom: "Pièges choisis par Claude : jamais un besoin d'une plante", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-16'}
+proprietes:
+  element: texte
+  sorte: [partie, besoin, piege]
+  role: texte
+cle: [element]
+lignes:
+- {element: la racine, sorte: partie, role: puise l'eau dans le sol, source: wp_racine}
+- {element: la tige, sorte: partie, role: porte les feuilles, source: wp_tige}
+- {element: la feuille, sorte: partie, role: '-', source: programme}
+- {element: la fleur, sorte: partie, role: devient le fruit, source: wp_fruit}
+- {element: le fruit, sorte: partie, role: contient les graines, source: wp_fruit}
+- {element: la graine, sorte: partie, role: germe et donne une nouvelle plante, source: wp_germination}
+- {element: d'eau et de lumière, sorte: besoin, role: '-', source: programme}
+- {element: d'obscurité et de froid, sorte: piege, role: '-', source: claude}
+- {element: de sucre et de lait, sorte: piege, role: '-', source: claude}
+- {element: de bruit et de musique, sorte: piege, role: '-', source: claude}

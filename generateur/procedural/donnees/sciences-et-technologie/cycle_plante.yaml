@@ -1,0 +1,16 @@
+# Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude d'après le programme
+# (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/cycle_plante --par "…"
+description: Les étapes de la vie d'une plante à fleurs, dans l'ordre.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE2 (BO n° 24 du 11 juin 2026) : « Ordonner les étapes de la vie d’une plante à fleurs : de la graine à la plante, de la fleur au fruit (germination de la graine, croissance, formation de la fleur, formation du fruit contenant des graines, dispersion des graines) »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-16'}
+proprietes:
+  rang: nombre
+  etape: texte
+cle: [rang]
+lignes:
+- {rang: 1, etape: la germination de la graine, source: programme}
+- {rang: 2, etape: la croissance, source: programme}
+- {rang: 3, etape: la formation de la fleur, source: programme}
+- {rang: 4, etape: la formation du fruit, source: programme}
+- {rang: 5, etape: la dispersion des graines, source: programme}

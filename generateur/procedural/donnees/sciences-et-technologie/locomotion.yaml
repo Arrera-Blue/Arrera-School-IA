@@ -1,0 +1,22 @@
+# Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude d'après le programme
+# (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6). Seulement des animaux qui n'ont qu'un mode de
+# déplacement pour l'organe demandé : pas le canard (ses pattes marchent et nagent), pas le manchot (ses ailes nagent),
+# pas la grenouille (ses pattes sautent et nagent).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/locomotion --par "…"
+description: Des animaux, leur organe de déplacement et ce qu'il leur permet de faire.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE2 (BO n° 24 du 11 juin 2026) : « aile d’insecte, d’oiseau et de chauvesouris assurant le vol ; patte d’insecte et de vertébré assurant la marche, la course ou le saut ; nageoire de poisson »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-16'}
+proprietes:
+  animal: texte
+  organe: [ailes, pattes, nageoires]
+  mode: [voler, nager, "marcher, courir ou sauter"]
+cle: [animal]
+lignes:
+- {animal: le moineau, organe: ailes, mode: voler, source: programme, note: un oiseau}
+- {animal: l'abeille, organe: ailes, mode: voler, source: programme, note: un insecte}
+- {animal: la chauve-souris, organe: ailes, mode: voler, source: programme}
+- {animal: la truite, organe: nageoires, mode: nager, source: programme, note: un poisson}
+- {animal: le requin, organe: nageoires, mode: nager, source: programme, note: un poisson}
+- {animal: le cheval, organe: pattes, mode: "marcher, courir ou sauter", source: programme, note: un vertébré}
+- {animal: le kangourou, organe: pattes, mode: "marcher, courir ou sauter", source: programme, note: un vertébré}
+- {animal: la fourmi, organe: pattes, mode: "marcher, courir ou sauter", source: programme, note: un insecte}

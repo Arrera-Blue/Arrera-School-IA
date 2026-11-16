@@ -1,0 +1,42 @@
+# Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude ; chaque ligne cite sa
+# source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6). Les trois catégories du programme du CP :
+# vivant, non vivant, élaboré par des êtres vivants. Écartés : l'œuf (le programme le range dans « élaboré », mais un
+# œuf fécondé contient un être vivant) ; tout objet fabriqué par l'humain (l'humain est un être vivant : son objet
+# serait-il « élaboré par un être vivant » ? le programme ne le dit pas). Les non-vivants sont donc des minéraux et l'eau.
+# `genre` : pour accorder l'explication (« la laine : elle vient d'un être vivant »).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/etres_vivants --par "…"
+description: Des êtres vivants, des éléments non vivants, et des éléments élaborés (fabriqués) par des êtres vivants.
+sources:
+  programme:
+    nom: "Programme de sciences et technologie du cycle 2, CP (BO n° 24 du 11 juin 2026) : « vivant, non vivant, élaboré par des êtres vivants (nid, lait, œufs, laine, fibres végétales, soie, etc.) » ; « animaux (oiseaux, mammifères, insectes, araignées, escargots, vers de terre), végétaux (plantes à fleurs, mousses), champignons »"
+    url: https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf
+    consulte: '2026-11-16'
+  claude:
+    nom: "Choisis par Claude : des minéraux et l'eau, jamais un objet fabriqué"
+    url: https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf
+    consulte: '2026-11-16'
+proprietes:
+  element: texte
+  categorie: [vivant, non_vivant, elabore]
+  genre: [m, f]
+cle: [element]
+lignes:
+- {element: chat, categorie: vivant, genre: m, source: programme, note: un mammifère}
+- {element: oiseau, categorie: vivant, genre: m, source: programme}
+- {element: fourmi, categorie: vivant, genre: f, source: programme, note: un insecte}
+- {element: araignée, categorie: vivant, genre: f, source: programme}
+- {element: escargot, categorie: vivant, genre: m, source: programme}
+- {element: ver de terre, categorie: vivant, genre: m, source: programme}
+- {element: arbre, categorie: vivant, genre: m, source: programme, note: un végétal}
+- {element: pâquerette, categorie: vivant, genre: f, source: programme, note: une plante à fleurs}
+- {element: champignon, categorie: vivant, genre: m, source: programme}
+- {element: nid, categorie: elabore, genre: m, source: programme}
+- {element: lait, categorie: elabore, genre: m, source: programme}
+- {element: laine, categorie: elabore, genre: f, source: programme}
+- {element: soie, categorie: elabore, genre: f, source: programme}
+- {element: coton, categorie: elabore, genre: m, source: programme, note: une fibre végétale}
+- {element: caillou, categorie: non_vivant, genre: m, source: claude}
+- {element: sable, categorie: non_vivant, genre: m, source: claude}
+- {element: eau, categorie: non_vivant, genre: f, source: claude}
+- {element: sel, categorie: non_vivant, genre: m, source: claude}
+- {element: neige, categorie: non_vivant, genre: f, source: claude}
