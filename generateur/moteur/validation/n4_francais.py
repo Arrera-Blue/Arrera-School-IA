@@ -4,7 +4,7 @@ docs/Generateur-Procedural/controle-du-modele.md).
 Hors des maths, N4 ne recalculait rien : tout était « à relire ». Pour le français, deux contrôles sûrs :
 
 - **une forme verbale inventée** (« je parleons », « nous sommesons », « ils ontent ») : après un pronom sujet, un mot
-  absent de toute la liste de Lexique 3.83 (`lexique/mots.txt`), et qui ne s'explique pas comme une forme régulière
+  absent de toute la liste de Lexique 3.83 (`lexique/mots.txt.gz`), et qui ne s'explique pas comme une forme régulière
   d'un verbe en -er ou en -ir de Lexique (« ils étayent » y manque, mais vient d'« étayer ») → « faux » : la question
   revient au modèle. Mesuré sur 182 exercices réels : 17 questions avec une forme inventée, aucune fausse alerte.
   Garde-fous : une espace après le pronom (« tutoiement » n'est pas « tu » + « toiement ») ; un mot suivi d'un tiret
@@ -18,6 +18,7 @@ un faux « faux » est aussi grave qu'un faux « vérifié » (le modèle « cor
 reconnaisseurs sont ancrés sur des formulations précises, et renoncent au moindre doute.
 """
 
+import gzip
 import re
 import unicodedata
 from functools import cache
@@ -25,13 +26,13 @@ from pathlib import Path
 
 from generateur.moteur.validation.n4_calcul import A_RELIRE, FAUX, Verdict, trancher
 
-LEXIQUE = Path(__file__).parent / "lexique" / "mots.txt"
+LEXIQUE = Path(__file__).parent / "lexique" / "mots.txt.gz"
 
 
 @cache
 def mots() -> frozenset[str]:
     """Les mots de Lexique 3.83 (toutes les formes), chargés une fois."""
-    return frozenset(m for m in LEXIQUE.read_text(encoding="utf-8").split("\n") if m)
+    return frozenset(m for m in gzip.decompress(LEXIQUE.read_bytes()).decode("utf-8").split("\n") if m)
 
 
 def connu(mot: str) -> bool:

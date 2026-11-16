@@ -66,7 +66,7 @@ Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.4.
 
 | Script | Rôle | Demande |
 |---|---|---|
-| `construire_lexique.py` | `mots.txt` (l'orthographe de chaque mot) et `LISEZMOI.md` (source, licence CC BY-SA 4.0) : N4 du français y reconnaît une forme verbale inventée par le modèle | `Lexique383.tsv` (lexique.org, téléchargé à part) |
+| `construire_lexique.py` | `mots.txt.gz` (l'orthographe de chaque mot, compressée : 324 Ko ; le même fichier à chaque construction) et `LISEZMOI.md` (source, licence CC BY-SA 4.0) : N4 du français y reconnaît une forme verbale inventée par le modèle | `Lexique383.tsv` (lexique.org, téléchargé à part) |
 
 Méthode et mesure : `docs/Generateur-Procedural/controle-du-modele.md`.
 
