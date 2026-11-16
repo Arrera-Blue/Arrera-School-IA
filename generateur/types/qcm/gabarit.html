@@ -1,4 +1,7 @@
 {%- set enfant = niveau in ("CP", "CE1", "CE2", "6e") -%}
+{#- cycle 2, décision 9 : au CP et au CE1, « Écouter » ouvert d'office ; un écran « Commencer » d'abord (un navigateur
+    refuse le son avant un premier clic) -#}
+{%- set lire_d_office = niveau in ("CP", "CE1") -%}
 {%- set libelles = {"maths": "Mathématiques", "francais": "Français", "histoire-geo": "Histoire-géographie", "svt": "SVT",
      "physique-chimie": "Physique-chimie", "anglais": "Anglais", "technologie": "Technologie",
      "questionner-le-monde": "Questionner le monde", "emc": "Enseignement moral et civique",
@@ -50,6 +53,22 @@
     .cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     kbd { font: 700 .72em/1 var(--police); padding: .15em .4em; border-radius: 6px; border: 1px solid currentColor; opacity: .75; }
     .jeu { max-width: 760px; margin: 0 auto; padding: 2.4rem 1.25rem 3rem; }
+
+    /* ---- l'écran « Commencer » (CP, CE1) : le premier clic autorise le son ---- */
+    .depart { text-align: center; padding: 2.2rem 1.6rem 2rem; }
+    .depart .compagnon { justify-content: center; margin: 0 0 1.2rem; }
+    .depart .compagnon svg { width: 96px; height: 96px; }
+    .depart h2 { margin: 0 0 .4rem; font-size: 1.5em; }
+    .depart .detail { color: var(--doux); margin: 0 0 1.4rem; }
+    .lire-tout { display: inline-flex; align-items: center; gap: .6rem; margin: 0 0 1.6rem; padding: .6rem 1rem; border-radius: 14px;
+      background: var(--fond); font-weight: 700; cursor: pointer; }
+    .lire-tout input { width: 1.4em; height: 1.4em; accent-color: var(--action); margin: 0; }
+    .lire-tout svg { width: 26px; height: 26px; color: var(--action); }
+    .depart .principal { font-size: 1.25em; padding: 1rem 2.4rem; }
+    /* le haut-parleur pendant la lecture : il bat, un clic l'arrête */
+    .ecouter[aria-pressed="true"] { background: var(--action); color: #fff; box-shadow: 0 3px 0 var(--action-fonce); }
+    .ecouter[aria-pressed="true"] svg { animation: battre 1s ease-in-out infinite; }
+    @keyframes battre { 50% { transform: scale(1.15); } }
 
     /* ---- en-tête : titre, progression, score ---- */
     .haut { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .8rem 1rem; align-items: center; margin-bottom: 1.6rem; }
@@ -266,7 +285,26 @@
       </table>
     </section>
 
-    <section class="carte" id="ecran-question">
+    {% if lire_d_office %}
+    <section class="carte depart" id="ecran-depart" aria-labelledby="depart-titre">
+      <div class="compagnon" aria-hidden="true">
+        <svg viewBox="0 0 100 100">
+          <path d="M50 6C50 6 16 44 16 64a34 34 0 0 0 68 0C84 44 50 6 50 6Z" fill="#7c6cf2"/>
+          <path d="M36 30c-6 9-10 17-10 24" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <ellipse cx="38" cy="60" rx="8" ry="9.5" fill="#fff"/><ellipse cx="62" cy="60" rx="8" ry="9.5" fill="#fff"/>
+          <circle cx="39.5" cy="62" r="4.2" fill="#1f2a44"/><circle cx="63.5" cy="62" r="4.2" fill="#1f2a44"/>
+          <path d="M43 79q7 4 14 0" stroke="#1f2a44" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <p class="bulle" id="bulle-depart">Je vais te lire chaque question.</p>
+      </div>
+      <h2 id="depart-titre">{{ questions|length }} questions</h2>
+      <p class="detail">Écoute bien, puis choisis ta réponse.</p>
+      <label class="lire-tout" id="lire-tout"><input type="checkbox" id="lire-auto" checked><svg aria-hidden="true"><use href="#haut-parleur"/></svg>Lire les questions à voix haute</label>
+      <div><button type="button" class="principal" id="btn-commencer">Commencer <kbd>Entrée</kbd></button></div>
+    </section>
+    {% endif %}
+
+    <section class="carte" id="ecran-question"{% if lire_d_office %} hidden{% endif %}>
       {% if enfant %}
       <div class="compagnon" aria-hidden="true">
         <svg viewBox="0 0 100 100" id="compagnon">
@@ -311,7 +349,7 @@
           <p class="numero">Question {{ loop.index }} sur {{ questions|length }}</p>
           <div class="question-tete">
             <h2 class="enonce" id="enonce-{{ loop.index }}" tabindex="-1">{{ q.enonce }}</h2>
-            <button type="button" class="bouton-rond ecouter" hidden title="Écouter (L)"><svg aria-hidden="true"><use href="#haut-parleur"/></svg><span class="cache">Écouter la question</span></button>
+            <button type="button" class="bouton-rond ecouter" hidden title="Écouter (L)" aria-pressed="false"><svg aria-hidden="true"><use href="#haut-parleur"/></svg><span class="cache">Écouter la question</span></button>
           </div>
           <ul class="reponses">
           {% for p in q.propositions %}
@@ -370,6 +408,7 @@
     var synthese = window.speechSynthesis || null;
     var rangee = voixRangee();
     var lecteur = null, enLecture = null;
+    var depart = $("#ecran-depart"), auto = false, minuteurLecture = null;
     var etat;
 
     function boutons(q) { return Array.prototype.slice.call(q.querySelectorAll(".reponse")); }
@@ -406,7 +445,7 @@
       ecranFin.hidden = true;
       ecranQuestion.hidden = false;
       annonce.textContent = "";
-      if (ENFANT) compagnon("neutre", "C'est parti ! Choisis une réponse.");
+      if (ENFANT) compagnon("neutre", auto ? "Écoute, puis choisis ta réponse." : "C'est parti ! Choisis une réponse.");
       afficherQuestion(true);
     }
 
@@ -425,6 +464,7 @@
         $("#contenu").animate([{ opacity: 0, transform: "translateX(48px)" }, { opacity: 1, transform: "none" }],
           { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" });
       }
+      lireBientot(false);
     }
 
     function bouton(texte, desactive) {
@@ -552,9 +592,10 @@
       etat.vient = etat.rang;
       if (ENFANT) {
         var mots = ["Bravo !", "Super !", "Bien joué !", "Génial !"];
-        compagnon(juste ? "content" : "oups", juste ? mots[etat.rang % mots.length] : "Presque ! Lis l'explication.");
+        compagnon(juste ? "content" : "oups", juste ? mots[etat.rang % mots.length] : auto ? "Presque ! Écoute l'explication." : "Presque ! Lis l'explication.");
       }
       etapes();
+      lireBientot(true);
       if (juste) {
         var tuile = q.querySelector(".reponse.juste");
         if (ENFANT) { etoileQuiVole(tuile, document.querySelectorAll(".etape")[etat.rang]); etincelles(tuile); }
@@ -569,7 +610,7 @@
       if (etat.rang + 1 >= questions.length) { finir(); return; }
       var aller = function () {
         etat.rang++;
-        if (ENFANT) compagnon("neutre", "À toi !");
+        if (ENFANT) compagnon("neutre", auto ? "Écoute bien !" : "À toi !");
         afficherQuestion(!etat.transition);
         var enonce = courante().querySelector(".enonce");
         enonce.focus({ preventScroll: true });
@@ -737,10 +778,16 @@
       return deFrance[0] || francaises[0] || null;
     }
 
-    // les écritures de maths que la synthèse lit mal
+    // les écritures que la synthèse lit mal : les maths ; une terminaison s'épelle (« -ent » : e, n, t ; lue, elle
+    // ferait « an »), un préfixe se lit sans son tiret (« in- ») ; la flèche d'une règle (« -al → -aux »)
+    var LETTRE = "a-zàâçéèêëîïôûùüœ";
     function prononcable(texte) {
       return texte.replace(/(\d)\s*\/\s*(\d)/g, "$1 sur $2").replace(/²/g, " au carré").replace(/³/g, " au cube")
-        .replace(/×/g, " fois ").replace(/÷/g, " divisé par ").replace(/\s+/g, " ");
+        .replace(/×/g, " fois ").replace(/÷/g, " divisé par ")
+        .replace(new RegExp("(^|[^" + LETTRE + "-])-([" + LETTRE + "]+)(?![" + LETTRE + "])", "gi"), function (_, avant, fin) {
+          return avant + fin.split("").join(", ");
+        })
+        .replace(new RegExp("^([" + LETTRE + "]+)-$", "i"), "$1").replace(/→/g, " devient ").replace(/\s+/g, " ");
     }
 
     function choisieEtBonne(q) {
@@ -748,23 +795,26 @@
       return { choisi: liste.indexOf(q.querySelector('.reponse[aria-pressed="true"]')), bon: liste.indexOf(q.querySelector(".reponse.juste")) };
     }
 
-    function texteALire(q) {
-      var rang = questions.indexOf(q);
-      var morceaux = ["Question " + (rang + 1) + " sur " + questions.length + ".", q.querySelector(".enonce").textContent];
-      boutons(q).forEach(function (b, i) { morceaux.push(LETTRES.charAt(i) + " : " + b.querySelector(".texte").textContent + "."); });
+    // `correction` : seulement le verdict et l'explication (lus d'office après « Vérifier », au CP et au CE1)
+    function texteALire(q, correction) {
+      var rang = questions.indexOf(q), morceaux = [];
+      if (!correction) {
+        morceaux.push("Question " + (rang + 1) + " sur " + questions.length + ".", prononcable(q.querySelector(".enonce").textContent));
+        boutons(q).forEach(function (b, i) { morceaux.push(LETTRES.charAt(i) + " : " + prononcable(b.querySelector(".texte").textContent) + "."); });
+      }
       if (etat.verifie) {
         var r = choisieEtBonne(q);
         morceaux.push(r.choisi === r.bon ? "Ta réponse est juste." : "Ta réponse : " + LETTRES.charAt(r.choisi) + ". La bonne réponse est " + LETTRES.charAt(r.bon) + ".");
-        morceaux.push("Explication : " + q.querySelector(".explication").textContent);
+        morceaux.push("Explication : " + prononcable(q.querySelector(".explication").textContent));
       }
-      return prononcable(morceaux.join(" "));
+      return morceaux.join(" ").replace(/\s+/g, " ");
     }
 
     // les morceaux à enchaîner, dans l'ordre affiché des propositions
-    function morceauxALire(q) {
+    function morceauxALire(q, correction) {
       var voix = rangee.questions[questions.indexOf(q)], fixes = rangee.fixes;
-      var morceaux = [voix.titre, voix.enonce];
-      boutons(q).forEach(function (b, i) {
+      var morceaux = correction ? [] : [voix.titre, voix.enonce];
+      if (!correction) boutons(q).forEach(function (b, i) {
         morceaux.push(fixes["lettre_" + LETTRES.charAt(i)], voix.propositions[Number(b.getAttribute("data-index"))]);
       });
       if (etat.verifie) {
@@ -776,8 +826,8 @@
       return morceaux;
     }
 
-    function jouer(q) {
-      var morceaux = morceauxALire(q).filter(function (k) { return k && rangee.clips[k]; }), rang = 0, son = new Audio();
+    function jouer(q, correction) {
+      var morceaux = morceauxALire(q, correction).filter(function (k) { return k && rangee.clips[k]; }), rang = 0, son = new Audio();
       function suite() {
         if (lecteur !== son) return;
         if (rang >= morceaux.length) { arreterLecture(); return; }
@@ -788,28 +838,49 @@
       son.addEventListener("ended", suite);
       son.addEventListener("error", function () { if (lecteur === son) arreterLecture(); });
       lecteur = son;
-      enLecture = q;
+      marquer(q);
       suite();
     }
 
-    function arreterLecture() {
-      if (lecteur) { lecteur.pause(); lecteur = null; }
-      else if (synthese && enLecture) synthese.cancel();
-      enLecture = null;
+    // la question en lecture : son haut-parleur bat ; aucune : il se calme
+    function marquer(q) {
+      enLecture = q;
+      document.querySelectorAll(".ecouter").forEach(function (b) { b.setAttribute("aria-pressed", String(Boolean(q) && q.contains(b))); });
     }
 
-    function ecouter(relance) {
+    function arreterLecture() {
+      clearTimeout(minuteurLecture);
+      if (lecteur) { lecteur.pause(); lecteur = null; }
+      else if (synthese && enLecture) synthese.cancel();
+      marquer(null);
+    }
+
+    // CP, CE1 : la question lue à son arrivée, la correction après « Vérifier » ; une fois l'animation passée, et
+    // jamais sous la vague qui change de question (elle la cache encore)
+    function lireBientot(correction) {
+      if (!auto) return;
+      var q = courante();
+      arreterLecture();
+      var essayer = function () {
+        if (q !== courante() || ecranQuestion.hidden) return;
+        if (etat.transition) { minuteurLecture = setTimeout(essayer, 120); return; }
+        ecouter(true, correction);
+      };
+      minuteurLecture = setTimeout(essayer, CALME ? 50 : 450);
+    }
+
+    function ecouter(relance, correction) {
       var q = courante();
       if (!q || (!rangee && !synthese)) return;
       if (enLecture === q && !relance) { arreterLecture(); return; } // encore L : on arrête
       arreterLecture();
-      if (rangee) { jouer(q); return; }
+      if (rangee) { jouer(q, correction); return; }
       if (!relance && synthese.getVoices().length === 0) {
         // le navigateur charge la liste des voix après la page : on l'attend un peu, une seule fois
         var minuteur, reprendre = function () {
           clearTimeout(minuteur);
           synthese.removeEventListener("voiceschanged", reprendre);
-          ecouter(true);
+          ecouter(true, correction);
         };
         minuteur = setTimeout(reprendre, 1500);
         synthese.addEventListener("voiceschanged", reprendre);
@@ -817,12 +888,12 @@
       }
       var voix = voixLocale();
       if (!voix) { annonce.textContent = "Lecture impossible : aucune voix française n'est installée sur cet ordinateur."; return; }
-      var phrase = new SpeechSynthesisUtterance(texteALire(q));
+      var phrase = new SpeechSynthesisUtterance(texteALire(q, correction));
       phrase.voice = voix;
       phrase.lang = voix.lang;
       phrase.rate = 0.9;
-      phrase.onend = phrase.onerror = function () { if (enLecture === q) enLecture = null; };
-      enLecture = q;
+      phrase.onend = phrase.onerror = function () { if (enLecture === q) marquer(null); };
+      marquer(q);
       synthese.speak(phrase);
     }
 
@@ -844,7 +915,8 @@
       if (rang < 0 && /^(Digit|Numpad)[1-4]$/.test(evt.code)) rang = Number(evt.code.slice(-1)) - 1; // clavier AZERTY
       if (rang < 0 && k.length === 1) rang = LETTRES.indexOf(k.toUpperCase());
 
-      if (k === "?") afficherAide(touches.hidden);
+      if (depart && !depart.hidden) { if (k === "Enter" && !surUnBouton) partir(); else return; }
+      else if (k === "?") afficherAide(touches.hidden);
       else if (k === "Escape" && !touches.hidden) afficherAide(false);
       else if (enJeu && rang >= 0) choisir(rang);
       else if (enJeu && k === "Enter" && !surUnBouton) avancer();  // sur un bouton : Entrée appuie dessus
@@ -869,7 +941,20 @@
       document.querySelectorAll(".ecouter").forEach(function (b) { b.hidden = false; });
       window.addEventListener("pagehide", arreterLecture);
     }
-    commencer();
+
+    // CP, CE1 : l'écran « Commencer » ; ce clic autorise le son, puis chaque question est lue (case décochée : non)
+    function partir() {
+      auto = Boolean(rangee || synthese) && $("#lire-auto").checked;
+      depart.hidden = true;
+      commencer();
+    }
+    if (depart) {
+      if (!rangee && !synthese) { $("#lire-tout").hidden = true; $("#bulle-depart").textContent = "Lis bien chaque question !"; }
+      $("#btn-commencer").addEventListener("click", partir);
+      $("#btn-commencer").focus({ preventScroll: true });
+    } else {
+      commencer();
+    }
   })();
   </script>
 </body>

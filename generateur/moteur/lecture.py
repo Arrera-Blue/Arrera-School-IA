@@ -40,10 +40,17 @@ def phrases_fixes(nb_lettres: int = len(LETTRES)) -> dict[str, str]:
     return fixes
 
 
+LETTRE = "a-zàâçéèêëîïôûùüœ"
+
+
 def prononcable(texte: str) -> str:
-    """Les écritures de maths que la synthèse lit mal (le gabarit fait de même pour la voix du navigateur)."""
+    """Les écritures que la synthèse lit mal (le gabarit fait de même pour la voix du navigateur) : les maths ; une
+    terminaison s'épelle (« -ent » : « e, n, t » ; lue, elle ferait « an », et Piper n'en tirait aucun son), un préfixe
+    se lit sans son tiret (« in- ») ; la flèche d'une règle (« -al → -aux ») se dit « devient » (étape 1.5 du lot 1)."""
     texte = re.sub(r"(\d)\s*/\s*(\d)", r"\1 sur \2", texte)
     texte = texte.replace("²", " au carré").replace("³", " au cube").replace("×", " fois ").replace("÷", " divisé par ")
+    texte = re.sub(rf"(^|[^{LETTRE}-])-([{LETTRE}]+)(?![{LETTRE}])", lambda m: m[1] + ", ".join(m[2]), texte, flags=re.I)
+    texte = re.sub(rf"^([{LETTRE}]+)-$", r"\1", texte.strip(), flags=re.I).replace("→", " devient ")
     return re.sub(r"\s+", " ", texte).strip()
 
 

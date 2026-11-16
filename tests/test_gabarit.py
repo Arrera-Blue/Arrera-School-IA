@@ -55,6 +55,19 @@ def test_le_style_suit_le_niveau(niveau, style):
         assert 'id="compagnon"' not in html and 'font-family: "Andika"' not in html
 
 
+@pytest.mark.parametrize("niveau, d_office", [("CP", True), ("CE1", True), ("CE2", False), ("6e", False), ("5e", False)])
+def test_au_cp_et_au_ce1_un_ecran_commencer_puis_la_lecture_d_office(niveau, d_office):
+    """Cycle 2, décision 9 (étape 1.5 du lot 1) : au CP et au CE1, l'écran « Commencer » d'abord (le clic autorise le
+    son), la case « Lire les questions à voix haute » cochée d'office ; la question cachée derrière. Ailleurs, rien ne
+    change : l'exercice commence dès l'ouverture."""
+    html = page(niveau=niveau)
+    assert ('id="ecran-depart"' in html) is d_office
+    assert ('<section class="carte" id="ecran-question" hidden>' in html) is d_office
+    assert ('<section class="carte" id="ecran-question">' in html) is not d_office
+    if d_office:
+        assert '<input type="checkbox" id="lire-auto" checked>' in html and 'id="btn-commencer"' in html
+
+
 def test_les_polices_sont_rangees_dans_la_page():
     polices = rendu.polices(registre.charger("qcm").dossier)
     assert set(polices) == {"andika-400", "andika-700", "atkinson-400", "atkinson-700"}

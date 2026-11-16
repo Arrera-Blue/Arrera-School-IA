@@ -40,9 +40,19 @@ const EXERCICE = {
       explication: "35 = 7 × 5, donc 35 est un multiple de 7.", index_correct: 2 },
   ],
 };
+// le CP (étape 1.5 du lot 1) : une terminaison à épeler (« -ent »)
+const EXERCICE_CP = {
+  type: "qcm", titre: "Les terminaisons", matiere: "francais", niveau: "CP", notion: "conjugaison",
+  questions: [
+    { enonce: "Quelle est la terminaison de : ils chantent ?", propositions: ["-ent", "-ons", "-ez", "-e"],
+      explication: "Au présent, avec « ils », les verbes en -er se terminent par -ent : ils chantent.", index_correct: 0 },
+    { enonce: "Complète au présent : nous … (avoir)", propositions: ["avez", "avons", "ont"],
+      explication: "Le verbe avoir s'apprend par cœur : nous avons.", index_correct: 1 },
+  ],
+};
 function rendre(nom, niveau, ...options) {
   const json = join(dossier, `${nom}.json`);
-  writeFileSync(json, JSON.stringify({ ...EXERCICE, niveau }));
+  writeFileSync(json, JSON.stringify(niveau === "CP" ? EXERCICE_CP : { ...EXERCICE, niveau }));
   const rendu = spawnSync(python, ["-m", "generateur.moteur.rendu", json, "--sortie", join(dossier, `${nom}.html`), ...options],
     { encoding: "utf-8" });
   if (rendu.status !== 0) { console.error(rendu.stderr); process.exit(1); }
@@ -51,6 +61,8 @@ function rendre(nom, niveau, ...options) {
 const URL_COLLEGE = rendre("college", "5e", "--sans-voix");  // la voix du navigateur
 const URL_ENFANT = rendre("enfant", "6e", "--sans-voix");
 const URL_VOIX_RANGEE = rendre("voix", "5e");                // la voix de Piper, si elle est installée
+const URL_CP = rendre("cp", "CP", "--sans-voix");             // l'écran « Commencer », la lecture d'office
+const URL_CP_VOIX = rendre("cp-voix", "CP");
 const AVEC_PIPER = readFileSync(join(dossier, "voix.html"), "utf-8").includes('id="voix-rangee"');
 
 const chrome = spawn(CHROMES.find(existsSync), ["--headless=new", `--remote-debugging-port=${DEBOGAGE}`,
@@ -361,6 +373,48 @@ try {
     verifier(`un vrai morceau MP3 se décode (${duree.toFixed(1)} s ; page de 4 questions : ${poids} Ko)`, duree > 0.5);
   }
 
+  // ---------- 4 bis. le CP et le CE1 : « Commencer », puis chaque question lue d'office (étape 1.5 du lot 1) ----------
+  await ouvrir(URL_CP);
+  verifier("CP : l'écran « Commencer » d'abord, la question cachée, le bouton a le focus",
+    await js(`!document.querySelector("#ecran-depart").hidden && document.querySelector("#ecran-question").hidden`) &&
+    await js(`document.activeElement.id === "btn-commencer"`));
+  await appuyer("a");
+  await appuyer("?");
+  verifier("CP, sur l'écran « Commencer » : les touches de jeu ne font rien", (await js(`window.__lu.length`)) === 0 &&
+    await js(`document.querySelector("#touches").hidden && document.querySelector("#ecran-question").hidden`));
+  await appuyer("Enter");
+  await jusqua(`window.__lu.length === 1`);
+  let luCp = await js(`window.__lu[0].texte`);
+  verifier("CP, Entrée : la question 1, lue d'office (énoncé et propositions), « -ent » épelé",
+    await visible() === 0 && luCp.startsWith("Question 1 sur 2.") && luCp.includes(": e, n, t.") && !luCp.includes("-ent"), luCp);
+  await repondre(true, { passer: false });
+  await jusqua(`window.__lu.length === 2`);
+  luCp = await js(`window.__lu[1].texte`);
+  verifier("CP, après « Vérifier » : la correction seule, lue d'office (pas la question de nouveau)",
+    luCp.startsWith("Ta réponse est juste.") && luCp.includes("Explication :") && luCp.includes("e, r") && !luCp.includes("Question 1"), luCp);
+  await appuyer("Enter");
+  await jusqua(`window.__lu.length === 3`);
+  verifier("CP, question suivante : lue d'office", await visible() === 1 && (await js(`window.__lu[2].texte`)).startsWith("Question 2 sur 2."));
+  await ouvrir(URL_CP);
+  await js(`document.querySelector("#lire-auto").click()`);
+  await appuyer("Enter");
+  await attendre(300);
+  verifier("CP, case « Lire les questions à voix haute » décochée : rien n'est lu", await visible() === 0 && (await js(`window.__lu.length`)) === 0);
+  await appuyer("l");
+  verifier("… mais L lit la question sur demande", (await js(`window.__lu.length`)) === 1);
+  await ouvrir(URL_ENFANT);
+  verifier("6e : pas d'écran « Commencer », l'exercice commence dès l'ouverture",
+    await js(`!document.querySelector("#ecran-depart") && !document.querySelector("#ecran-question").hidden`) && await visible() === 0);
+  if (AVEC_PIPER) {
+    verifier("CP : la voix de Piper rangée dans la page, même avec « -ent » (épelé ; avant, aucun son et toute la page sans voix)",
+      readFileSync(join(dossier, "cp-voix.html"), "utf-8").includes('id="voix-rangee"'));
+    await ouvrir(URL_CP_VOIX, { audio: "faux" });
+    await appuyer("Enter");
+    await jusqua(`window.__joue.length >= 10`);
+    verifier("CP, voix rangée : Entrée, et les 10 morceaux de la question 1 sont joués d'office", (await js(`window.__lu.length`)) === 0);
+  }
+  await capture("5-cp");
+
   // ---------- 5. téléphone : pas de défilement horizontal ----------
   await cdp("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   for (const [nom, url] of [["5e", URL_COLLEGE], ["6e", URL_ENFANT]]) {
@@ -369,6 +423,8 @@ try {
     await repondre(false, { passer: false });
     verifier(`téléphone, ${nom}, aide ouverte et réponse vérifiée : pas de défilement horizontal`, await js(`document.documentElement.scrollWidth <= window.innerWidth`));
   }
+  await ouvrir(URL_CP);
+  verifier("téléphone, CP : l'écran « Commencer » sans défilement horizontal", await js(`document.documentElement.scrollWidth <= window.innerWidth`));
   await capture("6-telephone");
 } catch (e) {
   verifier("parcours interrompu", false, e.message);
