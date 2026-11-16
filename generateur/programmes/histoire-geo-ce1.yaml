@@ -1,0 +1,152 @@
+# Référentiel des attendus — histoire-geo, CE1 (générateur procédural du cycle 2, lot 2, étape 2.0). Libellés
+# recopiés MOT POUR MOT des colonnes « Objectifs d’apprentissage » et « Attendus (connaissances et compétences) » du
+# programme officiel de 2026 (source ci-dessous ; le PDF de l’annexe :
+# https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf) ;
+# seuls les identifiants, le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du programme) et la
+# colonne d’origine (« colonne ») sont ajoutés. Méthode et corrections :
+# docs/Generateur-Procedural/lot-2-questionner-le-monde.md §11.1.
+matiere: histoire-geo
+niveau: CE1
+cycle: 2
+source:
+  texte: Programme d’histoire-géographie pour le cycle 2 (annexe 3 de l’arrêté)
+  arrete: Arrêté du 22 avril 2026 (JO du 8 mai 2026)
+  nor: MENE2608631A
+  bo: BO n° 22 du 28 mai 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo22/MENE2608631A
+  en_vigueur: au CE1 à la rentrée 2027-2028 (article 3 de l’arrêté) ; en 2026-2027, le CE1 suit encore « Questionner le monde
+    » (BO n° 31 du 30 juillet 2020)
+  extrait: Programme d’histoire-géographie pour le cycle 2 (annexe 3), « Cours élémentaire première année »
+  releve: '2026-11-16'
+themes:
+- id: histoire-geo.ce1.passe-proche-lointain
+  domaine: Histoire
+  theme: Du passé proche au passé lointain
+  attendus:
+  - id: histoire-geo.ce1.passe-proche-lointain.01
+    libelle: Comprendre la différence entre le passé proche et le passé lointain.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.passe-proche-lointain.02
+    libelle: Employer le lexique relatif au temps (hier, autrefois, il y a dix jours, dix ans, cent ans, etc.).
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.ce1.passe-proche-lointain.03
+    libelle: Identifier et positionner sur une frise chronologique des évènements récents et des évènements qui appartiennent
+      à des périodes plus anciennes (éléments temporels proches et lointains de la vie de l’élève par exemple).
+    qcm: false
+    colonne: attendus
+- id: histoire-geo.ce1.grandes-periodes
+  domaine: Histoire
+  theme: Les grandes périodes de l’histoire
+  attendus:
+  - id: histoire-geo.ce1.grandes-periodes.01
+    libelle: Construire une première représentation du temps long et savoir distinguer de grandes périodes historiques.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.grandes-periodes.02
+    libelle: Connaitre des figures de chaque période historique.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.grandes-periodes.03
+    libelle: Situer sur une frise chronologique des figures de chaque période historique.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce1.grandes-periodes.04
+    libelle: Repérer et mémoriser sur une frise les grandes périodes de l’histoire.
+    qcm: true
+    colonne: attendus
+- id: histoire-geo.ce1.traces-passe
+  domaine: Histoire
+  theme: Les traces du passé
+  attendus:
+  - id: histoire-geo.ce1.traces-passe.01
+    libelle: Comprendre que le passé laisse des traces.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.traces-passe.02
+    libelle: Utiliser les traces du passé pour le comprendre.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.ce1.traces-passe.03
+    libelle: Connaitre les métiers d’archéologue, d’historien et d’historienne.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.traces-passe.04
+    libelle: 'Identifier et situer dans le temps les traces du passé issues de l’environnement proche de l’élève ou au travers
+      de documents de différentes natures : fossiles ; ossements ; grottes (préhistoire) ; ruines ; monuments ; objets ; écrits
+      ; images ; œuvres d’art ; témoignages.'
+    qcm: true
+    colonne: attendus
+- id: histoire-geo.ce1.terre-peuplee
+  domaine: Géographie
+  theme: La Terre est peuplée
+  attendus:
+  - id: histoire-geo.ce1.terre-peuplee.01
+    libelle: Connaitre les grands foyers de peuplement (fortes densités) en remobilisant les repères acquis depuis le CP.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.terre-peuplee.02
+    libelle: Connaitre les principales villes dans le monde.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.terre-peuplee.03
+    libelle: Comprendre la différence entre ville et campagne à partir d’une approche paysagère.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.ce1.terre-peuplee.04
+    libelle: Localiser les grands foyers de peuplement sur un planisphère.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce1.terre-peuplee.05
+    libelle: Mémoriser et localiser les principales villes à l’échelle mondiale.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce1.terre-peuplee.06
+    libelle: Expliquer la différence entre ville et village.
+    qcm: true
+    colonne: attendus
+- id: histoire-geo.ce1.lieux-de-vie
+  domaine: Géographie
+  theme: Découvrir les lieux où vivent les êtres humains
+  attendus:
+  - id: histoire-geo.ce1.lieux-de-vie.01
+    libelle: Connaitre les trois grandes zones climatiques (tropicale, tempérée, froide).
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.lieux-de-vie.02
+    libelle: Connaitre les principaux types de végétation (forêt, prairie, désert).
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.lieux-de-vie.03
+    libelle: Connaitre les différents types de relief (montagne, plaine, plateau et vallée).
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.lieux-de-vie.04
+    libelle: Connaitre la différence entre un fleuve et une rivière.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce1.lieux-de-vie.05
+    libelle: Comprendre que les êtres humains vivent dans des milieux différents.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.ce1.lieux-de-vie.06
+    libelle: 'Caractériser : les trois principales zones climatiques ; les grands types de végétation ; les différents types
+      de relief.'
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.ce1.lieux-de-vie.07
+    libelle: 'Sur un planisphère, localiser et nommer : les trois principales zones climatiques ; les grandes chaines de montagne
+      ; les principaux déserts ; quelques grands fleuves.'
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce1.lieux-de-vie.08
+    libelle: Reconnaitre une forêt tempérée et une forêt tropicale, un désert chaud et un désert froid, une prairie et une
+      savane.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce1.lieux-de-vie.09
+    libelle: Décrire un paysage à partir d’une photographie ou d’une observation directe, à l’oral et/ou avec une production
+      graphique.
+    qcm: false
+    colonne: attendus

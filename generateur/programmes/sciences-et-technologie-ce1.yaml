@@ -1,0 +1,157 @@
+# Référentiel des attendus — sciences-et-technologie, CE1 (générateur procédural du cycle 2, lot 2, étape 2.0).
+# Libellés recopiés MOT POUR MOT de la colonne « Objectifs d’apprentissage » du programme officiel de 2026 (source
+# ci-dessous ; le PDF du BO, pages 4 à 15 :
+# https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf) ;
+# seuls les identifiants et le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du programme) sont
+# ajoutés. Méthode et corrections : docs/Generateur-Procedural/lot-2-questionner-le-monde.md §11.1.
+matiere: sciences-et-technologie
+niveau: CE1
+cycle: 2
+source:
+  texte: Programme de sciences et technologie du cycle 2 (annexe 1 de l’arrêté)
+  arrete: Arrêté du 5 juin 2026 (JO du 9 juin 2026)
+  nor: MENE2611650A
+  bo: BO n° 24 du 11 juin 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo24/MENE2611650A
+  en_vigueur: au CE1 à la rentrée 2027-2028 (article 3 de l’arrêté) ; en 2026-2027, le CE1 suit encore « Questionner le monde
+    » (BO n° 31 du 30 juillet 2020)
+  extrait: Programme de sciences et technologie du cycle 2 (annexe 1), « Cours élémentaire première année »
+  releve: '2026-11-16'
+themes:
+- id: sciences-et-technologie.ce1.masse-volumes
+  domaine: La matière, les mesures, l’électricité
+  theme: Masse et volumes
+  attendus:
+  - id: sciences-et-technologie.ce1.masse-volumes.01
+    libelle: Mesurer les masses des objets avec une balance, comparer et classer les masses grâce à la mesure.
+    qcm: false
+- id: sciences-et-technologie.ce1.etats-matiere
+  domaine: La matière, les mesures, l’électricité
+  theme: États physiques de la matière
+  attendus:
+  - id: sciences-et-technologie.ce1.etats-matiere.01
+    libelle: Observer le changement d’état physique de l’eau (solide et liquide) et sa réversibilité.
+    qcm: false
+  - id: sciences-et-technologie.ce1.etats-matiere.02
+    libelle: Nommer le changement d’état (solidification et fusion).
+    qcm: true
+  - id: sciences-et-technologie.ce1.etats-matiere.03
+    libelle: Constater la conservation de la masse lors d’un changement d’état.
+    qcm: true
+  - id: sciences-et-technologie.ce1.etats-matiere.04
+    libelle: Constater que le volume de l’eau ne se conserve pas lors de sa solidification.
+    qcm: true
+  - id: sciences-et-technologie.ce1.etats-matiere.05
+    libelle: Réaliser des expériences mettant en évidence la matérialité de l’air.
+    qcm: false
+- id: sciences-et-technologie.ce1.electricite
+  domaine: La matière, les mesures, l’électricité
+  theme: L’électricité
+  attendus:
+  - id: sciences-et-technologie.ce1.electricite.01
+    libelle: Réaliser un circuit électrique à une boucle associant un générateur (pile), un interrupteur, un récepteur (ampoule)
+      pour mettre en évidence la circulation du courant électrique.
+    qcm: true
+  - id: sciences-et-technologie.ce1.electricite.02
+    libelle: Tester des matériaux pour déterminer leur caractère isolant ou conducteur.
+    qcm: true
+- id: sciences-et-technologie.ce1.nutrition
+  domaine: Les êtres vivants dans leur environnement
+  theme: Nutrition des êtres vivants
+  attendus:
+  - id: sciences-et-technologie.ce1.nutrition.01
+    libelle: Déterminer des besoins essentiels pour la croissance d’une plante (eau et lumière) par une démarche expérimentale.
+    qcm: true
+  - id: sciences-et-technologie.ce1.nutrition.02
+    libelle: Décrire les différents organes végétatifs d’une plante (racine, tige, feuille).
+    qcm: true
+  - id: sciences-et-technologie.ce1.nutrition.03
+    libelle: Identifier le régime alimentaire d’animaux.
+    qcm: true
+- id: sciences-et-technologie.ce1.sens-perception
+  domaine: Les êtres vivants dans leur environnement
+  theme: Sens et perception chez les animaux
+  attendus:
+  - id: sciences-et-technologie.ce1.sens-perception.01
+    libelle: Associer des organes sensoriels et la perception du milieu chez les animaux (vision, audition, odorat, gout,
+      équilibre, toucher).
+    qcm: true
+- id: sciences-et-technologie.ce1.environnement-proche
+  domaine: Les êtres vivants dans leur environnement
+  theme: Observer et décrire son environnement proche
+  attendus:
+  - id: sciences-et-technologie.ce1.environnement-proche.01
+    libelle: Observer le changement de peuplement de l’environnement proche au cours des saisons.
+    qcm: false
+  - id: sciences-et-technologie.ce1.environnement-proche.02
+    libelle: Relier la présence d’espèces avec les caractéristiques de l’environnement.
+    qcm: false
+  - id: sciences-et-technologie.ce1.environnement-proche.03
+    libelle: Catégoriser différentes relations entre les êtres vivants.
+    qcm: false
+- id: sciences-et-technologie.ce1.proteger-environnement
+  domaine: Les êtres vivants dans leur environnement
+  theme: Agir pour protéger l’environnement
+  attendus:
+  - id: sciences-et-technologie.ce1.proteger-environnement.01
+    libelle: S’impliquer dans une action de préservation de l’environnement proche de l’école.
+    qcm: false
+  - id: sciences-et-technologie.ce1.proteger-environnement.02
+    libelle: Développer un rapport sensible à la nature.
+    qcm: false
+  - id: sciences-et-technologie.ce1.proteger-environnement.03
+    libelle: Prendre conscience de la nécessité et des possibilités d’agir, tant individuellement que collectivement, pour
+      protéger l’environnement.
+    qcm: false
+- id: sciences-et-technologie.ce1.alimentation
+  domaine: Le corps humain et la santé
+  theme: Alimentation
+  attendus:
+  - id: sciences-et-technologie.ce1.alimentation.01
+    libelle: 'Identifier les apports spécifiques des aliments : sources d’énergie, d’eau, de minéraux, de matière.'
+    qcm: true
+  - id: sciences-et-technologie.ce1.alimentation.02
+    libelle: Établir la notion d’équilibre alimentaire.
+    qcm: false
+- id: sciences-et-technologie.ce1.croissance-mouvement
+  domaine: Le corps humain et la santé
+  theme: Croissance et mouvement
+  attendus:
+  - id: sciences-et-technologie.ce1.croissance-mouvement.01
+    libelle: Utiliser des instruments de mesure pour suivre la croissance du corps, en particulier du squelette (os).
+    qcm: false
+  - id: sciences-et-technologie.ce1.croissance-mouvement.02
+    libelle: Comparer la croissance de différentes personnes (taille, masse, pointure) pour prendre conscience de la diversité
+      morphologique humaine et respecter les différences.
+    qcm: false
+  - id: sciences-et-technologie.ce1.croissance-mouvement.03
+    libelle: Observer les modifications de la dentition au cours de la croissance.
+    qcm: true
+- id: sciences-et-technologie.ce1.sante-hygiene
+  domaine: Le corps humain et la santé
+  theme: Santé et hygiène de vie
+  attendus:
+  - id: sciences-et-technologie.ce1.sante-hygiene.01
+    libelle: Identifier quelques règles d’hygiène de vie au quotidien et les relier à sa santé.
+    qcm: false
+  - id: sciences-et-technologie.ce1.sante-hygiene.02
+    libelle: Prendre conscience du rôle que joue l'attention cognitive dans les apprentissages.
+    qcm: false
+- id: sciences-et-technologie.ce1.objets-techniques
+  domaine: Les objets techniques au cœur de la société
+  theme: Les objets techniques au cœur de la société
+  attendus:
+  - id: sciences-et-technologie.ce1.objets-techniques.01
+    libelle: Identifier les différentes parties d’un objet technique en les caractérisant par leur forme, leur matériau et
+      leur fonction.
+    qcm: true
+  - id: sciences-et-technologie.ce1.objets-techniques.02
+    libelle: Différencier les objets selon qu’ils utilisent ou non une source d’énergie électrique. Identifier le cas échéant
+      l’intérêt de l’utilisation de l’énergie électrique.
+    qcm: true
+  - id: sciences-et-technologie.ce1.objets-techniques.03
+    libelle: Réaliser une maquette simple avec un circuit électrique. Identifier les composants et leurs fonctions.
+    qcm: false
+  - id: sciences-et-technologie.ce1.objets-techniques.04
+    libelle: Commander un robot avec des consignes simples en programmant un déplacement.
+    qcm: false

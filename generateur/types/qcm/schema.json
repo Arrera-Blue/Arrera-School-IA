@@ -8,7 +8,7 @@
     "type":    { "const": "qcm" },
     "titre":   { "type": "string", "minLength": 3, "maxLength": 80 },
     "matiere": { "enum": ["maths", "francais", "histoire-geo", "svt",
-                          "physique-chimie", "anglais", "technologie",
+                          "physique-chimie", "anglais", "technologie", "sciences-et-technologie",
                           "questionner-le-monde", "emc", "arts-plastiques", "education-musicale"] },
     "niveau":  { "enum": ["CP", "CE1", "CE2", "6e", "5e", "4e", "3e"] },
     "notion":  { "type": "string", "maxLength": 120 },

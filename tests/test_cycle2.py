@@ -106,7 +106,8 @@ def test_les_classes_sont_les_memes_partout():
 
 def test_chaque_matiere_a_son_nom_partout():
     matieres = registre.charger("qcm").schema["properties"]["matiere"]["enum"]
-    assert {"questionner-le-monde", "emc", "arts-plastiques", "education-musicale"} <= set(matieres)
+    assert {"sciences-et-technologie", "questionner-le-monde", "emc", "arts-plastiques",
+            "education-musicale"} <= set(matieres)
     for chemin in ("generateur/interface/statique/app.js", "generateur/classe/statique/eleve.js",
                    "generateur/types/qcm/gabarit.html"):
         texte = (RACINE / chemin).read_text(encoding="utf-8")
@@ -115,11 +116,13 @@ def test_chaque_matiere_a_son_nom_partout():
     assert set(analyse.MOTS_DES_MATIERES) == set(analyse.NOMS_DES_MATIERES) == set(matieres)
 
 
-def test_un_exercice_de_cp_se_rend_en_style_enfant_avec_le_nom_de_sa_matiere():
+@pytest.mark.parametrize("matiere, nom", [("sciences-et-technologie", "Sciences et technologie"),
+                                          ("questionner-le-monde", "Questionner le monde")])  # un exercice déjà fait
+def test_un_exercice_de_cp_se_rend_en_style_enfant_avec_le_nom_de_sa_matiere(matiere, nom):
     instance = json.loads(json.dumps(registre.charger("qcm").exemple))
-    instance.update(matiere="questionner-le-monde", niveau="CP")
+    instance.update(matiere=matiere, niveau="CP")
     html = rendu.rendre(instance, "qcm")
-    assert '<body data-style="enfant">' in html and "Questionner le monde" in html
+    assert '<body data-style="enfant">' in html and nom in html
 
 
 @pytest.mark.parametrize("niveau", ["CP", "CE1", "CE2"])
@@ -129,7 +132,7 @@ def test_un_exercice_du_cycle_2_entre_dans_la_banque(tmp_path, monkeypatch, nive
     vrai_chemin = config.chemin
     monkeypatch.setattr(config, "chemin", lambda nom: vrai_chemin(nom) if nom == "types" else tmp_path / nom)
     instance = json.loads(json.dumps(registre.charger("qcm").exemple))
-    instance.update(matiere="questionner-le-monde", niveau=niveau, notion="Les saisons")
+    instance.update(matiere="histoire-geo", niveau=niveau, notion="Les saisons")
     ident = generation.identifiant("qcm", instance)
     assert re.fullmatch(rf"qcm-les-saisons-{niveau.lower()}-\d{{8}}-\d{{6}}", ident)
     instance["meta"] = {"id": ident, "statut": banque.GENERE}
@@ -155,11 +158,18 @@ def test_cycle_segment_et_ordre_des_classes():
 
 @pytest.mark.parametrize("phrase, matiere, niveau", [
     ("un QCM de conjugaison au présent pour des CE1", "francais", "CE1"),
-    ("les saisons au CP", "questionner-le-monde", "CP"),
-    # au cycle 2, les sciences, l'histoire et la géographie sont « questionner le monde »
-    ("les états de l'eau pour des CE2", "questionner-le-monde", "CE2"),
-    ("QCM sur les animaux en CP", "questionner-le-monde", "CP"),
-    ("un quiz sur Louis XIV en cours élémentaire 2e année", "questionner-le-monde", "CE2"),
+    # au cycle 2, les sciences sont « sciences et technologie » (programmes de 2026, lot 2)
+    ("les états de l'eau pour des CE2", "sciences-et-technologie", "CE2"),
+    ("QCM sur les animaux en CP", "sciences-et-technologie", "CP"),
+    ("un QCM de sciences et technologie pour des CE2", "sciences-et-technologie", "CE2"),
+    ("un QCM de sciences pour des CP", "sciences-et-technologie", "CP"),
+    ("les saisons au CP", "histoire-geo", "CP"),
+    ("un quiz sur Louis XIV en cours élémentaire 2e année", "histoire-geo", "CE2"),
+    # « questionner le monde », l'ancien nom : l'une ou l'autre selon les mots de la demande
+    ("questionner le monde : les animaux pour des CE1", "sciences-et-technologie", "CE1"),
+    ("les jours de la semaine en questionner le monde, CP", "histoire-geo", "CP"),
+    # « technologie » au collège reste la technologie
+    ("un QCM de technologie en 5e", "technologie", "5e"),
     # … mais pas au collège
     ("les états de l'eau en 5e", "physique-chimie", "5e"),
     ("les couleurs primaires en arts plastiques, CE1", "arts-plastiques", "CE1"),
@@ -172,9 +182,21 @@ def test_la_classe_et_la_matiere_du_cycle_2(phrase, matiere, niveau):
     assert (requete["matiere"], requete["niveau"]) == (matiere, niveau)
 
 
+def test_questionner_le_monde_seul_est_a_choisir():
+    resultat = analyse.analyser("un QCM de questionner le monde pour des CE1")
+    assert resultat.requete["matiere"] is None
+    assert any("« questionner le monde » est devenu « sciences et technologie » et « histoire-géographie »" in r
+               for r in resultat.remarques)
+
+
 def test_la_matiere_de_la_classe():
     permises = registre.charger("qcm").schema["properties"]["matiere"]["enum"]
-    assert analyse.matiere_de_la_classe("svt", "CE1", permises) == "questionner-le-monde"
+    assert analyse.matiere_de_la_classe("svt", "CE1", permises) == "sciences-et-technologie"
+    assert analyse.matiere_de_la_classe("histoire-geo", "CE1", permises) == "histoire-geo"
+    assert analyse.matiere_de_la_classe("questionner-le-monde", "CE1", permises, "les animaux") == \
+        "sciences-et-technologie"
+    assert analyse.matiere_de_la_classe("questionner-le-monde", "CP", permises, "les saisons") == "histoire-geo"
+    assert analyse.matiere_de_la_classe("questionner-le-monde", "CP", permises, "un QCM") is None
     assert analyse.matiere_de_la_classe("svt", "6e", permises) == "svt"
     assert analyse.matiere_de_la_classe("francais", "CP", permises) == "francais"
     assert analyse.matiere_de_la_classe("svt", None, permises) == "svt"

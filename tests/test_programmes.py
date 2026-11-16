@@ -19,24 +19,31 @@ def test_le_referentiel_est_sain():
     assert programmes.verifier() == []
 
 
-def test_sept_programmes_sources_citees():
+def test_treize_programmes_sources_citees():
     documents = {(d["matiere"], d["niveau"]): d for d in programmes.documents()}
-    assert set(documents) == {("maths", "6e"), ("maths", "5e"), ("francais", "6e"), ("francais", "5e"),
-                              ("francais", "CP"), ("francais", "CE1"), ("francais", "CE2")}
+    cycle_2 = {(m, n) for m in ("francais", "sciences-et-technologie", "histoire-geo") for n in ("CP", "CE1", "CE2")}
+    assert set(documents) == {("maths", "6e"), ("maths", "5e"), ("francais", "6e"), ("francais", "5e")} | cycle_2
     for (matiere, niveau), doc in documents.items():
         source = doc["source"]
-        if niveau == "6e":
+        if matiere == "sciences-et-technologie":  # lot 2 du cycle 2 (16/11) : les programmes de 2026
+            assert doc["cycle"] == 2 and source["nor"] == "MENE2611650A" and source["bo"] == "BO n° 24 du 11 juin 2026"
+        elif matiere == "histoire-geo":
+            assert doc["cycle"] == 2 and source["nor"] == "MENE2608631A" and source["bo"] == "BO n° 22 du 28 mai 2026"
+        elif niveau == "6e":
             assert doc["cycle"] == 3 and source["nor"] == "MENE2504620A" and source["bo"] == "BO n° 16 du 17 avril 2025"
         elif niveau in ("CP", "CE1", "CE2"):  # le cycle 2 : générateur procédural du cycle 2, étape 0.4 (10/11)
             assert doc["cycle"] == 2 and source["nor"] == "MENE2415135A" and source["bo"] == "BO n° 41 du 31 octobre 2024"
         else:
             assert doc["cycle"] == 4 and source["nor"] == "MENE2602912A" and source["bo"] == "BO n° 10 du 5 mars 2026"
-    # 368 libellés relevés le 21/10/2026, 182 le 10/11/2026 : tout ajout ou retrait doit être voulu (et la doc mise
-    # à jour)
-    assert len(programmes.lister()) == 550
+    # 368 libellés relevés le 21/10/2026, 182 le 10/11/2026, 163 le 16/11/2026 : tout ajout ou retrait doit être
+    # voulu (et la doc mise à jour)
+    assert len(programmes.lister()) == 713
     assert {(m, n): len(programmes.lister(m, n)) for m, n in documents} == {
         ("maths", "6e"): 95, ("maths", "5e"): 104, ("francais", "6e"): 85, ("francais", "5e"): 84,
-        ("francais", "CP"): 70, ("francais", "CE1"): 60, ("francais", "CE2"): 52}
+        ("francais", "CP"): 70, ("francais", "CE1"): 60, ("francais", "CE2"): 52,
+        ("sciences-et-technologie", "CP"): 18, ("sciences-et-technologie", "CE1"): 29,
+        ("sciences-et-technologie", "CE2"): 30, ("histoire-geo", "CP"): 33, ("histoire-geo", "CE1"): 26,
+        ("histoire-geo", "CE2"): 27}
 
 
 def test_le_francais_du_cycle_2():
@@ -56,6 +63,47 @@ def test_le_francais_du_cycle_2():
     assert programmes.couvert("francais", "CP") and not programmes.couvert("maths", "CP")
     assert {t["id"].split(".")[2] for t in programmes.arbre("francais", "CE1", qcm=None)["themes"]} >= {
         "vocabulaire", "relations-mots", "phrase-simple", "orthographe-grammaticale"}
+
+
+def test_les_programmes_de_2026_du_cycle_2():
+    """Lot 2 (16/11) : sciences et technologie (annexe 1 du BO n° 24 du 11 juin 2026) et histoire-géographie (annexe 3
+    du BO n° 22 du 28 mai 2026), relevés mot pour mot (docs/Generateur-Procedural/lot-2-questionner-le-monde.md)."""
+    a = programmes.attendu("sciences-et-technologie.ce1.etats-matiere.02")
+    assert a.libelle == "Nommer le changement d’état (solidification et fusion)." and a.qcm
+    assert a.domaine == "La matière, les mesures, l’électricité" and a.theme == "États physiques de la matière"
+    # une virgule en fin de ligne, à la limite des deux colonnes : gardée
+    assert "possibilités d’agir, tant individuellement" in programmes.attendu(
+        "sciences-et-technologie.ce1.proteger-environnement.03").libelle
+    # les objets techniques n'ont pas de thème : le thème est le domaine
+    assert programmes.theme("sciences-et-technologie.cp.objets-techniques")["theme"] == \
+        "Les objets techniques au cœur de la société"
+    # un geste, une attitude, l'hygiène : pas des QCM
+    assert not programmes.attendu("sciences-et-technologie.cp.masse-temperature.03").qcm  # lire un thermomètre
+    assert not any(a.qcm for a in programmes.lister("sciences-et-technologie") if a.theme_id.endswith(
+        (".sante-hygiene", ".proteger-environnement")))
+    # l'histoire-géographie : les objectifs, puis les attendus ; la colonne d'origine notée
+    t = programmes.theme("histoire-geo.cp.representations-temps")
+    assert [a.libelle for a in t["attendus"]][:4] == [
+        "Connaitre la structure du calendrier grégorien.",
+        "Découvrir différentes représentations du temps : linéaire et cyclique.",
+        "Connaitre des outils de mesure du temps.",
+        "Savoir que l’année est divisée en mois, le mois en semaines, la semaine en jours, la journée en heures."]
+    doc = next(d for d in programmes.documents() if (d["matiere"], d["niveau"]) == ("histoire-geo", "CP"))
+    colonnes = [a["colonne"] for t in doc["themes"] if t["id"].endswith(".representations-temps") for a in t["attendus"]]
+    assert colonnes == ["objectifs"] * 3 + ["attendus"] * 4
+    # un exposant recollé (« Ier »), la durée en périodes retirée du titre ; une introduction reprise devant ses puces
+    assert programmes.theme("histoire-geo.ce2.rome-gaule")["theme"] == \
+        "Vivre à Rome et en Gaule romaine du Ier siècle avant J.-C. au IIe siècle après J.-C."
+    assert programmes.attendu("histoire-geo.ce2.royaume-france.01").libelle == \
+        "Connaitre et comprendre : Les grandes étapes de la construction du royaume de France."
+    # localiser sur une carte : pas un QCM sans image
+    assert not programmes.attendu("histoire-geo.cp.representations-monde.05").qcm
+    assert programmes.attendu("histoire-geo.cp.representations-monde.05").libelle.startswith("Reconnaitre et localiser")
+    # en vigueur au CP ; au CE1 et au CE2 à la rentrée 2027
+    for d in programmes.documents():
+        if d["matiere"] in ("sciences-et-technologie", "histoire-geo"):
+            assert ("depuis la rentrée 2026" if d["niveau"] == "CP" else "rentrée 2027-2028") in d["source"]["en_vigueur"]
+    assert programmes.couvert("sciences-et-technologie", "CE2") and not programmes.couvert("histoire-geo", "6e")
 
 
 def test_libelles_officiels():

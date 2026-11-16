@@ -1,0 +1,158 @@
+# Référentiel des attendus — histoire-geo, CE2 (générateur procédural du cycle 2, lot 2, étape 2.0). Libellés
+# recopiés MOT POUR MOT des colonnes « Objectifs d’apprentissage » et « Attendus (connaissances et compétences) » du
+# programme officiel de 2026 (source ci-dessous ; le PDF de l’annexe :
+# https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf) ;
+# seuls les identifiants, le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du programme) et la
+# colonne d’origine (« colonne ») sont ajoutés. Méthode et corrections :
+# docs/Generateur-Procedural/lot-2-questionner-le-monde.md §11.1.
+matiere: histoire-geo
+niveau: CE2
+cycle: 2
+source:
+  texte: Programme d’histoire-géographie pour le cycle 2 (annexe 3 de l’arrêté)
+  arrete: Arrêté du 22 avril 2026 (JO du 8 mai 2026)
+  nor: MENE2608631A
+  bo: BO n° 22 du 28 mai 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo22/MENE2608631A
+  en_vigueur: au CE2 à la rentrée 2027-2028 (article 3 de l’arrêté) ; en 2026-2027, le CE2 suit encore « Questionner le monde
+    » (BO n° 31 du 30 juillet 2020)
+  extrait: Programme d’histoire-géographie pour le cycle 2 (annexe 3), « Cours élémentaire deuxième année »
+  releve: '2026-11-16'
+themes:
+- id: histoire-geo.ce2.prehistoire
+  domaine: Histoire
+  theme: La vie des femmes et des hommes au Paléolithique et au Néolithique (environ 3 millions d'années à 3000 av. J.-C.)
+  attendus:
+  - id: histoire-geo.ce2.prehistoire.01
+    libelle: Connaitre le mode de vie nomade au Paléolithique.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce2.prehistoire.02
+    libelle: 'Comprendre le mode de vie sédentaire au Néolithique : agriculture (culture et élevage), utilisation des premiers
+      métaux.'
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce2.prehistoire.03
+    libelle: Décrire le mode de vie des chasseurs-cueilleurs au Paléolithique.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce2.prehistoire.04
+    libelle: Décrire une peinture pariétale ou une gravure rupestre.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce2.prehistoire.05
+    libelle: Expliquer les différences de mode de vie des femmes et des hommes entre le Paléolithique et le Néolithique.
+    qcm: false
+    colonne: attendus
+- id: histoire-geo.ce2.rome-gaule
+  domaine: Histoire
+  theme: Vivre à Rome et en Gaule romaine du Ier siècle avant J.-C. au IIe siècle après J.-C.
+  attendus:
+  - id: histoire-geo.ce2.rome-gaule.01
+    libelle: 'Connaitre la vie quotidienne des habitantes et des habitants de Rome : se loger, se nourrir, se déplacer, se
+      divertir.'
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce2.rome-gaule.02
+    libelle: Comprendre que la société antique est hiérarchisée (hommes, femmes, esclaves, étrangers, etc.)
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce2.rome-gaule.03
+    libelle: Connaitre l’étendue de l’empire romain au IIe siècle après J.-C.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.ce2.rome-gaule.04
+    libelle: Connaitre la vie quotidienne des habitantes et des habitants de la Gaule romaine.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce2.rome-gaule.05
+    libelle: Définir l’usage d’un monument ou d’un aménagement caractéristique de la ville de Rome.
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.ce2.rome-gaule.06
+    libelle: Repérer sur une carte l’étendue de l’empire romain à son apogée.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce2.rome-gaule.07
+    libelle: Localiser la Gaule dans l’empire.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce2.rome-gaule.08
+    libelle: Expliquer que le monde gallo-romain mêle les cultures gauloise et romaine.
+    qcm: false
+    colonne: attendus
+- id: histoire-geo.ce2.royaume-france
+  domaine: Histoire
+  theme: La construction du royaume de France (Xe – XVe siècles)
+  attendus:
+  - id: histoire-geo.ce2.royaume-france.01
+    libelle: 'Connaitre et comprendre : Les grandes étapes de la construction du royaume de France.'
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce2.royaume-france.02
+    libelle: 'Connaitre et comprendre : Les moyens d’affirmation de l’autorité du roi.'
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.ce2.royaume-france.03
+    libelle: Repérer les grandes étapes de la construction du royaume de France à partir de cartes.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce2.royaume-france.04
+    libelle: Décrire la cérémonie du sacre.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce2.royaume-france.05
+    libelle: Citer les moyens utilisés par les rois de France pour affirmer leur autorité sur leur royaume.
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.ce2.royaume-france.06
+    libelle: 'Nommer et situer sur une frise chronologique les dynasties royales : Capétiens, Valois, quelques rois (Philippe
+      Auguste, etc.) et quelques grandes figures féminines (Aliénor d’Aquitaine, Blanche de Castille, etc.)'
+    qcm: true
+    colonne: attendus
+- id: histoire-geo.ce2.repartition-population
+  domaine: Géographie
+  theme: L’inégale répartition de la population en France
+  attendus:
+  - id: histoire-geo.ce2.repartition-population.01
+    libelle: Connaitre la répartition de la population en France.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.ce2.repartition-population.02
+    libelle: 'Sur une carte de France : Localiser les espaces de fortes et de faibles densités.'
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce2.repartition-population.03
+    libelle: 'Sur une carte de France : Localiser et nommer les cinq principales agglomérations à l’échelle nationale et,
+      le cas échéant, la principale agglomération à proximité de l’école.'
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.ce2.repartition-population.04
+    libelle: 'Sur une carte de France : Localiser et nommer les grandes chaines de montagne et quelques grands fleuves.'
+    qcm: true
+    colonne: attendus
+- id: histoire-geo.ce2.se-loger
+  domaine: Géographie
+  theme: Se loger en France
+  attendus:
+  - id: histoire-geo.ce2.se-loger.01
+    libelle: Connaitre et comprendre la diversité des paysages résidentiels en France.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.ce2.se-loger.02
+    libelle: Reconnaitre et décrire les éléments constitutifs des espaces résidentiels.
+    qcm: false
+    colonne: attendus
+- id: histoire-geo.ce2.travailler
+  domaine: Géographie
+  theme: Travailler en France
+  attendus:
+  - id: histoire-geo.ce2.travailler.01
+    libelle: Connaitre et comprendre la diversité paysagère des activités en France.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.ce2.travailler.02
+    libelle: 'Reconnaitre et décrire un paysage : industriel ; agricole ; d’activité commerciale ; de quartier d’affaires
+      ; de station touristique.'
+    qcm: false
+    colonne: attendus

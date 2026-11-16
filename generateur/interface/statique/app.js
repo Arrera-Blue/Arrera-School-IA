@@ -7,9 +7,12 @@
   const MATIERES = {
     "maths": "Mathématiques", "francais": "Français", "histoire-geo": "Histoire-géographie", "svt": "SVT",
     "physique-chimie": "Physique-chimie", "anglais": "Anglais", "technologie": "Technologie",
-    "questionner-le-monde": "Questionner le monde", "emc": "Enseignement moral et civique",
+    "sciences-et-technologie": "Sciences et technologie", "questionner-le-monde": "Questionner le monde", "emc": "Enseignement moral et civique",
     "arts-plastiques": "Arts plastiques", "education-musicale": "Éducation musicale",
   };
+  // « questionner le monde » (2020) est devenu « sciences et technologie » et « histoire-géographie » (programmes de
+  // 2026, lot 2 du cycle 2) : gardé pour les exercices déjà faits (la banque), plus proposé pour en faire de nouveaux
+  const ANCIENNES = ["questionner-le-monde"];
   const STATUTS = { genere: "À relire", prerelu: "En cours de relecture", accepte: "Accepté", rejete: "Rejeté" };
   const AVIS = { bon: "bon", a_corriger: "à corriger", a_rejeter: "à rejeter" }; // la pré-relecture de Claude (IA3)
   const SOURCES = { modele: "proposé par le modèle : à vérifier", devine: "deviné dans la phrase : à vérifier" };
@@ -501,7 +504,7 @@
   async function chargerCours() {
     const type = etat.types[0];
     if (type && $("#cours-matiere").options.length === 0) {
-      remplirSelect($("#cours-matiere"), type.matieres, MATIERES, "");
+      remplirSelect($("#cours-matiere"), type.matieres.filter((m) => !ANCIENNES.includes(m)), MATIERES, "");
       remplirSelect($("#cours-niveau"), type.niveaux, {}, "");
     }
     let cours;
@@ -1445,7 +1448,8 @@
     if (!type) return;
     const matiere = $("#matiere").value;
     const niveau = $("#niveau").value;
-    remplirSelect($("#matiere"), type.matieres, MATIERES, "— choisir —");
+    remplirSelect($("#matiere"), type.matieres.filter((m) => !ANCIENNES.includes(m) || m === matiere), MATIERES,
+      "— choisir —");
     remplirSelect($("#niveau"), type.niveaux, {}, "— choisir —");
     $("#matiere").value = matiere;
     $("#niveau").value = niveau;

@@ -1,0 +1,176 @@
+# Référentiel des attendus — histoire-geo, CP (générateur procédural du cycle 2, lot 2, étape 2.0). Libellés
+# recopiés MOT POUR MOT des colonnes « Objectifs d’apprentissage » et « Attendus (connaissances et compétences) » du
+# programme officiel de 2026 (source ci-dessous ; le PDF de l’annexe :
+# https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf) ;
+# seuls les identifiants, le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du programme) et la
+# colonne d’origine (« colonne ») sont ajoutés. Méthode et corrections :
+# docs/Generateur-Procedural/lot-2-questionner-le-monde.md §11.1.
+matiere: histoire-geo
+niveau: CP
+cycle: 2
+source:
+  texte: Programme d’histoire-géographie pour le cycle 2 (annexe 3 de l’arrêté)
+  arrete: Arrêté du 22 avril 2026 (JO du 8 mai 2026)
+  nor: MENE2608631A
+  bo: BO n° 22 du 28 mai 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo22/MENE2608631A
+  en_vigueur: au CP depuis la rentrée 2026-2027 (article 3 de l’arrêté)
+  extrait: Programme d’histoire-géographie pour le cycle 2 (annexe 3), « Cours préparatoire »
+  releve: '2026-11-16'
+themes:
+- id: histoire-geo.cp.manifestations-temps
+  domaine: Histoire
+  theme: Les manifestations naturelles du temps
+  attendus:
+  - id: histoire-geo.cp.manifestations-temps.01
+    libelle: Observer des manifestations naturelles du temps.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.manifestations-temps.02
+    libelle: Expliquer l’alternance du jour et de la nuit en manipulant un globe terrestre.
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.cp.manifestations-temps.03
+    libelle: Nommer les saisons, donner leurs caractéristiques.
+    qcm: true
+    colonne: attendus
+- id: histoire-geo.cp.representations-temps
+  domaine: Histoire
+  theme: Les représentations humaines du temps
+  attendus:
+  - id: histoire-geo.cp.representations-temps.01
+    libelle: Connaitre la structure du calendrier grégorien.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.cp.representations-temps.02
+    libelle: 'Découvrir différentes représentations du temps : linéaire et cyclique.'
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.representations-temps.03
+    libelle: Connaitre des outils de mesure du temps.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.cp.representations-temps.04
+    libelle: Savoir que l’année est divisée en mois, le mois en semaines, la semaine en jours, la journée en heures.
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.cp.representations-temps.05
+    libelle: Repérer, ordonner et nommer les jours de la semaine.
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.cp.representations-temps.06
+    libelle: 'Utiliser divers types de calendriers : emploi du temps de la journée, éphéméride, calendrier, roue des jours.'
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.representations-temps.07
+    libelle: 'Observer et utiliser des outils de mesure du temps : sablier, pendule, montre et réveil (analogiques et numériques).'
+    qcm: false
+    colonne: attendus
+- id: histoire-geo.cp.situer-evenements
+  domaine: Histoire
+  theme: Situer des évènements dans le temps
+  attendus:
+  - id: histoire-geo.cp.situer-evenements.01
+    libelle: Connaitre les notions d’antériorité, de simultanéité, de postériorité.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.cp.situer-evenements.02
+    libelle: Comprendre la représentation du temps passé et son irréversibilité.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.situer-evenements.03
+    libelle: Situer et planifier sur un calendrier des évènements particuliers ou récurrents en utilisant les temps verbaux
+      adaptés (passé, présent, futur) et les marqueurs temporels adaptés (hier, avant-hier, il y a un mois, etc. / demain,
+      après-demain, dans un mois, etc.).
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.cp.situer-evenements.04
+    libelle: Se repérer au travers des différentes générations à partir d’exemples d’arbres généalogiques.
+    qcm: true
+    colonne: attendus
+  - id: histoire-geo.cp.situer-evenements.05
+    libelle: Compléter une frise chronologique de la journée, de la vie de l’élève, voire générationnelle.
+    qcm: false
+    colonne: attendus
+- id: histoire-geo.cp.autour-ecole
+  domaine: Géographie
+  theme: Autour de l’école
+  attendus:
+  - id: histoire-geo.cp.autour-ecole.01
+    libelle: Connaitre les éléments d’organisation de la classe et de l’école.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.autour-ecole.02
+    libelle: Comprendre que l’espace se représente.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.autour-ecole.03
+    libelle: Explorer les locaux de l’école pour s’y repérer.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.autour-ecole.04
+    libelle: Identifier les différents repères autour de l’école, du quartier ou de la commune.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.autour-ecole.05
+    libelle: Nommer les éléments d’organisation de la classe et les situer les uns par rapport aux autres.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.autour-ecole.06
+    libelle: Faire le plan de la classe et le comparer à celui d’une autre classe.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.autour-ecole.07
+    libelle: Se déplacer dans l’école en s’orientant et en utilisant un plan.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.autour-ecole.08
+    libelle: Décrire l’usage des différents lieux de l’école.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.autour-ecole.09
+    libelle: Décrire et/ou représenter un trajet, par exemple entre un lieu de l’espace proche (domicile, bâtiment public,
+      équipement sportif, etc.) et l’école.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.autour-ecole.10
+    libelle: Reconnaitre des lieux familiers représentés sous différents angles de vue.
+    qcm: false
+    colonne: attendus
+- id: histoire-geo.cp.representations-monde
+  domaine: Géographie
+  theme: Des représentations du monde
+  attendus:
+  - id: histoire-geo.cp.representations-monde.01
+    libelle: Identifier la différence entre continents et océans.
+    qcm: true
+    colonne: objectifs
+  - id: histoire-geo.cp.representations-monde.02
+    libelle: Comprendre comment et pourquoi passer du globe au planisphère.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.representations-monde.03
+    libelle: Comprendre que le monde est peuplé.
+    qcm: false
+    colonne: objectifs
+  - id: histoire-geo.cp.representations-monde.04
+    libelle: Reconnaitre un planisphère.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.representations-monde.05
+    libelle: Reconnaitre et localiser les continents et les océans sur un planisphère.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.representations-monde.06
+    libelle: Comprendre la continuité entre les océans et identifier les continents par la manipulation d’un globe terrestre
+      / le planisphère.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.representations-monde.07
+    libelle: Situer la France.
+    qcm: false
+    colonne: attendus
+  - id: histoire-geo.cp.representations-monde.08
+    libelle: Localiser les grands foyers de peuplement.
+    qcm: false
+    colonne: attendus

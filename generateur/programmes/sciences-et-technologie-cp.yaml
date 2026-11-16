@@ -1,0 +1,114 @@
+# Référentiel des attendus — sciences-et-technologie, CP (générateur procédural du cycle 2, lot 2, étape 2.0).
+# Libellés recopiés MOT POUR MOT de la colonne « Objectifs d’apprentissage » du programme officiel de 2026 (source
+# ci-dessous ; le PDF du BO, pages 4 à 15 :
+# https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf) ;
+# seuls les identifiants et le champ « qcm » (se prête ou non à un QCM : classement du projet, pas du programme) sont
+# ajoutés. Méthode et corrections : docs/Generateur-Procedural/lot-2-questionner-le-monde.md §11.1.
+matiere: sciences-et-technologie
+niveau: CP
+cycle: 2
+source:
+  texte: Programme de sciences et technologie du cycle 2 (annexe 1 de l’arrêté)
+  arrete: Arrêté du 5 juin 2026 (JO du 9 juin 2026)
+  nor: MENE2611650A
+  bo: BO n° 24 du 11 juin 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo24/MENE2611650A
+  en_vigueur: au CP depuis la rentrée 2026-2027 (article 3 de l’arrêté)
+  extrait: Programme de sciences et technologie du cycle 2 (annexe 1), « Cours préparatoire »
+  releve: '2026-11-16'
+themes:
+- id: sciences-et-technologie.cp.masse-temperature
+  domaine: La matière, les mesures, l’électricité
+  theme: Masse, volumes et mesure de température
+  attendus:
+  - id: sciences-et-technologie.cp.masse-temperature.01
+    libelle: Comparer les masses de différents objets.
+    qcm: false
+  - id: sciences-et-technologie.cp.masse-temperature.02
+    libelle: Utiliser le vocabulaire associé aux masses.
+    qcm: true
+  - id: sciences-et-technologie.cp.masse-temperature.03
+    libelle: Lire la valeur de la température avec un thermomètre à liquide.
+    qcm: false
+- id: sciences-et-technologie.cp.etats-matiere
+  domaine: La matière, les mesures, l’électricité
+  theme: États physiques de la matière
+  attendus:
+  - id: sciences-et-technologie.cp.etats-matiere.01
+    libelle: Reconnaitre et identifier les états solides et liquides de l’eau.
+    qcm: true
+- id: sciences-et-technologie.cp.diversite-vivant
+  domaine: Les êtres vivants dans leur environnement
+  theme: Unité et diversité du vivant
+  attendus:
+  - id: sciences-et-technologie.cp.diversite-vivant.01
+    libelle: Caractériser et justifier à l’aide de critères simples ce qui est vivant, non vivant ou élaboré par des êtres
+      vivants.
+    qcm: true
+- id: sciences-et-technologie.cp.environnement-proche
+  domaine: Les êtres vivants dans leur environnement
+  theme: Observer et décrire son environnement proche
+  attendus:
+  - id: sciences-et-technologie.cp.environnement-proche.01
+    libelle: 'Observer son environnement proche : décrire les êtres vivants qui y vivent et les caractéristiques du milieu
+      de vie.'
+    qcm: false
+  - id: sciences-et-technologie.cp.environnement-proche.02
+    libelle: Se repérer dans son environnement proche.
+    qcm: false
+- id: sciences-et-technologie.cp.proteger-environnement
+  domaine: Les êtres vivants dans leur environnement
+  theme: Agir pour protéger l’environnement
+  attendus:
+  - id: sciences-et-technologie.cp.proteger-environnement.01
+    libelle: Constater quelques modifications de l’environnement proche par des activités humaines.
+    qcm: false
+  - id: sciences-et-technologie.cp.proteger-environnement.02
+    libelle: Identifier et mettre en œuvre quelques gestes simples favorables à la protection de l’environnement proche de
+      l’école.
+    qcm: false
+  - id: sciences-et-technologie.cp.proteger-environnement.03
+    libelle: Développer un rapport sensible à la nature.
+    qcm: false
+  - id: sciences-et-technologie.cp.proteger-environnement.04
+    libelle: Prendre conscience des possibilités d’agir, tant individuellement que collectivement, pour protéger l’environnement.
+    qcm: false
+- id: sciences-et-technologie.cp.alimentation
+  domaine: Le corps humain et la santé
+  theme: Alimentation
+  attendus:
+  - id: sciences-et-technologie.cp.alimentation.01
+    libelle: Découvrir et nommer les catégories d’aliments et leur origine, en utilisant le vocabulaire associé.
+    qcm: true
+- id: sciences-et-technologie.cp.croissance-mouvement
+  domaine: Le corps humain et la santé
+  theme: Croissance et mouvement
+  attendus:
+  - id: sciences-et-technologie.cp.croissance-mouvement.01
+    libelle: Décrire le schéma corporel et nommer les principales articulations et quelques os associés du squelette, en enrichissant
+      le vocabulaire anatomique.
+    qcm: true
+  - id: sciences-et-technologie.cp.croissance-mouvement.02
+    libelle: Repérer sur soi et sur une maquette simple les éléments permettant la réalisation d’un mouvement corporel.
+    qcm: false
+- id: sciences-et-technologie.cp.sante-hygiene
+  domaine: Le corps humain et la santé
+  theme: Santé et hygiène de vie
+  attendus:
+  - id: sciences-et-technologie.cp.sante-hygiene.01
+    libelle: Observer son rythme d’activité quotidien (sommeil, activité physique, activité intellectuelle, repos et relaxation).
+    qcm: false
+  - id: sciences-et-technologie.cp.sante-hygiene.02
+    libelle: Identifier quelques règles d’hygiène de vie au quotidien et les relier à sa santé (sommeil, variété alimentaire,
+      activité physique régulière, repos, lavage des mains et du corps, brossage des dents, limitation des temps d’écran).
+    qcm: false
+- id: sciences-et-technologie.cp.objets-techniques
+  domaine: Les objets techniques au cœur de la société
+  theme: Les objets techniques au cœur de la société
+  attendus:
+  - id: sciences-et-technologie.cp.objets-techniques.01
+    libelle: Identifier qu’un objet technique est obtenu par intervention des êtres humains.
+    qcm: true
+  - id: sciences-et-technologie.cp.objets-techniques.02
+    libelle: Identifier des activités de la vie quotidienne faisant appel à des objets techniques répondant à un besoin.
+    qcm: true
