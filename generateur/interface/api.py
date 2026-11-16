@@ -82,7 +82,8 @@ publier compris) :
                                                      dans GET /api/exercices/{id} (« prerelecture »)
 
 La relecture à l'aveugle (plan IA, IA4.3) : la même interface, sur les exercices mélangés du modèle de base et du modèle
-entraîné (donnees/entrainement/aveugle/<comparaison>/, entrainement/aveugle.py) ; relire, décider, modifier une
+entraîné, ou du modèle seul et du générateur procédural (donnees/entrainement/aveugle/<comparaison>/,
+entrainement/aveugle.py) ; relire, décider, modifier une
 question, et rien d'autre (`AVEUGLE` : ni régénérer, ni supprimer) :
     python -m generateur.interface.api --aveugle        # http://127.0.0.1:8003 (la dernière comparaison)
     GET  /api/entrainement                           avec « aveugle » : true ; l'objectif : tous les exercices
