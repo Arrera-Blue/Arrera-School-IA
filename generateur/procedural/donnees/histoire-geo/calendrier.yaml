@@ -1,0 +1,56 @@
+# Table de référence (générateur procédural de l'histoire, lot 2, étape 2.1), écrite par Claude ; chaque ligne cite sa
+# source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §4). Le générateur ne demande jamais « le premier
+# jour de la semaine » (le lundi pour la norme ISO 8601, le dimanche ailleurs : un fait discuté), seulement le jour
+# juste avant ou juste après ; ni le nombre de saisons (4 en zone tempérée, saison sèche et saison des pluies sous les
+# tropiques), seulement leur ordre.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/calendrier --par "…"
+description: Les jours de la semaine, les mois de l'année et les quatre saisons, chacun dans son ordre.
+sources:
+  programme:
+    nom: Programme d’histoire-géographie du cycle 2, CP, thèmes 1 et 2 (annexe 3, BO n° 22 du 28 mai 2026)
+    url: https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf
+    consulte: '2026-11-16'
+  wp_semaine:
+    nom: Wikipédia, « Semaine » (« Les jours de la semaine sont les lundi, mardi, mercredi, jeudi, vendredi, samedi et dimanche. »)
+    url: https://fr.wikipedia.org/wiki/Semaine
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+  wp_calendrier:
+    nom: Wikipédia, « Calendrier grégorien », section « Subdivisions » (les douze mois, dans l’ordre)
+    url: https://fr.wikipedia.org/wiki/Calendrier_gr%C3%A9gorien
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+  wp_saison:
+    nom: Wikipédia, « Saison » (« printemps, été, automne et hiver »)
+    url: https://fr.wikipedia.org/wiki/Saison
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+proprietes:
+  suite: [jour, mois, saison]
+  rang: nombre
+  nom: texte
+cle: [suite, rang]
+lignes:
+- {suite: jour, rang: 1, nom: lundi, source: wp_semaine}
+- {suite: jour, rang: 2, nom: mardi, source: wp_semaine}
+- {suite: jour, rang: 3, nom: mercredi, source: wp_semaine}
+- {suite: jour, rang: 4, nom: jeudi, source: wp_semaine}
+- {suite: jour, rang: 5, nom: vendredi, source: wp_semaine}
+- {suite: jour, rang: 6, nom: samedi, source: wp_semaine}
+- {suite: jour, rang: 7, nom: dimanche, source: wp_semaine}
+- {suite: mois, rang: 1, nom: janvier, source: wp_calendrier}
+- {suite: mois, rang: 2, nom: février, source: wp_calendrier}
+- {suite: mois, rang: 3, nom: mars, source: wp_calendrier}
+- {suite: mois, rang: 4, nom: avril, source: wp_calendrier}
+- {suite: mois, rang: 5, nom: mai, source: wp_calendrier}
+- {suite: mois, rang: 6, nom: juin, source: wp_calendrier}
+- {suite: mois, rang: 7, nom: juillet, source: wp_calendrier}
+- {suite: mois, rang: 8, nom: août, source: wp_calendrier}
+- {suite: mois, rang: 9, nom: septembre, source: wp_calendrier}
+- {suite: mois, rang: 10, nom: octobre, source: wp_calendrier}
+- {suite: mois, rang: 11, nom: novembre, source: wp_calendrier}
+- {suite: mois, rang: 12, nom: décembre, source: wp_calendrier}
+- {suite: saison, rang: 1, nom: printemps, source: wp_saison}
+- {suite: saison, rang: 2, nom: été, source: wp_saison}
+- {suite: saison, rang: 3, nom: automne, source: wp_saison}
+- {suite: saison, rang: 4, nom: hiver, source: wp_saison}

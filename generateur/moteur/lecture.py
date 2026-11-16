@@ -41,12 +41,30 @@ def phrases_fixes(nb_lettres: int = len(LETTRES)) -> dict[str, str]:
 
 
 LETTRE = "a-zàâçéèêëîïôûùüœ"
+ROMAINS = {"I": 1, "V": 5, "X": 10}
+ORDINAUX = ("premier", "deuxième", "troisième", "quatrième", "cinquième", "sixième", "septième", "huitième", "neuvième",
+            "dixième", "onzième", "douzième", "treizième", "quatorzième", "quinzième", "seizième", "dix-septième",
+            "dix-huitième", "dix-neuvième", "vingtième", "vingt et unième")
+
+
+def ordinal(romain: str) -> str:
+    """« XIV » → « quatorzième » ; « I » → « premier »."""
+    valeurs = [ROMAINS[c] for c in romain]
+    n = sum(-v if i + 1 < len(valeurs) and v < valeurs[i + 1] else v for i, v in enumerate(valeurs))
+    return ORDINAUX[n - 1] if 1 <= n <= len(ORDINAUX) else romain
 
 
 def prononcable(texte: str) -> str:
     """Les écritures que la synthèse lit mal (le gabarit fait de même pour la voix du navigateur) : les maths ; une
     terminaison s'épelle (« -ent » : « e, n, t » ; lue, elle ferait « an », et Piper n'en tirait aucun son), un préfixe
-    se lit sans son tiret (« in- ») ; la flèche d'une règle (« -al → -aux ») se dit « devient » (étape 1.5 du lot 1)."""
+    se lit sans son tiret (« in- ») ; la flèche d'une règle (« -al → -aux ») se dit « devient » (étape 1.5 du lot 1).
+    L'histoire (lot 2) : « av. J.-C. » se dit « avant Jésus-Christ » ; un siècle en chiffres romains, en toutes lettres
+    (« XIVe-XVe siècles » : « quatorzième et quinzième siècles ») ; « 10000 / 9000 » (deux années), « 10000 ou 9000 »."""
+    texte = re.sub(r"\b(?:av\.|avant) J\.-C\.", "avant Jésus-Christ", texte)
+    texte = re.sub(r"\b(?:apr\.|après) J\.-C\.", "après Jésus-Christ", texte)
+    texte = re.sub(r"\b([IVX]+)(?:er|e)\s*[-–]\s*([IVX]+)e\b", lambda m: f"{ordinal(m[1])} et {ordinal(m[2])}", texte)
+    texte = re.sub(r"\b([IVX]+)(?:er|e)\b", lambda m: ordinal(m[1]), texte)
+    texte = re.sub(r"\b(\d{4,})\s*/\s*(\d{4,})\b", r"\1 ou \2", texte)
     texte = re.sub(r"(\d)\s*/\s*(\d)", r"\1 sur \2", texte)
     texte = texte.replace("²", " au carré").replace("³", " au cube").replace("×", " fois ").replace("÷", " divisé par ")
     texte = re.sub(rf"(^|[^{LETTRE}-])-([{LETTRE}]+)(?![{LETTRE}])", lambda m: m[1] + ", ".join(m[2]), texte, flags=re.I)

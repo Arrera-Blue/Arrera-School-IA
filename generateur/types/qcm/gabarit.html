@@ -780,9 +780,25 @@
 
     // les écritures que la synthèse lit mal : les maths ; une terminaison s'épelle (« -ent » : e, n, t ; lue, elle
     // ferait « an »), un préfixe se lit sans son tiret (« in- ») ; la flèche d'une règle (« -al → -aux »)
+    // l'histoire (lot 2) : « av. J.-C. », un siècle en chiffres romains (« XIVe »), deux années (« 10000 / 9000 »)
     var LETTRE = "a-zàâçéèêëîïôûùüœ";
+    var ORDINAUX = ["premier", "deuxième", "troisième", "quatrième", "cinquième", "sixième", "septième", "huitième",
+      "neuvième", "dixième", "onzième", "douzième", "treizième", "quatorzième", "quinzième", "seizième", "dix-septième",
+      "dix-huitième", "dix-neuvième", "vingtième", "vingt et unième"];
+    function ordinal(romain) {
+      var v = { I: 1, V: 5, X: 10 }, n = 0;
+      for (var i = 0; i < romain.length; i++) {
+        var a = v[romain.charAt(i)], b = i + 1 < romain.length ? v[romain.charAt(i + 1)] : 0;
+        n += a < b ? -a : a;
+      }
+      return n >= 1 && n <= ORDINAUX.length ? ORDINAUX[n - 1] : romain;
+    }
     function prononcable(texte) {
-      return texte.replace(/(\d)\s*\/\s*(\d)/g, "$1 sur $2").replace(/²/g, " au carré").replace(/³/g, " au cube")
+      return texte.replace(/\b(?:av\.|avant) J\.-C\./g, "avant Jésus-Christ").replace(/\b(?:apr\.|après) J\.-C\./g, "après Jésus-Christ")
+        .replace(/\b([IVX]+)(?:er|e)\s*[-–]\s*([IVX]+)e\b/g, function (_, a, b) { return ordinal(a) + " et " + ordinal(b); })
+        .replace(/\b([IVX]+)(?:er|e)\b/g, function (_, a) { return ordinal(a); })
+        .replace(/\b(\d{4,})\s*\/\s*(\d{4,})\b/g, "$1 ou $2")
+        .replace(/(\d)\s*\/\s*(\d)/g, "$1 sur $2").replace(/²/g, " au carré").replace(/³/g, " au cube")
         .replace(/×/g, " fois ").replace(/÷/g, " divisé par ")
         .replace(new RegExp("(^|[^" + LETTRE + "-])-([" + LETTRE + "]+)(?![" + LETTRE + "])", "gi"), function (_, avant, fin) {
           return avant + fin.split("").join(", ");

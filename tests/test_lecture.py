@@ -4,6 +4,8 @@ Une fausse voix sert aux tests ; un dernier test essaie la vraie, si elle est in
 import base64
 import json
 import re
+import shutil
+import subprocess
 
 import pytest
 
@@ -53,6 +55,13 @@ def lu(audio: dict, cle: str) -> str:
     ("Règle : -al → -aux. Donc cheval → chevaux.", "Règle : a, l devient a, u, x. Donc cheval devient chevaux."),
     ("in-", "in"), ("dé-", "dé"),  # un préfixe : sans son tiret
     ("c'est-à-dire", "c'est-à-dire"), ("peut-être", "peut-être"), ("5 - 3 = 2", "5 - 3 = 2"), ("-4", "-4"),
+    # l'histoire (lot 2, étape 2.1)
+    ("52 av. J.-C.", "52 avant Jésus-Christ"),
+    ("27 av. J.-C. – 14 après J.-C.", "27 avant Jésus-Christ – 14 après Jésus-Christ"),
+    ("vers 10000 / 9000 av. J.-C.", "vers 10000 ou 9000 avant Jésus-Christ"),
+    ("XIVe-XVe siècles", "quatorzième et quinzième siècles"),
+    ("du Ier siècle avant J.-C. au IIe siècle", "du premier siècle avant Jésus-Christ au deuxième siècle"),
+    ("En l'an 476, la Xe fois", "En l'an 476, la dixième fois"),
 ])
 def test_les_maths_sont_dites_en_mots(ecrit, dit):
     assert lecture.prononcable(ecrit) == dit
@@ -163,3 +172,16 @@ def test_la_vraie_voix(monkeypatch, tmp_path, capsys):
         son = voix.synthetiser("Bonjour.")
         assert son[:3] == b"ID3" or son[0] == 0xFF  # un fichier MP3
         assert 2_000 < len(son) < 20_000
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js absent")
+def test_la_voix_du_navigateur_dit_la_meme_chose():
+    """Le gabarit a sa propre `prononcable` (la voix du navigateur, quand Piper manque) : mêmes règles que lecture.py,
+    vérifiées en l'exécutant (lot 2 : les dates de l'histoire)."""
+    html = (config.RACINE / "generateur/types/qcm/gabarit.html").read_text(encoding="utf-8")
+    code = html[html.index('    var LETTRE = "a-zàâçéèêëîïôûùüœ";'):html.index("function choisieEtBonne")]
+    cas = ["52 av. J.-C.", "27 av. J.-C. – 14 après J.-C.", "vers 10000 / 9000 av. J.-C.", "XIVe-XVe siècles",
+           "du Ier siècle avant J.-C. au IIe siècle", "3/4 de 120", "5² = 25", "-al → -aux", "in-", "c'est-à-dire"]
+    script = code + f"\nconsole.log(JSON.stringify({json.dumps(cas, ensure_ascii=False)}.map(prononcable)));"
+    sortie = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout
+    assert [t.strip() for t in json.loads(sortie)] == [lecture.prononcable(c) for c in cas]

@@ -1,0 +1,25 @@
+# Table de référence (générateur procédural de l'histoire, lot 2, étape 2.1), écrite par Claude d'après le programme
+# (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §4). Les dates sont des conventions : une année demandée
+# (« En 1200, dans quelle période… ? ») est toujours loin d'une limite (50 ans, 500 quand la limite est « environ »).
+# `debut_annee`, `fin_annee` : les mêmes dates en nombres, pour le calcul (avant J.-C. : négatif ; « nos jours » : 2026).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/periodes --par "…"
+description: Les cinq grandes périodes de l'histoire, dans l'ordre, avec leurs dates (par convention, en Europe).
+sources:
+  programme:
+    nom: "Programme d’histoire-géographie du cycle 2, CE1, thème 2, repères (« Par convention, en Europe : - Préhistoire (environ 3 millions d'années à 3000 av. J.-C.) ; - Antiquité (environ 3000 av. J.-C. à 476 ap. J.-C.) ; - Moyen Âge (476 à 1492) ; - Temps modernes (1492 à 1789) ; - époque contemporaine (1789 à nos jours). »)"
+    url: https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf
+    consulte: '2026-11-16'
+proprietes:
+  rang: nombre
+  nom: texte
+  debut: texte
+  fin: texte
+  debut_annee: nombre
+  fin_annee: nombre
+cle: [rang]
+lignes:
+- {rang: 1, nom: la Préhistoire, debut: il y a environ 3 millions d'années, fin: 3000 av. J.-C., debut_annee: -3000000, fin_annee: -3000, source: programme}
+- {rang: 2, nom: l'Antiquité, debut: environ 3000 av. J.-C., fin: '476', debut_annee: -3000, fin_annee: 476, source: programme}
+- {rang: 3, nom: le Moyen Âge, debut: '476', fin: '1492', debut_annee: 476, fin_annee: 1492, source: programme}
+- {rang: 4, nom: les Temps modernes, debut: '1492', fin: '1789', debut_annee: 1492, fin_annee: 1789, source: programme}
+- {rang: 5, nom: l'époque contemporaine, debut: '1789', fin: nos jours, debut_annee: 1789, fin_annee: 2026, source: programme}

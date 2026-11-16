@@ -52,3 +52,23 @@ francais/terminaisons:
   empreinte: 179b277b037a920948a486ece30232879ce8db68f07136bcbfae689c561e7d9b
   le: '2026-11-11'
   par: Lois
+histoire-geo/calendrier:
+  empreinte: c34562f0fe9b736cd1d5d78e6c3b3f3eaaea65f742f069adecca4c520c30c628
+  le: '2026-11-16'
+  par: Lois
+histoire-geo/durees:
+  empreinte: 90f648b23d4dad25f84f680e62044e6f90bdefeb3600c410fc5187657a367bf7
+  le: '2026-11-16'
+  par: Lois
+histoire-geo/periodes:
+  empreinte: 3b4f609286dc58a68be9ac0739d30d73ffa4782f723129dae416b37fc06362b2
+  le: '2026-11-16'
+  par: Lois
+histoire-geo/prehistoire:
+  empreinte: 005f0e679dc684bd246c7241efe39802679be93aba7d2851b629fa00d7f823fd
+  le: '2026-11-16'
+  par: Lois
+histoire-geo/reperes:
+  empreinte: f22c0caf9c532114113f4f44ddcf753d9ca5a9cef59221cf621ecdfc15d0b3c3
+  le: '2026-11-16'
+  par: Lois
