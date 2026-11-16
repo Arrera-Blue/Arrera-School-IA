@@ -1,0 +1,39 @@
+# Table de référence (générateur procédural de l'histoire, lot 2, étape 2.1), écrite par Claude ; chaque ligne cite sa
+# source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §4). Le mois n'y est pas en jours (28 à 31) ni en
+# semaines (un peu plus de 4) : jamais demandé.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/durees --par "…"
+description: Les unités de durée du programme, et ce que chacune contient (une année compte 12 mois).
+sources:
+  programme:
+    nom: Programme d’histoire-géographie du cycle 2, CP, thème 2, repères (« L’année (12 mois) La semaine (7 jours). La journée (24 heures). »)
+    url: https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf
+    consulte: '2026-11-16'
+  wikt_decennie:
+    nom: Wiktionnaire, « décennie » (« Période de dix ans. »)
+    url: https://fr.wiktionary.org/wiki/d%C3%A9cennie
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+  wikt_siecle:
+    nom: Wiktionnaire, « siècle » (« Période de cent ans. »)
+    url: https://fr.wiktionary.org/wiki/si%C3%A8cle
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+  wikt_millenaire:
+    nom: Wiktionnaire, « millénaire » (« Dix siècles ou mille ans. »)
+    url: https://fr.wiktionary.org/wiki/mill%C3%A9naire
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+proprietes:
+  unite: texte
+  article: [un, une]
+  contient: texte
+  nombre: nombre
+  depuis: [CP, CE1]
+cle: [unite]
+lignes:
+- {unite: année, article: une, contient: mois, nombre: 12, depuis: CP, source: programme}
+- {unite: semaine, article: une, contient: jours, nombre: 7, depuis: CP, source: programme}
+- {unite: journée, article: une, contient: heures, nombre: 24, depuis: CP, source: programme}
+- {unite: décennie, article: une, contient: années, nombre: 10, depuis: CE1, source: wikt_decennie}
+- {unite: siècle, article: un, contient: années, nombre: 100, depuis: CE1, source: wikt_siecle}
+- {unite: millénaire, article: un, contient: années, nombre: 1000, depuis: CE1, source: wikt_millenaire}

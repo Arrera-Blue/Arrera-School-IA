@@ -1,0 +1,46 @@
+# Table de référence (générateur procédural de l'histoire, lot 2, étape 2.1), écrite par Claude ; chaque ligne cite sa
+# source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §4). Écartés, parce que discutés : la poterie (des
+# poteries plus anciennes que le Néolithique existent en Asie de l'Est) et les premiers villages (déjà avant le
+# Néolithique au Proche-Orient). Une « nouveauté » du Néolithique n'existait pas au Paléolithique ; une « activité » du
+# Paléolithique existait déjà : l'une n'est jamais la bonne réponse d'une question sur l'autre. `apparait` : oui quand
+# « À quelle période apparaît… ? » a une seule réponse (pas pour la chasse ou la cueillette, plus anciennes que le
+# Paléolithique des manuels ; pas pour un mode de vie).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/prehistoire --par "…"
+description: Le mode de vie au Paléolithique et au Néolithique ; ce qui existait déjà, ce qui apparaît.
+sources:
+  programme:
+    nom: "Programme d’histoire-géographie du cycle 2, CE2, thème 1 (« le mode de vie nomade au Paléolithique » ; « le mode de vie sédentaire au Néolithique : agriculture (culture et élevage), utilisation des premiers métaux » ; « chasseurs-cueilleurs »)"
+    url: https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf
+    consulte: '2026-11-16'
+  wp_paleolithique:
+    nom: Wikipédia, « Paléolithique » (« la plupart du temps nomades » ; « la chasse et la pêche » ; « La cueillette » ; « outils de pierre taillée » ; « Domestication du feu » ; l'art pariétal)
+    url: https://fr.wikipedia.org/wiki/Pal%C3%A9olithique
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+  wp_neolithique:
+    nom: Wikipédia, « Néolithique » (« un « âge de la pierre polie » » ; « le début de l'agriculture et de l'élevage »)
+    url: https://fr.wikipedia.org/wiki/N%C3%A9olithique
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+proprietes:
+  periode: [Paléolithique, Néolithique]
+  sorte: [mode_de_vie, metier, activite, nouveaute]
+  texte: texte
+  apparait: [oui, non]
+cle: [periode, texte]
+lignes:
+- {periode: Paléolithique, sorte: mode_de_vie, texte: nomades, apparait: non, source: programme}
+- {periode: Néolithique, sorte: mode_de_vie, texte: sédentaires, apparait: non, source: programme}
+- {periode: Paléolithique, sorte: metier, texte: chasseurs-cueilleurs, apparait: non, source: programme}
+- {periode: Néolithique, sorte: metier, texte: agriculteurs, apparait: non, source: programme}
+- {periode: Néolithique, sorte: metier, texte: éleveurs, apparait: non, source: programme}
+- {periode: Paléolithique, sorte: activite, texte: la chasse, apparait: non, source: wp_paleolithique}
+- {periode: Paléolithique, sorte: activite, texte: la cueillette, apparait: non, source: wp_paleolithique}
+- {periode: Paléolithique, sorte: activite, texte: la pêche, apparait: non, source: wp_paleolithique}
+- {periode: Paléolithique, sorte: activite, texte: les outils en pierre taillée, apparait: oui, source: wp_paleolithique}
+- {periode: Paléolithique, sorte: activite, texte: la maîtrise du feu, apparait: oui, source: wp_paleolithique}
+- {periode: Paléolithique, sorte: activite, texte: les peintures dans les grottes, apparait: oui, source: wp_paleolithique}
+- {periode: Néolithique, sorte: nouveaute, texte: l'agriculture, apparait: oui, source: programme}
+- {periode: Néolithique, sorte: nouveaute, texte: l'élevage, apparait: oui, source: programme}
+- {periode: Néolithique, sorte: nouveaute, texte: les premiers objets en métal, apparait: oui, source: programme}
+- {periode: Néolithique, sorte: nouveaute, texte: les outils en pierre polie, apparait: oui, source: wp_neolithique}

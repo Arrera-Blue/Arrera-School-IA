@@ -125,6 +125,7 @@ MOTS_DES_MATIERES = {
                     # le cycle 2 : le temps (histoire du CP et du CE1, programme de 2026), l'espace
                     r"se reperer dans le temps|se reperer dans l'espace|calendrier|saisons?\b|jours de la semaine|"
                     r"mois de l'annee|frise|periodes? de l'histoire|prehistoire|oceans?\b|points? cardinaux|"
+                    r"siecles?|decennies?|millenaires?|paleolithique|neolithique|chronologi|"
                     r"fleuves?\b|massifs?\b",
     "svt": r"svt\b|sciences de la vie|biologi|cellule|photosynthese|digestion|respiration|reproduction|"
            r"ecosysteme|volcan|seisme|tectonique|plaques? lithospheri|genetique|adn\b|chromosome|immunit|"

@@ -1,0 +1,36 @@
+# Table de référence (générateur procédural de l'histoire, lot 2, étape 2.1), écrite par Claude d'après le programme
+# (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §4). `date` : telle que le programme l'écrit ; `annee` :
+# pour ranger (avant J.-C. : négatif) ; `marge` : l'incertitude, en années. Deux repères ne sont comparés (« lequel est
+# le plus ancien ? ») que si leur écart dépasse la somme de leurs marges : jamais Ötzi (vers 3200 av. J.-C.) contre
+# l'écriture (vers 3000 av. J.-C.).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/reperes --par "…"
+description: Les repères datés de l'histoire du CE2, tels que le programme les donne.
+sources:
+  programme:
+    nom: Programme d’histoire-géographie du cycle 2, CE2, thèmes 1 à 3, repères
+    url: https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf
+    consulte: '2026-11-16'
+  wp_otzi:
+    nom: Wikipédia, « Ötzi » (« homme des glaces » ; « Il date du Néolithique final (vers 3200 av. J.-C.) » ; carbone 14 « entre 3350 et 3100 av. J.-C. »)
+    url: https://fr.wikipedia.org/wiki/%C3%96tzi
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+  wp_cent_ans:
+    nom: Wikipédia, « Guerre de Cent Ans » (« 24 mai 1337 - 9 octobre 1453 »)
+    url: https://fr.wikipedia.org/wiki/Guerre_de_Cent_Ans
+    consulte: '2026-11-16'
+    licence: CC BY-SA 4.0
+proprietes:
+  evenement: texte
+  date: texte
+  annee: nombre
+  marge: nombre
+cle: [evenement]
+lignes:
+- {evenement: la naissance de l'agriculture, date: vers 10000 / 9000 av. J.-C., annee: -9500, marge: 500, source: programme}
+- {evenement: "Ötzi, l'homme des glaces", date: 3200 av. J.-C., annee: -3200, marge: 150, source: wp_otzi, note: "date : le programme ; « l'homme des glaces », la marge : Wikipédia"}
+- {evenement: l'apparition de l'écriture, date: vers 3000 av. J.-C., annee: -3000, marge: 300, source: programme}
+- {evenement: "le siège d'Alésia, défaite de Vercingétorix", date: 52 av. J.-C., annee: -52, marge: 0, source: programme}
+- {evenement: le règne de l'empereur Auguste, date: 27 av. J.-C. – 14 après J.-C., annee: -27, marge: 0, source: programme, note: rangé par son début}
+- {evenement: l'élection d'Hugues Capet, date: '987', annee: 987, marge: 0, source: programme}
+- {evenement: la guerre de Cent Ans, date: XIVe-XVe siècles, annee: 1337, marge: 0, source: wp_cent_ans, note: "date : le programme ; l'année du début (1337) : Wikipédia"}
