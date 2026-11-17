@@ -72,3 +72,39 @@ histoire-geo/reperes:
   empreinte: f22c0caf9c532114113f4f44ddcf753d9ca5a9cef59221cf621ecdfc15d0b3c3
   le: '2026-11-16'
   par: Lois
+sciences-et-technologie/animaux:
+  empreinte: a08f793904b0d6ca5340e39d751e44cb3ef98093b6070786ea366ef59dedfe04
+  le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/chaines:
+  empreinte: 96c5ba22d645a84e9969eb337a92bf50823d7a52097958d1620c2711eeb3dc16
+  le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/cycle_plante:
+  empreinte: d0782529ea29c2cea9d64546dd80228ea83f51bd4e20e98be067e7442df74990
+  le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/etres_vivants:
+  empreinte: 9661b64fc9ed87562d640c9d68177fe91788c5ced57ece56048a68b05d758021
+  le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/locomotion:
+  empreinte: fc032edb4e1cfcf58c11903eca65bcc0f67fb1447bed6188b730d88d55f79be3
+  le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/petits:
+  empreinte: 5065f19164dfb6de07f5d4dba9a4c1c8dfbd925f050433afa6c44f431f392379
+  le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/plante:
+  empreinte: 92239d4e2353fa1ad88d2dca254241508369d20aadd0ceeb1cc8b7289ba23810
+  le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/regimes:
+  empreinte: 981f6e5d57ac64a82f6286942fac413e639824f1e394f758f5975b8ddfbb3f47
+  le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/sens:
+  empreinte: f22694506f1a63e1c3e4cb60781252d9e6e3eb1411e5503246964f3cf06d45c2
+  le: '2026-11-17'
+  par: Lois
