@@ -1,0 +1,23 @@
+# Table de référence (générateur procédural de la matière et des objets, lot 2, étape 2.3), écrite par Claude ; chaque
+# ligne est une question, avec sa réponse, ses mauvaises réponses (séparées par « ; ») et son explication, tirées du
+# programme du CE1 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §8) : le circuit à une boucle (une pile,
+# un interrupteur, une ampoule, des fils), ouvert ou fermé. `sujet` : deux questions du même sujet ne viennent ensemble
+# que faute d'autres.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/circuit --par "…"
+description: Le circuit électrique à une boucle, ouvert ou fermé.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE1 (BO n° 24 du 11 juin 2026) : « un circuit électrique à une boucle associant un générateur (pile), un interrupteur, un récepteur (ampoule) » ; « L’élève identifie sur un dessin si le circuit est ouvert ou fermé (par exemple, il est capable de prédire si l’ampoule s’allume ou reste éteinte). » ; « sa capacité à conserver le circuit fermé […] (par exemple, l’élève constate que l’ampoule reste allumée) » ; « une pile électrique, des câbles, un interrupteur et une ampoule »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+proprietes:
+  question: texte
+  reponse: texte
+  faux: texte
+  explication: texte
+  sujet: texte
+cle: [question]
+lignes:
+- {question: "Dans un circuit électrique, quel élément est le générateur ?", reponse: la pile, faux: l'ampoule ; l'interrupteur ; les fils, explication: "Dans un circuit électrique, la pile est le générateur ; l'ampoule est un récepteur.", sujet: la pile, source: programme}
+- {question: "Dans un circuit électrique, quel élément est le récepteur ?", reponse: l'ampoule, faux: la pile ; l'interrupteur ; les fils, explication: "Dans un circuit électrique, l'ampoule est un récepteur ; la pile est le générateur.", sujet: l'ampoule, source: programme}
+- {question: "Pour que l'ampoule s'allume, le circuit doit être…", reponse: fermé, faux: ouvert ; coupé, explication: "L'ampoule ne s'allume que si le circuit est fermé : le courant peut alors circuler.", sujet: fermé, source: programme}
+- {question: "L'ampoule est allumée : le circuit est…", reponse: fermé, faux: ouvert ; coupé, explication: "L'ampoule ne s'allume que si le circuit est fermé : le courant peut alors circuler.", sujet: fermé, source: programme}
+- {question: "L'interrupteur est ouvert : l'ampoule…", reponse: reste éteinte, faux: s'allume ; brille plus fort, explication: "Quand l'interrupteur est ouvert, le circuit est ouvert : le courant ne circule pas et l'ampoule reste éteinte.", sujet: ouvert, source: programme}
+- {question: "Le circuit est ouvert : l'ampoule…", reponse: reste éteinte, faux: s'allume ; brille plus fort, explication: "Dans un circuit ouvert, le courant ne circule pas : l'ampoule reste éteinte.", sujet: ouvert, source: programme}

@@ -172,11 +172,13 @@ def test_chaque_genre_est_juste_par_construction(genre, niveau):
     ({"attendu": f"{M}.ce1.nutrition", "matiere": M, "niveau": "CE1"}, "vivant"),
     ({"attendu": f"{M}.ce2.locomotion.01", "matiere": M, "niveau": "CE2"}, "vivant"),
     ({"attendu": f"{M}.cp.diversite-vivant.01", "matiere": M, "niveau": "CP"}, "vivant"),
-    # ce que le générateur ne fait pas encore : au modèle (étape 2.3)
-    ({"notion": "les états de l'eau", "matiere": M, "niveau": "CE1"}, None),
-    ({"notion": "le squelette et les articulations", "matiere": M, "niveau": "CP"}, None),
+    # le corps, la matière et les objets ont leurs générateurs (étape 2.3) : jamais le vivant
+    ({"notion": "les états de l'eau", "matiere": M, "niveau": "CE1"}, "matiere"),
+    ({"notion": "le squelette et les articulations", "matiere": M, "niveau": "CP"}, "corps"),
+    ({"notion": "l'origine animale ou végétale des aliments", "matiere": M, "niveau": "CP"}, "corps"),
+    ({"attendu": f"{M}.cp.alimentation.01", "matiere": M, "niveau": "CP"}, "corps"),
+    # ce que le générateur ne fait pas : au modèle
     ({"notion": "les animaux et l'environnement", "matiere": M, "niveau": "CE2"}, None),
-    ({"attendu": f"{M}.cp.alimentation.01", "matiere": M, "niveau": "CP"}, None),
     # une notion précise absente de la classe : au modèle (la chaîne alimentaire n'est pas au CP)
     ({"notion": "la chaîne alimentaire", "matiere": M, "niveau": "CP"}, None),
 ])

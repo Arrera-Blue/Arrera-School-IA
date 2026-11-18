@@ -794,7 +794,7 @@
       return n >= 1 && n <= ORDINAUX.length ? ORDINAUX[n - 1] : romain;
     }
     function prononcable(texte) {
-      return texte.replace(/\b(?:av\.|avant) J\.-C\./g, "avant Jésus-Christ").replace(/\b(?:apr\.|après) J\.-C\./g, "après Jésus-Christ")
+      return texte.replace(/(\d)[ \u00a0\u202f](?=\d{3}\b)/g, "$1").replace(/\b(?:av\.|avant) J\.-C\./g, "avant Jésus-Christ").replace(/\b(?:apr\.|après) J\.-C\./g, "après Jésus-Christ")
         .replace(/\b([IVX]+)(?:er|e)\s*[-–]\s*([IVX]+)e\b/g, function (_, a, b) { return ordinal(a) + " et " + ordinal(b); })
         .replace(/\b([IVX]+)(?:er|e)\b/g, function (_, a) { return ordinal(a); })
         .replace(/\b(\d{4,})\s*\/\s*(\d{4,})\b/g, "$1 ou $2")

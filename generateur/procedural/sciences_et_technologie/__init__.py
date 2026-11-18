@@ -16,16 +16,18 @@ import re
 MATIERE = "sciences-et-technologie"
 CYCLE_2 = ("CP", "CE1", "CE2")
 
-# les notions des sciences qu'aucun générateur ne couvre encore (sans accents, en début de mot) : une demande qui en
-# cite une part au modèle. Le corps, la matière et les objets viendront à l'étape 2.3.
-AUTRES_NOTIONS = re.compile(r"\b(?:corps humain|squelette|os\b|articulation|muscle|dents?\b|aliments?\b|hygiene|sante|"
-                            r"sommeil|etats? de l'eau|cycle de l'eau|glace|matiere|masse|volume|temperature|"
-                            r"thermometre|electri|circuit|conducteur|isolant|objets? techniques?|ordinateur|robot|"
-                            r"programmation|environnement|pollution|dechets|biodiversite|saisons?|respiration|"
-                            r"cerveau|attention)")
+# les notions des sciences qu'aucun générateur ne couvre (sans accents, en début de mot) : une demande qui en cite une
+# part au modèle. Les gestes et les observations du programme (mesurer, construire, programmer), l'hygiène et la santé
+# (décision 5 du 16/11), ce qu'aucune source lue ne tranche (la respiration, la transpiration pendant l'effort).
+AUTRES_NOTIONS = re.compile(r"\b(?:hygiene|sante|sommeil|equilibre alimentaire|apports?\b|menus?\b|cycle de l'eau|"
+                            r"temperature|thermometre|degres? celsius|contenances?|verre gradue|litres?\b|"
+                            r"volumes? de liquide|sabliers?|durees?|l'air\b|materialite|vent\b|robots?|programmation|"
+                            r"moteur de recherche|traitement de texte|assemblage|maquette|environnement|pollution|"
+                            r"dechets|biodiversite|saisons?|respiration|transpiration|essoufflement|cerveau|attention|"
+                            r"croissance du corps|pointure)")
 
 
 def generateurs() -> tuple:
     """Les modules de la matière. Import local : le paquet reste léger à charger."""
-    from generateur.procedural.sciences_et_technologie import vivant
-    return (vivant,)
+    from generateur.procedural.sciences_et_technologie import corps, matiere, vivant
+    return (vivant, corps, matiere)

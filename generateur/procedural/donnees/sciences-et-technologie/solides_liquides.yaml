@@ -1,0 +1,36 @@
+# Table de référence (générateur procédural de la matière et des objets, lot 2, étape 2.3), écrite par Claude ; chaque
+# ligne cite sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §8). Le programme du
+# CE2 : un solide a une forme et un volume propres ; un liquide, un volume propre, pas de forme propre, et une surface
+# horizontale. `sorte` : exemple (« Lequel est un liquide : … ? ») ; propriete (« Un solide a… ») ; surface (« La
+# surface d'un liquide au repos est… ») ; piege_propriete, piege_surface : une mauvaise réponse écrite à la main,
+# fausse pour un solide comme pour un liquide. Écartés : le sable, le sel, le sucre en poudre (des solides en grains,
+# qui s'écoulent : « Sable » : « Le sable se caractérise par sa capacité à s'écouler. »).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/solides_liquides --par "…"
+description: Solides et liquides, leurs propriétés et des exemples.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE2 (BO n° 24 du 11 juin 2026) : « Différencier les états physiques solide (forme et volume propre) et liquide (volume propre, absence de forme propre et surface horizontale). »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+  wp_liquide: {nom: "Wikipédia, « Liquide » (« le liquide n'a pas de forme propre : il prend celle du récipient » ; « En voici quelques exemples : l'eau, l'éthanol »)", url: "https://fr.wikipedia.org/wiki/Liquide", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_lait: {nom: "Wikipédia, « Lait » (« est un liquide biologique comestible »)", url: "https://fr.wikipedia.org/wiki/Lait", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_huile: {nom: "Wikipédia, « Huile » (« Une huile est un corps gras qui est à l'état liquide à température ambiante »)", url: "https://fr.wikipedia.org/wiki/Huile", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_solide: {nom: "Wikipédia, « État solide » (« le solide a une forme propre ; le solide a un volume propre » ; « la totalité des métaux, excepté le mercure, sont solides à température ambiante » ; « (ex. : la glace) » ; « certains solides comme le verre »)", url: "https://fr.wikipedia.org/wiki/%C3%89tat_solide", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  claude: {nom: "Pièges écrits par Claude : faux pour un solide comme pour un liquide (le programme)", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+proprietes:
+  element: texte
+  sorte: [exemple, propriete, surface, piege_propriete, piege_surface]
+  etat: [solide, liquide, "-"]
+cle: [element]
+lignes:
+- {element: l'eau, sorte: exemple, etat: liquide, source: wp_liquide}
+- {element: le lait, sorte: exemple, etat: liquide, source: wp_lait}
+- {element: l'huile, sorte: exemple, etat: liquide, source: wp_huile}
+- {element: la glace, sorte: exemple, etat: solide, source: wp_solide}
+- {element: le fer, sorte: exemple, etat: solide, source: wp_solide, note: un métal}
+- {element: le cuivre, sorte: exemple, etat: solide, source: wp_solide, note: un métal}
+- {element: le verre, sorte: exemple, etat: solide, source: wp_solide}
+- {element: une forme propre et un volume propre, sorte: propriete, etat: solide, source: programme}
+- {element: "un volume propre, mais pas de forme propre", sorte: propriete, etat: liquide, source: programme}
+- {element: "une forme propre, mais pas de volume propre", sorte: piege_propriete, etat: "-", source: claude}
+- {element: ni forme propre ni volume propre, sorte: piege_propriete, etat: "-", source: claude}
+- {element: horizontale, sorte: surface, etat: liquide, source: programme}
+- {element: verticale, sorte: piege_surface, etat: "-", source: claude}
+- {element: penchée, sorte: piege_surface, etat: "-", source: claude}

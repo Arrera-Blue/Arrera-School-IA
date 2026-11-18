@@ -1,0 +1,20 @@
+# Table de référence (générateur procédural de la matière et des objets, lot 2, étape 2.3), écrite par Claude ; chaque
+# ligne cite sa source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §8). Ce que le programme du CE1 fait
+# constater : la masse de l'eau ne change pas quand elle gèle, mais elle prend plus de place. La fonte de la glace en
+# est l'inverse (« Glace » : la glace est moins dense que l'eau liquide). Les mauvaises réponses sont les deux autres
+# valeurs de la même `grandeur`.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/conservation --par "…"
+description: Ce qui change, et ce qui ne change pas, quand l'eau gèle ou quand la glace fond.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE1 (BO n° 24 du 11 juin 2026) : « Constater la conservation de la masse lors d’un changement d’état » ; « L’élève pèse une masse d’eau avant et après congélation. Il constate la conservation de sa masse, alors qu’elle occupe plus d’espace à l’état solide. »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+  wp_glace: {nom: "Wikipédia, « Glace » (« la densité de la glace est inférieure à la densité du liquide eau ») ; « Eau » (« sa phase solide est moins dense que sa phase liquide, ce qui fait que la glace flotte »)", url: "https://fr.wikipedia.org/wiki/Glace", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  quand: [l'eau gèle, la glace fond]
+  grandeur: [masse, place]
+  valeur: [ne change pas, augmente, diminue, plus de place, moins de place, autant de place]
+cle: [quand, grandeur]
+lignes:
+- {quand: l'eau gèle, grandeur: masse, valeur: ne change pas, source: programme}
+- {quand: la glace fond, grandeur: masse, valeur: ne change pas, source: programme}
+- {quand: l'eau gèle, grandeur: place, valeur: plus de place, source: programme}
+- {quand: la glace fond, grandeur: place, valeur: moins de place, source: wp_glace}

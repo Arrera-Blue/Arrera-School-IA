@@ -1,0 +1,25 @@
+# Table de référence (générateur procédural de la matière et des objets, lot 2, étape 2.3), écrite par Claude ; chaque
+# ligne cite sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §8). Conducteur : laisse
+# passer le courant électrique ; isolant : ne le laisse pas passer (programme du CE1). Écartés (§3) : le graphite (la
+# mine du crayon conduit le courant), l'eau (« L'eau est conductrice dès qu'elle contient quelques impuretés »), le
+# bois humide ; le bois est donc dit « sec ».
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/materiaux --par "…"
+description: Des matériaux conducteurs et isolants électriques.
+sources:
+  wp_cuivre: {nom: "Wikipédia, « Cuivre » (« il possède des conductivités électrique et thermique particulièrement élevées »)", url: "https://fr.wikipedia.org/wiki/Cuivre", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_fer: {nom: "Wikipédia, « Fer » (« Il s'agit d'un métal conducteur électrique moyen »)", url: "https://fr.wikipedia.org/wiki/Fer", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_aluminium: {nom: "Wikipédia, « Aluminium » (« L'aluminium est un très bon conducteur électrique et thermique »)", url: "https://fr.wikipedia.org/wiki/Aluminium", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_isolants: {nom: "Wikipédia, « Conducteur (électricité) » (« les matières plastiques et le pétrole dont elles sont issues sont des isolants » ; « le bois sec […] est un isolant (thermique et électrique) naturel que l'humidité peut rendre conducteur » ; tableau « Matériaux isolants » : caoutchouc, papier, verre, bois sec)", url: "https://fr.wikipedia.org/wiki/Conducteur_(%C3%A9lectricit%C3%A9)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  materiau: texte
+  nature: [conducteur, isolant]
+cle: [materiau]
+lignes:
+- {materiau: le cuivre, nature: conducteur, source: wp_cuivre}
+- {materiau: le fer, nature: conducteur, source: wp_fer}
+- {materiau: l'aluminium, nature: conducteur, source: wp_aluminium}
+- {materiau: le plastique, nature: isolant, source: wp_isolants}
+- {materiau: le bois sec, nature: isolant, source: wp_isolants}
+- {materiau: le verre, nature: isolant, source: wp_isolants}
+- {materiau: le caoutchouc, nature: isolant, source: wp_isolants}
+- {materiau: le papier, nature: isolant, source: wp_isolants}

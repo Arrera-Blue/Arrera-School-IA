@@ -507,7 +507,14 @@ def generer(demande: dict, type_: str = "qcm", nom_fournisseur: str | None = Non
     cfg = config.charger()
     fournisseur = creer_fournisseur(nom_fournisseur)
     if notion is not None:
-        return generer_procedural(demande, notion, fournisseur, graine, suivi)
+        try:
+            return generer_procedural(demande, notion, fournisseur, graine, suivi)
+        except procedural.PasAssezDeQuestions as e:
+            # moins de questions différentes que demandé (un objectif seul aux faits peu nombreux) : le modèle écrit
+            # l'exercice, contrôlé comme d'habitude (lot 2, étape 2.3)
+            if mode == "procedural":
+                raise
+            print(f"→ {e} ({notion}) : l'exercice part au modèle", flush=True)
     tentatives_max = max(1, int(cfg["generation"].get("tentatives_max", 1)))
 
     type_exo = registre.charger(type_)

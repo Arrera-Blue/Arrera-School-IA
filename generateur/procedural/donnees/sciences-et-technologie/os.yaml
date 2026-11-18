@@ -1,0 +1,24 @@
+# Table de référence (générateur procédural du corps humain, lot 2, étape 2.3), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §7). « Quelques os associés du
+# squelette » (programme du CP). `lieu` : « Quel est l'os de … ? » (le bras au sens du corps humain : entre l'épaule et
+# le coude) ; `role` : « Dans le squelette, qu'est-ce qui … ? » ; « - » : jamais demandé. Pas d'os de la jambe ni de
+# l'avant-bras : ils en ont deux chacun.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/os --par "…"
+description: Quelques os du squelette, où ils se trouvent, ce qu'ils protègent ou soutiennent.
+sources:
+  wp_femur: {nom: "Wikipédia, « Fémur » (« Le fémur, l'os de la cuisse, est le plus long et le plus solide du corps humain. »)", url: "https://fr.wikipedia.org/wiki/F%C3%A9mur", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_humerus: {nom: "Wikipédia, « Humérus » (« Il constitue le squelette du bras (entre l'épaule et le coude). »)", url: "https://fr.wikipedia.org/wiki/Hum%C3%A9rus", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_crane: {nom: "Wikipédia, « Crâne » (« partie supérieure qui protège le cerveau et les organes sensoriels pairs »)", url: "https://fr.wikipedia.org/wiki/Cr%C3%A2ne", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_cotes: {nom: "Wikipédia, « Côte (os) » (« à la constitution de la cage thoracique qui protège le cœur et les poumons »)", url: "https://fr.wikipedia.org/wiki/C%C3%B4te_(os)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_colonne: {nom: "Wikipédia, « Colonne vertébrale » (« Elle est le support du dos des vertébrés » ; « un empilement d'os articulés appelés vertèbres »)", url: "https://fr.wikipedia.org/wiki/Colonne_vert%C3%A9brale", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  os: texte
+  lieu: texte
+  role: texte
+cle: [os]
+lignes:
+- {os: le fémur, lieu: la cuisse, role: "-", source: wp_femur}
+- {os: l'humérus, lieu: le bras, role: "-", source: wp_humerus}
+- {os: le crâne, lieu: "-", role: protège le cerveau, source: wp_crane}
+- {os: les côtes, lieu: "-", role: protège le cœur et les poumons, source: wp_cotes}
+- {os: la colonne vertébrale, lieu: "-", role: soutient le dos, source: wp_colonne}

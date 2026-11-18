@@ -1,0 +1,24 @@
+# Table de référence (générateur procédural du corps humain, lot 2, étape 2.3), écrite par Claude ; chaque ligne est
+# une question, avec sa réponse, ses mauvaises réponses (séparées par « ; ») et son explication, et cite sa source
+# (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §7). Le programme du CE2 demande de relier l'activité
+# physique au rythme du cœur et de la respiration, sans dire dans quel sens ils changent ; seul le cœur est demandé :
+# aucune page lue ne dit que la respiration ou la transpiration augmentent pendant l'effort (« Ventilation
+# pulmonaire » : « elle peut varier en fonction […] de l'activité physique » ; « Transpiration animale » : « qui varie
+# … selon … l'intensité de l'activité physique »). `sujet` : deux questions du même sujet ne viennent ensemble que
+# faute d'autres.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/effort --par "…"
+description: Ce qui change dans le corps pendant l'effort ; ce que mesure le pouls.
+sources:
+  wp_tachycardie: {nom: "Wikipédia, « Tachycardie » (« Les causes peuvent être multiples : » … « un effort physique » ; « Il s'agit d'une tachycardie sinusale, correspondant à une réponse normale du cœur à certaines stimulations. »)", url: "https://fr.wikipedia.org/wiki/Tachycardie", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_pouls: {nom: "Wikipédia, « Pouls » (« La prise de pouls est la manière la plus simple d'évaluer le rythme cardiaque. » ; « Le pouls est la perception du flux sanguin pulsé par le cœur par la palpation d'une artère. »)", url: "https://fr.wikipedia.org/wiki/Pouls", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  question: texte
+  reponse: texte
+  faux: texte
+  explication: texte
+  sujet: texte
+cle: [question]
+lignes:
+- {question: "Pendant une course, le cœur bat…", reponse: plus vite qu'au repos, faux: moins vite qu'au repos ; aussi vite qu'au repos, explication: "Pendant un effort, le cœur bat plus vite qu'au repos : c'est une réponse normale du cœur.", sujet: le cœur, source: wp_tachycardie}
+- {question: "Pendant un effort, le pouls est…", reponse: plus rapide qu'au repos, faux: plus lent qu'au repos ; le même qu'au repos, explication: "Pendant un effort, le cœur bat plus vite : le pouls est plus rapide qu'au repos.", sujet: le cœur, source: wp_tachycardie}
+- {question: "Que mesure-t-on en prenant le pouls ?", reponse: les battements du cœur, faux: la respiration ; la température du corps ; la taille, explication: "Le pouls se sent en appuyant sur une artère : il suit les battements du cœur.", sujet: le pouls, source: wp_pouls}

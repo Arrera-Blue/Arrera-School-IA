@@ -1,0 +1,48 @@
+# Table de référence (générateur procédural du corps humain, lot 2, étape 2.3), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §7). Les 6 catégories et les 4
+# origines sont celles du programme du CP. Monde fermé : chaque aliment a une catégorie, une origine, et dit s'il est
+# un produit transformé ; « - » : jamais demandé, ni proposé comme mauvaise réponse pour cette propriété.
+# Écartés (un aliment à deux catégories, §3) : la pomme de terre et la banane (des féculents pour Wikipédia), le beurre
+# (matière grasse et produit laitier), le lait (produit laitier et boisson : seulement son origine), les petits pois,
+# les légumes secs, le maïs. `origine` : « - » pour un aliment fait de plusieurs produits (le pain : de la farine, de
+# l'eau, du sel) ou à plusieurs origines possibles (l'huile, la margarine). `transforme` : « oui » pour un aliment
+# fabriqué à partir d'autres produits, « non » pour un aliment qu'on mange tel qu'on le récolte ou le ramasse, « - »
+# sinon (le riz est décortiqué, le poulet et le poisson sont découpés).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/aliments --par "…"
+description: Des aliments, leur catégorie, leur origine, et s'ils sont des produits transformés.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CP (BO n° 24 du 11 juin 2026) : « fruits et légumes ; viandes, poissons et œufs ; produits laitiers ; féculents et céréales ; matières grasses ; boissons » ; « origines : animale ; végétale ; minérale ; produit transformé »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+  wp_pomme: {nom: "Wikipédia, « Pomme » (« La pomme est un fruit comestible produit par les pommiers. »)", url: "https://fr.wikipedia.org/wiki/Pomme", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_carotte: {nom: "Wikipédia, « Carotte » (« consommée comme légume »)", url: "https://fr.wikipedia.org/wiki/Carotte", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_poireau: {nom: "Wikipédia, « Poireau » (« consommées comme légumes »)", url: "https://fr.wikipedia.org/wiki/Poireau", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_poulet: {nom: "Wikipédia, « Poulet » (« une jeune volaille […] élevée pour sa chair ») ; « Viande » (viandes blanches : « volailles (de canard, de poulet, …) »)", url: "https://fr.wikipedia.org/wiki/Poulet", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_poisson: {nom: "Wikipédia, « Poisson » (« en tant que nourriture, les poissons sont consommés partout dans le monde »)", url: "https://fr.wikipedia.org/wiki/Poisson", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_oeuf: {nom: "Wikipédia, « Œuf (aliment) » (« L'œuf, en tant qu'aliment, est un produit agricole issu d'élevages divers »)", url: "https://fr.wikipedia.org/wiki/%C5%92uf_(aliment)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_produit_laitier: {nom: "Wikipédia, « Produit laitier » (« Les produits laitiers, ou laitages, sont les laits ou les transformations alimentaires obtenus à partir de lait. » ; « Les produits laitiers les plus connus sont : » … « yaourt »)", url: "https://fr.wikipedia.org/wiki/Produit_laitier", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_fromage: {nom: "Wikipédia, « Fromage » (« Le fromage est un aliment obtenu à partir de lait coagulé » ; « que la dénomination « fromage » soit réservée aux produits laitiers »)", url: "https://fr.wikipedia.org/wiki/Fromage", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_feculent: {nom: "Wikipédia, « Féculent » (« De nombreux produits finis, industriels ou artisanaux, sont composés en bonne partie de féculents, tels que les pâtes, le pain » ; le riz parmi les « Céréales (graines) »)", url: "https://fr.wikipedia.org/wiki/F%C3%A9culent", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_huile: {nom: "Wikipédia, « Huile alimentaire » (« comme corps gras de cuisson et friture ») ; « Corps gras » (« utilisés surtout comme matières grasses alimentaires : graisses alimentaires et huiles alimentaires »)", url: "https://fr.wikipedia.org/wiki/Huile_alimentaire", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_margarine: {nom: "Wikipédia, « Margarine » (« Les margarines, comme les beurres, sont utilisées […] comme matières grasses tartinables ou pour la cuisson. »)", url: "https://fr.wikipedia.org/wiki/Margarine", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_boisson: {nom: "Wikipédia, « Boisson » (« La boisson la plus commune est l'eau » ; « L'eau est une boisson d'origine minérale. » ; « Le lait et les boissons lactées sont d'origine animale »)", url: "https://fr.wikipedia.org/wiki/Boisson", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  aliment: texte
+  categorie: [les fruits et légumes, "les viandes, poissons et œufs", les produits laitiers, les féculents et céréales, les matières grasses, les boissons, "-"]
+  origine: [animale, végétale, minérale, "-"]
+  transforme: [oui, non, "-"]
+cle: [aliment]
+lignes:
+- {aliment: la pomme, categorie: les fruits et légumes, origine: végétale, transforme: non, source: wp_pomme}
+- {aliment: la carotte, categorie: les fruits et légumes, origine: végétale, transforme: non, source: wp_carotte}
+- {aliment: le poireau, categorie: les fruits et légumes, origine: végétale, transforme: non, source: wp_poireau}
+- {aliment: le poulet, categorie: "les viandes, poissons et œufs", origine: animale, transforme: "-", source: wp_poulet}
+- {aliment: le poisson, categorie: "les viandes, poissons et œufs", origine: animale, transforme: "-", source: wp_poisson}
+- {aliment: l'œuf, categorie: "les viandes, poissons et œufs", origine: animale, transforme: non, source: wp_oeuf}
+- {aliment: le yaourt, categorie: les produits laitiers, origine: "-", transforme: oui, source: wp_produit_laitier, note: "origine « - » : un yaourt peut être aux fruits ou sucré"}
+- {aliment: le fromage, categorie: les produits laitiers, origine: "-", transforme: oui, source: wp_fromage}
+- {aliment: le pain, categorie: les féculents et céréales, origine: "-", transforme: oui, source: wp_feculent}
+- {aliment: les pâtes, categorie: les féculents et céréales, origine: "-", transforme: oui, source: wp_feculent}
+- {aliment: le riz, categorie: les féculents et céréales, origine: végétale, transforme: "-", source: wp_feculent}
+- {aliment: l'huile, categorie: les matières grasses, origine: "-", transforme: "-", source: wp_huile}
+- {aliment: la margarine, categorie: les matières grasses, origine: "-", transforme: "-", source: wp_margarine}
+- {aliment: l'eau, categorie: les boissons, origine: minérale, transforme: "-", source: wp_boisson}
+- {aliment: le lait, categorie: "-", origine: animale, transforme: "-", source: wp_boisson, note: "produit laitier et boisson : jamais sa catégorie"}
