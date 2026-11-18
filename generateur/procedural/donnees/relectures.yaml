@@ -72,17 +72,49 @@ histoire-geo/reperes:
   empreinte: f22c0caf9c532114113f4f44ddcf753d9ca5a9cef59221cf621ecdfc15d0b3c3
   le: '2026-11-16'
   par: Lois
+sciences-et-technologie/aliments:
+  empreinte: a1177241588272cdf3e83e8fc906c408987b59211879e2eac2208d6020b1ea6f
+  le: '2026-11-18'
+  par: Lois
 sciences-et-technologie/animaux:
   empreinte: a08f793904b0d6ca5340e39d751e44cb3ef98093b6070786ea366ef59dedfe04
   le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/articulations:
+  empreinte: 0dd82bc6285ec0ab8624583fc4a726c8fcb9a46fd05be3269fc203c45c03007f
+  le: '2026-11-18'
   par: Lois
 sciences-et-technologie/chaines:
   empreinte: 96c5ba22d645a84e9969eb337a92bf50823d7a52097958d1620c2711eeb3dc16
   le: '2026-11-17'
   par: Lois
+sciences-et-technologie/changements:
+  empreinte: c6a851ece30383b01f05dc8f362e94e2fbe34ef1f348abf23766ac4a3b4e6664
+  le: '2026-11-18'
+  par: Lois
+sciences-et-technologie/circuit:
+  empreinte: 7caea9dbaec2881e7325c79f79477baabcb6e2cf65aa09ce441a91ce42917f59
+  le: '2026-11-18'
+  par: Lois
+sciences-et-technologie/conservation:
+  empreinte: 0a81e3eee73c02761ebd00fec6992b6506c900fa7df41190acf90bfc6ae49bff
+  le: '2026-11-18'
+  par: Lois
 sciences-et-technologie/cycle_plante:
   empreinte: d0782529ea29c2cea9d64546dd80228ea83f51bd4e20e98be067e7442df74990
   le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/dents:
+  empreinte: 6ad1761c70655f63e93ed2a9c4676ec968cf200ab8a3ef7fcda039e072d77f06
+  le: '2026-11-18'
+  par: Lois
+sciences-et-technologie/effort:
+  empreinte: f8939e63dd9c445d009c5403a598396ad7e7b35bbe98b45607aede44625e758f
+  le: '2026-11-18'
+  par: Lois
+sciences-et-technologie/etats_eau:
+  empreinte: 38060f05cc85e74dc71d0ecac39c40ffb2dceba47e38ef9183bb167015d77e6b
+  le: '2026-11-18'
   par: Lois
 sciences-et-technologie/etres_vivants:
   empreinte: 9661b64fc9ed87562d640c9d68177fe91788c5ced57ece56048a68b05d758021
@@ -91,6 +123,26 @@ sciences-et-technologie/etres_vivants:
 sciences-et-technologie/locomotion:
   empreinte: fc032edb4e1cfcf58c11903eca65bcc0f67fb1447bed6188b730d88d55f79be3
   le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/materiaux:
+  empreinte: 24f94550569326251510e5090848b590f2e61417f4bebf57ddc3f20ce2c11bc0
+  le: '2026-11-18'
+  par: Lois
+sciences-et-technologie/muscles:
+  empreinte: b0d896191cdd3a8b3efaf6ffc4ff8e76d5a539a64b0c0511c396d7c95809b8a7
+  le: '2026-11-18'
+  par: Lois
+sciences-et-technologie/objets:
+  empreinte: 7f0070766e26f3f01f350a469e536306863e26fc48a6ac11d5e13112e9bcd532
+  le: '2026-11-18'
+  par: Lois
+sciences-et-technologie/ordinateur:
+  empreinte: 6c0cd9993843bf2498560954b46c721f5468fbc40057157606efef9262396cf8
+  le: '2026-11-18'
+  par: Lois
+sciences-et-technologie/os:
+  empreinte: fc54ec9c8c89f7c49a2ca53d46f9974323d62b3b29220d7cd05b940c6a018bde
+  le: '2026-11-18'
   par: Lois
 sciences-et-technologie/petits:
   empreinte: 5065f19164dfb6de07f5d4dba9a4c1c8dfbd925f050433afa6c44f431f392379
@@ -107,4 +159,8 @@ sciences-et-technologie/regimes:
 sciences-et-technologie/sens:
   empreinte: f22694506f1a63e1c3e4cb60781252d9e6e3eb1411e5503246964f3cf06d45c2
   le: '2026-11-17'
+  par: Lois
+sciences-et-technologie/solides_liquides:
+  empreinte: b5242ec8842bb373433a11315a190181ed8cf1d2cfa88b576129fe4e54dc4698
+  le: '2026-11-18'
   par: Lois
