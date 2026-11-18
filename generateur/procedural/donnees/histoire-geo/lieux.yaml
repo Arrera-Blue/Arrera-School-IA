@@ -1,0 +1,37 @@
+# Table de référence (générateur procédural de la géographie, lot 2, étape 2.4), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §5). Les repères du monde du CE1,
+# tels que le programme les nomme (cinq massifs, trois fleuves, deux déserts), et où ils se trouvent. `ou` est dit
+# sans le mot « continent » (« en Amérique du Sud ») : l'Amérique est un continent ou deux selon le modèle ; « - » :
+# jamais demandé (l'Antarctique est lui-même un continent). Jamais demandé (§3) : le plus long fleuve du monde (le Nil
+# ou l'Amazone selon la mesure ; le programme dit « les trois plus longs ») ; l'Antarctique, désert, n'est demandé que
+# comme désert.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/lieux --par "…"
+description: Des chaînes de montagnes, des fleuves et des déserts du monde, et où ils se trouvent (CE1).
+sources:
+  programme: {nom: "Programme d’histoire-géographie du cycle 2, CE1, thème 2 « Découvrir les lieux où vivent les êtres humains », repères : « Principaux déserts (Antarctique, Sahara). Les trois plus longs fleuves du monde (Amazone, Mississippi, Nil) et un fleuve proche du lieu de vie de l’élève. Cinq massifs montagneux (Andes, Alpes, Atlas, Himalaya, Rocheuses). »", url: "https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf", consulte: '2026-11-18'}
+  wp_himalaya: {nom: "Wikipédia, « Himalaya » (« L'Himalaya […] est un ensemble de chaînes de montagnes s'étirant sur plus de 2 400 km de long et large de 250 à 400 km, qui sépare le sous-continent indien du plateau tibétain dans le Sud de l'Asie. »)", url: "https://fr.wikipedia.org/wiki/Himalaya", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_andes: {nom: "Wikipédia, « Cordillère des Andes » (« La cordillère des Andes […] est la plus longue chaîne de montagnes continentale du monde, orientée nord-sud tout le long de la côte occidentale de l'Amérique du Sud. »)", url: "https://fr.wikipedia.org/wiki/Cordill%C3%A8re_des_Andes", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_alpes: {nom: "Wikipédia, « Alpes » (« Les Alpes sont une chaîne de montagnes qui s'étend en Europe, recouvrant la frontière nord de l'Italie, le Sud-Est de la France, Monaco, la Suisse, le Liechtenstein, l'Autriche, le Sud de l'Allemagne, la Slovénie et la Hongrie. »)", url: "https://fr.wikipedia.org/wiki/Alpes", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_atlas: {nom: "Wikipédia, « Atlas (massif) » (« L'Atlas […] est un massif montagneux et une cordillère d'Afrique du Nord, culminant à 4 167 mètres au djebel Toubkal, au Maroc. »)", url: "https://fr.wikipedia.org/wiki/Atlas_(massif)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_rocheuses: {nom: "Wikipédia, « Montagnes Rocheuses » (« Les montagnes Rocheuses, […] sont une grande chaîne de montagnes dans l'Ouest de l'Amérique du Nord, sur les territoires des États-Unis et du Canada. »)", url: "https://fr.wikipedia.org/wiki/Montagnes_Rocheuses", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_amazone: {nom: "Wikipédia, « Amazone (fleuve) » (« L'Amazone […] est un fleuve d'Amérique du Sud. »)", url: "https://fr.wikipedia.org/wiki/Amazone_(fleuve)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_mississippi: {nom: "Wikipédia, « Mississippi (fleuve) » (« Le Mississippi […] est un fleuve d'Amérique du Nord qui traverse la partie centrale des États-Unis. »)", url: "https://fr.wikipedia.org/wiki/Mississippi_(fleuve)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_nil: {nom: "Wikipédia, « Nil » (« Le Nil […] est un fleuve d'Afrique. »)", url: "https://fr.wikipedia.org/wiki/Nil", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_sahara: {nom: "Wikipédia, « Sahara » (« Le Sahara […] est un vaste désert chaud situé dans la partie nord du continent africain. »)", url: "https://fr.wikipedia.org/wiki/Sahara", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_desert: {nom: "Wikipédia, « Désert » (« les régions polaires de l'Arctique et de l'Antarctique sont considérées comme des déserts froids et glacés car ces zones reçoivent très peu de précipitations par an et sont recouvertes de glace tout au long de l'année »)", url: "https://fr.wikipedia.org/wiki/D%C3%A9sert", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  nom: texte
+  sorte: [chaine, fleuve, desert]
+  ou: texte
+cle: [nom]
+lignes:
+- {nom: l'Himalaya, sorte: chaine, ou: en Asie, source: wp_himalaya}
+- {nom: les Andes, sorte: chaine, ou: en Amérique du Sud, source: wp_andes}
+- {nom: les Alpes, sorte: chaine, ou: en Europe, source: wp_alpes}
+- {nom: l'Atlas, sorte: chaine, ou: en Afrique, source: wp_atlas}
+- {nom: les Rocheuses, sorte: chaine, ou: en Amérique du Nord, source: wp_rocheuses, note: "« Rocheuses » : le nom du programme (Wikipédia : « montagnes Rocheuses »)"}
+- {nom: l'Amazone, sorte: fleuve, ou: en Amérique du Sud, source: wp_amazone}
+- {nom: le Mississippi, sorte: fleuve, ou: en Amérique du Nord, source: wp_mississippi}
+- {nom: le Nil, sorte: fleuve, ou: en Afrique, source: wp_nil}
+- {nom: le Sahara, sorte: desert, ou: en Afrique, source: wp_sahara}
+- {nom: l'Antarctique, sorte: desert, ou: "-", source: wp_desert, note: "un désert pour le programme et Wikipédia ; aussi un continent : jamais « où se trouve l'Antarctique ? »"}

@@ -261,6 +261,9 @@ def aiguiller(demande: dict) -> str | None:
         meilleur = max(scores)
         return meilleur[2] if meilleur[1] else None
     texte = texte_de(demande)
+    for paquet in matieres().values():  # « histoire-géographie » nomme la matière, pas l'histoire
+        if nom_de_la_matiere := getattr(paquet, "NOM_DE_LA_MATIERE", None):
+            texte = nom_de_la_matiere.sub(" ", texte)
     couvertes = [nom for nom, module in modules.items()
                  if any(m in texte for m in module.MOTS_CLES) and not any(x in texte for x in getattr(module, "EXCLUS", ()))]
     if len(couvertes) != 1 or matieres()[modules[couvertes[0]].MATIERE].AUTRES_NOTIONS.search(texte):

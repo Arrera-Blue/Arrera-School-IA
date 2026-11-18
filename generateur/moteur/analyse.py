@@ -97,6 +97,9 @@ TYPES = {  # les mots qui désignent un type ; seuls les types présents dans ge
     "texte_a_trous": re.compile(r"\btexte(?:s)? a trous|\ba trous\b"),
 }
 
+# « français » nomme la matière, sauf quand c'est l'adjectif d'un lieu : « les fleuves français », « les massifs
+# français » sont de la géographie (étape 2.4)
+FRANCAIS = r"(?<!fleuves )(?<!fleuve )(?<!massifs )(?<!massif )(?<!territoires )francais\b"
 # en début de mot, sans accents ; une matière l'emporte si elle a strictement plus de mots trouvés que les autres
 MOTS_DES_MATIERES = {
     "maths": r"maths?\b|mathemati|fraction|pourcentage|pythagore|thales|calcul|equation|geometri|aires?\b|"
@@ -105,7 +108,7 @@ MOTS_DES_MATIERES = {
              r"nombres? (?:relatif|premier|entier|decima)|algebr|symetri|trigonometr|arithmeti|divisib|"
              r"multiples de|diviseurs?\b|theoreme|cercle|polygone|quadrilatere|parallelogramme|vecteur|"
              r"litteral|developper|factoris|moyenne|mediane|tableur",
-    "francais": r"francais\b|langue francaise|conjugaison|conjuguer|grammaire|orthographe|verbes?\b|passe compose|passe simple|"
+    "francais": FRANCAIS + r"|langue francaise|conjugaison|conjuguer|grammaire|orthographe|verbes?\b|passe compose|passe simple|"
                 r"imparfait|plus-que-parfait|futur|subjonctif|conditionnel|imperatif|accords?\b|"
                 r"nature des mots|classes? (?:de|des) mots|fonctions? (?:grammatical|du nom|des mots)|"
                 r"complement|vocabulaire|poesie|roman|figures? de style|homophone|subordonnee|"
@@ -128,7 +131,12 @@ MOTS_DES_MATIERES = {
                     r"se reperer dans le temps|se reperer dans l'espace|calendrier|saisons?\b|jours de la semaine|"
                     r"mois de l'annee|frise|periodes? de l'histoire|prehistoire|oceans?\b|points? cardinaux|"
                     r"siecles?|decennies?|millenaires?|paleolithique|neolithique|chronologi|"
-                    r"fleuves?\b|massifs?\b",
+                    r"fleuves?\b|massifs?\b|"
+                    # la géographie du cycle 2 (étape 2.4)
+                    r"relief|plaines?\b|plateaux?\b|vallees?\b|rivieres?\b|cours d'eau|chaines? de montagnes?|"
+                    r"les montagnes\b|zones? climatiques?|climats?\b|les deserts\b|deserts? du monde|vegetation|"
+                    r"rose des vents|himalaya|sahara|amazone|mississippi|\bnil\b|alpes\b|pyrenees|vosges\b|garonne|loire\b|"
+                    r"la seine\b|le rhone\b|le rhin\b",
     "svt": r"svt\b|sciences de la vie|biologi|cellule|photosynthese|digestion|respiration|reproduction|"
            r"ecosysteme|volcan|seisme|tectonique|plaques? lithospheri|genetique|adn\b|chromosome|immunit|"
            r"microbe|bacterie|virus|nutrition|muscle|plantes?\b|animaux|animal\b|etres? vivants?|"
@@ -176,7 +184,7 @@ MATIERES_RE = {m: re.compile(r"\b(?:" + motifs + ")") for m, motifs in MOTS_DES_
 # le nom de la matière, quand l'enseignant le cite, l'emporte sur un mot-clé d'une autre matière : « verbes
 # irréguliers anglais » est de l'anglais, pas du français
 NOMS_DES_MATIERES = {m: re.compile(r"\b(?:" + motifs + ")") for m, motifs in {
-    "maths": r"maths?\b|mathemati", "francais": r"francais\b|langue francaise", "histoire-geo": r"histoire|geographi",
+    "maths": r"maths?\b|mathemati", "francais": FRANCAIS + r"|langue francaise", "histoire-geo": r"histoire|geographi",
     "svt": r"svt\b|sciences de la vie", "physique-chimie": r"physique|chimie", "anglais": r"anglais|english",
     "technologie": r"(?<!sciences et )(?<!science et )(?:technologi|techno\b)", "questionner-le-monde": r"questionner le monde|qlm\b",
     "sciences-et-technologie": r"sciences et technologie|sciences? et techno\b",

@@ -1,0 +1,43 @@
+# Table de référence (générateur procédural de la géographie, lot 2, étape 2.4), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §5). Les massifs et les grands
+# fleuves français du programme du CE2 ; trois rivières, pour la différence entre un fleuve et une rivière. `se_jette` :
+# où se jette le cours d'eau (« - » pour un massif). Écartés : la Corse (le « massif de Corse couvre l'intégralité de
+# l'île » : un élève y voit une île) et « un massif ultramarin au choix » (le choix de l'enseignant).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/france --par "…"
+description: Les massifs et les grands fleuves français, et trois rivières (CE2 ; les rivières aussi au CE1).
+sources:
+  programme: {nom: "Programme d’histoire-géographie du cycle 2, CE2, thème 1 « L’inégale répartition de la population en France », repères : « Les principaux massifs de montagne français (Alpes, Corse, Jura, Massif Central, Pyrénées, Vosges, un massif ultramarin au choix). Les grands fleuves français (Garonne, Loire, Maroni, Rhin, Rhône, Seine). »", url: "https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf", consulte: '2026-11-18'}
+  wp_alpes: {nom: "Wikipédia, « Alpes » (« Les Alpes sont une chaîne de montagnes qui s'étend en Europe, recouvrant […] le Sud-Est de la France […] »)", url: "https://fr.wikipedia.org/wiki/Alpes", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_jura: {nom: "Wikipédia, « Massif du Jura » (« Le massif du Jura ou Jura est une chaîne de montagnes située en Europe occidentale, principalement le long de la frontière entre la France et la Suisse, au nord-ouest des Alpes […] »)", url: "https://fr.wikipedia.org/wiki/Massif_du_Jura", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_massif_central: {nom: "Wikipédia, « Massif central » (« Le Massif central est un massif montagneux essentiellement hercynien qui occupe approximativement le centre en longitude du Midi de la France […] »)", url: "https://fr.wikipedia.org/wiki/Massif_central", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_pyrenees: {nom: "Wikipédia, « Pyrénées » (« Les Pyrénées sont une chaîne de montagnes du Sud-Ouest de l'Europe. » ; « En France, la chaîne des Pyrénées traverse deux régions administratives et six départements […] »)", url: "https://fr.wikipedia.org/wiki/Pyr%C3%A9n%C3%A9es", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_vosges: {nom: "Wikipédia, « Massif des Vosges » (« Le massif des Vosges ou les Vosges […] est un massif de moyennes montagnes du Nord-Est de la France qui sépare le Plateau lorrain de la plaine d'Alsace. »)", url: "https://fr.wikipedia.org/wiki/Massif_des_Vosges", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_garonne: {nom: "Wikipédia, « Garonne » (« La Garonne […] est un fleuve principalement français qui prend sa source dans les Pyrénées espagnoles et coule sur 529 kilomètres, passant notamment par les villes de Toulouse et de Bordeaux, avant de se jeter dans l'océan Atlantique ; son estuaire commun avec la Dordogne s'appelle la Gironde. »)", url: "https://fr.wikipedia.org/wiki/Garonne", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_loire: {nom: "Wikipédia, « Loire » (« La Loire est, avec une longueur de 1 006 kilomètres, le plus long fleuve s'écoulant entièrement en France. » ; « […] se jette dans l'océan Atlantique par un estuaire situé en Loire-Atlantique […] »)", url: "https://fr.wikipedia.org/wiki/Loire_(fleuve)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_maroni: {nom: "Wikipédia, « Maroni (fleuve) » (« Le Maroni […] est un fleuve d'Amérique du Sud. » ; « […] s'oriente de façon générale vers le nord, en suivant la frontière, jusqu'à son embouchure dans l'océan Atlantique. »)", url: "https://fr.wikipedia.org/wiki/Maroni_(fleuve)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_rhin: {nom: "Wikipédia, « Rhin » (« Le Rhin […] est un fleuve international d'Europe centrale et de l'Ouest […] » ; « il s'agit du plus long fleuve se déversant dans la mer du Nord »)", url: "https://fr.wikipedia.org/wiki/Rhin", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_rhone: {nom: "Wikipédia, « Rhône » (« Le Rhône […] est un fleuve d'Europe, long de 812 kilomètres (un tiers en Suisse et deux tiers en France). » ; « Il termine son cours dans le delta de Camargue pour se jeter dans la mer Méditerranée. »)", url: "https://fr.wikipedia.org/wiki/Rh%C3%B4ne_(fleuve)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_seine: {nom: "Wikipédia, « Seine » (« La Seine est un fleuve français long de 774,76 km […] » ; « La Seine se jette dans la Manche entre Le Havre et Honfleur. »)", url: "https://fr.wikipedia.org/wiki/Seine", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_saone: {nom: "Wikipédia, « Lyon » (« La Saône encercle au nord l'île Barbe puis se jette dans le Rhône […] ») ; « Rivière » (« la Saône à Lyon, qui présente un lit et un débit importants, reste une rivière »)", url: "https://fr.wikipedia.org/wiki/Lyon", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_durance: {nom: "Wikipédia, « Avignon » (« Avignon est limitée au sud par la rivière de la Durance et à l'ouest par le fleuve du Rhône. » ; « La Durance coule en bordure sud de la ville […] Elle se jette dans le Rhône à l'angle sud-ouest de la ville. »)", url: "https://fr.wikipedia.org/wiki/Avignon", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_cher: {nom: "Wikipédia, « Tours » (« Le Cher : affluent de la Loire […] »)", url: "https://fr.wikipedia.org/wiki/Tours", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  nom: texte
+  sorte: [massif, fleuve, riviere]
+  se_jette: texte
+cle: [nom]
+lignes:
+- {nom: les Alpes, sorte: massif, se_jette: "-", source: wp_alpes}
+- {nom: le Jura, sorte: massif, se_jette: "-", source: wp_jura}
+- {nom: le Massif central, sorte: massif, se_jette: "-", source: wp_massif_central, note: "« Massif Central » dans le programme ; « Massif central » pour Wikipédia"}
+- {nom: les Pyrénées, sorte: massif, se_jette: "-", source: wp_pyrenees}
+- {nom: les Vosges, sorte: massif, se_jette: "-", source: wp_vosges}
+- {nom: la Garonne, sorte: fleuve, se_jette: dans l'océan Atlantique, source: wp_garonne, note: "par l'estuaire de la Gironde, commun avec la Dordogne"}
+- {nom: la Loire, sorte: fleuve, se_jette: dans l'océan Atlantique, source: wp_loire}
+- {nom: le Maroni, sorte: fleuve, se_jette: dans l'océan Atlantique, source: wp_maroni, note: "il suit la frontière entre la Guyane et le Suriname"}
+- {nom: le Rhin, sorte: fleuve, se_jette: dans la mer du Nord, source: wp_rhin}
+- {nom: le Rhône, sorte: fleuve, se_jette: dans la mer Méditerranée, source: wp_rhone}
+- {nom: la Seine, sorte: fleuve, se_jette: dans la Manche, source: wp_seine}
+- {nom: la Saône, sorte: riviere, se_jette: dans le Rhône, source: wp_saone}
+- {nom: la Durance, sorte: riviere, se_jette: dans le Rhône, source: wp_durance}
+- {nom: le Cher, sorte: riviere, se_jette: dans la Loire, source: wp_cher, note: "« affluent de la Loire » : il se jette dans la Loire"}

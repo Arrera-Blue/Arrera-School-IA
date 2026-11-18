@@ -1,0 +1,33 @@
+# Table de référence (générateur procédural de la géographie, lot 2, étape 2.4), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §5). Des villes françaises et le
+# grand fleuve du programme qui y passe (table france) : un seul par ville. Les autres cours d'eau de la ville (la
+# Saône à Lyon, la Durance à Avignon, le Cher à Tours, l'Ill à Strasbourg…) ne sont jamais proposés : les mauvaises
+# réponses sont les autres grands fleuves. Écartée : Saint-Laurent-du-Maroni (son nom donne la réponse).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/villes --par "…"
+description: Des villes françaises et le grand fleuve qui y passe (CE2).
+sources:
+  wp_paris: {nom: "Wikipédia, « Paris » (« La Seine traverse la ville en formant un arc de cercle, y entrant par le sud-est pour en sortir au sud-ouest. »)", url: "https://fr.wikipedia.org/wiki/Paris", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_rouen: {nom: "Wikipédia, « Rouen » (« Elle est traversée par la Seine. »)", url: "https://fr.wikipedia.org/wiki/Rouen", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_lyon: {nom: "Wikipédia, « Lyon » (« Le Rhône et la Saône traversent la ville, en y pénétrant respectivement par l'est et par le nord. »)", url: "https://fr.wikipedia.org/wiki/Lyon", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_avignon: {nom: "Wikipédia, « Avignon » (« Le Rhône passe en bordure ouest de la ville, mais est divisé en deux bras […] »)", url: "https://fr.wikipedia.org/wiki/Avignon", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_nantes: {nom: "Wikipédia, « Nantes » (« La Loire traverse désormais l'agglomération nantaise par deux bras qui enserrent l'île de Nantes […] »)", url: "https://fr.wikipedia.org/wiki/Nantes", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_orleans: {nom: "Wikipédia, « Orléans » (« Orléans se trouve dans le coude septentrional de la Loire, qui la traverse d'est en ouest. »)", url: "https://fr.wikipedia.org/wiki/Orl%C3%A9ans", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_tours: {nom: "Wikipédia, « Tours » (« Tours […] est une ville située dans l'Ouest de la France, sur les rives de la Loire et du Cher […] »)", url: "https://fr.wikipedia.org/wiki/Tours", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_bordeaux: {nom: "Wikipédia, « Bordeaux » (« Bordeaux est traversée par la Garonne, qui constitue l'élément majeur de son réseau hydrographique et sépare la ville en deux rives. »)", url: "https://fr.wikipedia.org/wiki/Bordeaux", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_toulouse: {nom: "Wikipédia, « Toulouse » (« Elle est située sur un coude de la Garonne […] »)", url: "https://fr.wikipedia.org/wiki/Toulouse", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_strasbourg: {nom: "Wikipédia, « Strasbourg » (« La ville est construite sur l'Ill ainsi que le long de la rive gauche du Rhin. »)", url: "https://fr.wikipedia.org/wiki/Strasbourg", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  ville: texte
+  fleuve: [la Garonne, la Loire, le Maroni, le Rhin, le Rhône, la Seine]
+cle: [ville]
+lignes:
+- {ville: Paris, fleuve: la Seine, source: wp_paris}
+- {ville: Rouen, fleuve: la Seine, source: wp_rouen}
+- {ville: Lyon, fleuve: le Rhône, source: wp_lyon, note: "aussi la Saône, une rivière"}
+- {ville: Avignon, fleuve: le Rhône, source: wp_avignon, note: "aussi la Durance, une rivière"}
+- {ville: Nantes, fleuve: la Loire, source: wp_nantes}
+- {ville: Orléans, fleuve: la Loire, source: wp_orleans}
+- {ville: Tours, fleuve: la Loire, source: wp_tours, note: "aussi le Cher, une rivière"}
+- {ville: Bordeaux, fleuve: la Garonne, source: wp_bordeaux}
+- {ville: Toulouse, fleuve: la Garonne, source: wp_toulouse}
+- {ville: Strasbourg, fleuve: le Rhin, source: wp_strasbourg, note: "construite sur l'Ill, le long du Rhin"}

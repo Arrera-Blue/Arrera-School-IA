@@ -1,0 +1,27 @@
+# Table de référence (générateur procédural de la géographie, lot 2, étape 2.4), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §5). Les quatre points cardinaux,
+# leur lettre et le point opposé ; les termes qui positionnent (programme du CP, thème 1), qui ne sont pas des points
+# cardinaux : les mauvaises réponses de « Lequel est un point cardinal ? ». Jamais demandé : où se lève le soleil (à
+# l'est seulement à peu près, selon la saison) ; « W » (l'ouest en anglais, aussi sur les boussoles).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/points_cardinaux --par "…"
+description: Les points cardinaux (CP).
+sources:
+  programme_monde: {nom: "Programme d’histoire-géographie du cycle 2, CP, thème 2 « Des représentations du monde », repères : « Nord/Sud/Est/Ouest. »", url: "https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf", consulte: '2026-11-18'}
+  programme_ecole: {nom: "Programme d’histoire-géographie du cycle 2, CP, thème 1 « Autour de l’école », repères : « Les termes permettant de positionner : à gauche/à droite/au-dessus/en-dessous/devant/derrière/à côté, etc. »", url: "https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf", consulte: '2026-11-18'}
+  wp_points: {nom: "Wikipédia, « Point cardinal » (« Sur une boussole ou sur un plan, on trouve généralement quatre points cardinaux : nord, sud, est et ouest. » ; rose des vents : « N. », « E. », « S. », « O. ou W. » ; « le méridien local définit la direction d'une droite qui peut être parcourue selon deux sens différents : l'un en direction du pôle Nord géographique, cette direction définissant le point cardinal nord ; l'autre en direction du pôle Sud géographique, cette seconde direction définissant le point cardinal sud. » ; de même, le parallèle local : « le point cardinal est » et « le point cardinal ouest »)", url: "https://fr.wikipedia.org/wiki/Point_cardinal", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  nom: texte
+  sorte: [point, position]
+  lettre: texte
+  oppose: texte
+cle: [nom]
+lignes:
+- {nom: le nord, sorte: point, lettre: N, oppose: le sud, source: wp_points}
+- {nom: l'est, sorte: point, lettre: E, oppose: l'ouest, source: wp_points}
+- {nom: le sud, sorte: point, lettre: S, oppose: le nord, source: wp_points}
+- {nom: l'ouest, sorte: point, lettre: O, oppose: l'est, source: wp_points}
+- {nom: à gauche, sorte: position, lettre: "-", oppose: "-", source: programme_ecole}
+- {nom: à droite, sorte: position, lettre: "-", oppose: "-", source: programme_ecole}
+- {nom: au-dessus, sorte: position, lettre: "-", oppose: "-", source: programme_ecole}
+- {nom: devant, sorte: position, lettre: "-", oppose: "-", source: programme_ecole}
+- {nom: derrière, sorte: position, lettre: "-", oppose: "-", source: programme_ecole}

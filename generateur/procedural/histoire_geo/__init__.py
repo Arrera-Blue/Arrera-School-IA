@@ -15,12 +15,16 @@ import re
 MATIERE = "histoire-geo"
 CYCLE_2 = ("CP", "CE1", "CE2")
 
+# le nom de la matière, retiré de la demande avant de chercher les mots-clés des générateurs : « un QCM
+# d'histoire-géographie sur les continents » n'est pas de l'histoire (procedural.aiguiller)
+NOM_DE_LA_MATIERE = re.compile(r"\bhistoire[- ](?:et[- ])?geo(?:graphie)?\b|\bhist-geo\b")
+
 # les notions de l'histoire-géographie qu'aucun générateur ne couvre (sans accents, en début de mot) : une demande qui
-# en cite une part au modèle. La géographie viendra à l'étape 2.4 (sans carte) ; la vie à Rome, le royaume de France,
-# les traces du passé, l'heure ne sont pas dans le générateur.
-AUTRES_NOTIONS = re.compile(r"\b(?:geographi|continent|ocean|carte|planisphere|globe|paysage|relief|montagne|massif|"
-                            r"fleuve|riviere|climat|desert|foret|pays\b|villes?\b|village|campagne|quartier|"
-                            r"points? cardinaux|nord\b|rome\b|romain|gaule|gaulois|gallo|royaume|rois?\b|reine|sacre|"
+# en cite une part au modèle. Ce qui demande une carte ou une image (localiser, un paysage, un plan), la population et
+# les villes, la vie à Rome, le royaume de France, les traces du passé, l'heure ne sont pas dans les générateurs.
+AUTRES_NOTIONS = re.compile(r"\b(?:carte|planisphere|globe|paysage|plan de|trajet|pays\b|villes?\b|village|campagne|"
+                            r"quartier|peupl|population|densite|agglomeration|se loger|logement|habitat|travailler|"
+                            r"rome\b|romain|gaule|gaulois|gallo|royaume|rois?\b|reine|sacre|"
                             r"capetien|valois|traces? du passe|archeolog|historien|arbre genealogique|generation|"
                             r"jour et (?:de )?la nuit|l'heure|horloge|montre|pendule|sablier|figure historique|"
                             r"revolution|guerre mondiale|napoleon|chateau|chevalier|seigneur|egypt|grec)")
@@ -28,5 +32,5 @@ AUTRES_NOTIONS = re.compile(r"\b(?:geographi|continent|ocean|carte|planisphere|g
 
 def generateurs() -> tuple:
     """Les modules de la matière. Import local : le paquet reste léger à charger."""
-    from generateur.procedural.histoire_geo import histoire
-    return (histoire,)
+    from generateur.procedural.histoire_geo import geographie, histoire
+    return (histoire, geographie)

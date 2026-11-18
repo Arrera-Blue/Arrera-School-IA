@@ -1,0 +1,33 @@
+# Table de référence (générateur procédural de la géographie, lot 2, étape 2.4), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §5). Les continents : ceux du
+# modèle utilisé en France (Wikipédia, « Continent »). Écrits sans article dans les propositions, comme le programme
+# (« Océans Atlantique, Pacifique, Indien ») ; `le` : avec l'article, pour l'énoncé et l'explication.
+# `demande` : « oui », la ligne peut être une bonne réponse ; « non », seulement une mauvaise réponse à « Lequel est le
+# nom d'un océan ? ». Jamais demandés (§3) : combien de continents ; l'Amérique (un continent en France, deux dans
+# d'autres modèles ; « l'Amérique » se dit aussi des États-Unis), l'Océanie (« pas un continent stricto sensu ») ;
+# l'Antarctique (aussi le nom d'un océan) et l'Australie (« île-continent ») ne sont pas dans la table.
+# `ou` : le continent d'un pays (la France hexagonale : en Europe), « - » sinon.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/monde --par "…"
+description: Les continents, les océans et la France (CP).
+sources:
+  programme: {nom: "Programme d’histoire-géographie du cycle 2, CP, thème 2 « Des représentations du monde », repères : « Terres émergées/océans. Nord/Sud/Est/Ouest. Les continents. Océans Atlantique, Pacifique, Indien. La France. » ; mots-clés : « continent, océan, pays »", url: "https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf", consulte: '2026-11-18'}
+  wp_continent: {nom: "Wikipédia, « Continent » (« Le modèle à six continents avec un seul continent américain est utilisé par les pays de langue latine, notamment en France et la majorité de la francophonie […] » : Amérique, Antarctique, Afrique, Europe, Asie, Océanie ; « L'Océanie est aussi une région du monde qui n'est pas un continent stricto sensu, mais qui est souvent assimilée à un continent par les géographes. »)", url: "https://fr.wikipedia.org/wiki/Continent", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_ocean: {nom: "Wikipédia, « Océan » (« Celui-ci est historiquement divisé en quatre océans — Pacifique, Atlantique, Arctique et Indien — ou en cinq pour les gouvernements ou organismes qui reconnaissent l'existence de l'océan Austral. »)", url: "https://fr.wikipedia.org/wiki/Oc%C3%A9an", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_france: {nom: "Wikipédia, « France » (« La France, en forme longue la République française, est un État souverain transcontinental dont le territoire métropolitain s'étend en Europe de l'Ouest et dont le territoire ultramarin s'étend dans les océans Indien, Atlantique et Pacifique, ainsi qu'en Antarctique et en Amérique du Sud. »)", url: "https://fr.wikipedia.org/wiki/France", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  nom: texte
+  le: texte
+  sorte: [continent, ocean, pays]
+  demande: [oui, non]
+  ou: texte
+cle: [nom]
+lignes:
+- {nom: Afrique, le: l'Afrique, sorte: continent, demande: oui, ou: "-", source: wp_continent}
+- {nom: Asie, le: l'Asie, sorte: continent, demande: oui, ou: "-", source: wp_continent}
+- {nom: Europe, le: l'Europe, sorte: continent, demande: oui, ou: "-", source: wp_continent}
+- {nom: Amérique, le: l'Amérique, sorte: continent, demande: non, ou: "-", source: wp_continent, note: "un continent dans le modèle utilisé en France, deux dans d'autres : jamais une bonne réponse, jamais proposée pour « continent »"}
+- {nom: Océanie, le: l'Océanie, sorte: continent, demande: non, ou: "-", source: wp_continent, note: "« pas un continent stricto sensu » : jamais une bonne réponse, jamais proposée pour « continent » ; un piège pour « océan »"}
+- {nom: Atlantique, le: l'Atlantique, sorte: ocean, demande: oui, ou: "-", source: wp_ocean}
+- {nom: Pacifique, le: le Pacifique, sorte: ocean, demande: oui, ou: "-", source: wp_ocean}
+- {nom: Indien, le: l'océan Indien, sorte: ocean, demande: oui, ou: "-", source: wp_ocean, note: "« L'océan Indien est… » n'est jamais demandé (le mot « océan » donnerait la réponse)"}
+- {nom: France, le: la France, sorte: pays, demande: oui, ou: en Europe, source: wp_france, note: "« un État souverain » ; son territoire métropolitain « s'étend en Europe de l'Ouest » : la France hexagonale est en Europe"}

@@ -1,0 +1,38 @@
+# Table de référence (générateur procédural de la géographie, lot 2, étape 2.4), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §5). Les mots du programme du CE1 :
+# les types de relief, de végétation, le fleuve et la rivière, chacun avec une définition courte, écrite pour un élève
+# de CE1 d'après le Wiktionnaire et Wikipédia.
+# `jamais` : le mot qui n'est jamais proposé avec celui-ci (dans les deux sens), parce que la définition pourrait lui
+# aller aussi : la plaine et le plateau (l'altitude ne les distingue pas : « il existe des plateaux en basse altitude
+# […] comme il existe des plaines en haute altitude ») ; la montagne et la vallée (une vallée a aussi des pentes).
+# Le fleuve et la rivière : la définition des géographes (« au regard de la définition hydrographique ») ; en français
+# courant, une rivière est un cours d'eau plus petit, « sans autre égard à son débouché ».
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/mots --par "…"
+description: Les mots de la géographie du CE1 (relief, végétation, fleuve et rivière) et leur définition.
+sources:
+  programme: {nom: "Programme d’histoire-géographie du cycle 2, CE1, thème 2, objectifs : « Connaitre les principaux types de végétation (forêt, prairie, désert). » ; « Connaitre les différents types de relief (montagne, plaine, plateau et vallée). » ; « Connaitre la différence entre un fleuve et une rivière. »", url: "https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf", consulte: '2026-11-18'}
+  wikt_montagne: {nom: "Wiktionnaire, « montagne » (« Relief topographique présentant des versants prononcés »)", url: "https://fr.wiktionary.org/wiki/montagne", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_plaine: {nom: "Wikipédia, « Plaine » (« Une plaine […] est une grande étendue de terrain sans relief, espace géographique caractérisé par une surface plane, ou légèrement ondulée […] ») ; « Plateau (géographie) » (« Néanmoins, l'altitude n'est pas en soi un critère de définition d'un plateau : il existe des plateaux en basse altitude […] comme il existe des plaines en haute altitude »)", url: "https://fr.wikipedia.org/wiki/Plaine", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wikt_plateau: {nom: "Wiktionnaire, « plateau » (géographie : « Surface relativement plane située à haute ou moyenne altitude, entaillée et bordée de vallées. ») ; Wikipédia, « Plateau (géographie) » (« une aire géographique où les cours d'eau sont encaissés, par opposition aux plaines où les cours d'eau coulent à fleur de sol »)", url: "https://fr.wiktionary.org/wiki/plateau", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_vallee: {nom: "Wikipédia, « Vallée » (« Une vallée est une dépression géographique généralement de forme allongée et façonnée dans le relief par un cours d'eau (vallée fluviale) ou un glacier (vallée glaciaire). »)", url: "https://fr.wikipedia.org/wiki/Vall%C3%A9e", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wikt_foret: {nom: "Wiktionnaire, « forêt » (« Vaste terrain couvert de bois, de nombreux arbres proches. »)", url: "https://fr.wiktionary.org/wiki/for%C3%AAt", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_prairie: {nom: "Wikipédia, « Prairie » (« Prairie (écologie), milieu ouvert, caractérisé par une végétation principalement herbacée, à dominance de graminées »)", url: "https://fr.wikipedia.org/wiki/Prairie", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wikt_desert: {nom: "Wiktionnaire, « désert » (géographie : « Zone aride avec moins de 150 mm de pluie par an en moyenne, pourvue de très peu de végétation, d’animaux et d’êtres humains. ») ; Wikipédia, « Désert » (« une zone de terre où les précipitations sont rares et peu abondantes »)", url: "https://fr.wiktionary.org/wiki/d%C3%A9sert", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wikt_fleuve: {nom: "Wiktionnaire, « fleuve » (« Cours d’eau qui se jette généralement dans la mer ou dans l’océan à son embouchure. ») ; Wikipédia, « Fleuve » (« un cours d'eau se jetant dans une mer ou un océan »)", url: "https://fr.wiktionary.org/wiki/fleuve", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_riviere: {nom: "Wikipédia, « Rivière » (« En hydrographie, une rivière est un cours d'eau au débit moyen à modéré […], recevant des affluents et qui se jette dans une autre rivière ou dans un fleuve. » ; « En français courant, une rivière est un cours d'eau d'une certaine importance, inférieure subjectivement à celle d'un fleuve, sans autre égard à son débouché. Pourtant cette affirmation est erronée au regard de la définition hydrographique. ») ; Wiktionnaire, « rivière » (« Se dit spécialement d’un cours d’eau qui se jette dans un autre. »)", url: "https://fr.wikipedia.org/wiki/Rivi%C3%A8re", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  mot: texte
+  sorte: [relief, vegetation, cours_eau]
+  definition: texte
+  jamais: texte
+cle: [mot]
+lignes:
+- {mot: une montagne, sorte: relief, definition: un relief aux pentes fortes, jamais: une vallée, source: wikt_montagne}
+- {mot: une plaine, sorte: relief, definition: une grande étendue plate, jamais: un plateau, source: wp_plaine}
+- {mot: un plateau, sorte: relief, definition: une étendue plate entaillée de vallées, jamais: une plaine, source: wikt_plateau}
+- {mot: une vallée, sorte: relief, definition: un long creux creusé par l'eau ou un glacier, jamais: une montagne, source: wp_vallee}
+- {mot: une forêt, sorte: vegetation, definition: une grande étendue couverte d'arbres, jamais: "-", source: wikt_foret}
+- {mot: une prairie, sorte: vegetation, definition: une étendue couverte surtout d'herbe, jamais: "-", source: wp_prairie}
+- {mot: un désert, sorte: vegetation, definition: une région où il pleut très peu, jamais: "-", source: wikt_desert}
+- {mot: un fleuve, sorte: cours_eau, definition: un cours d'eau qui se jette dans la mer, jamais: "-", source: wikt_fleuve, note: "« généralement » : Wikipédia cite des exceptions (un fleuve « aboutissant dans un désert », ou qui se jette « dans une mer fermée ou dans un autre fleuve ») ; un fleuve précis n'est demandé que s'il se jette dans la mer ou l'océan (table france)"}
+- {mot: une rivière, sorte: cours_eau, definition: un cours d'eau qui se jette dans un autre, jamais: "-", source: wp_riviere}
