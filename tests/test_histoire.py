@@ -237,7 +237,7 @@ def test_les_ecritures_de_l_histoire():
     ({"attendu": "histoire-geo.ce1.grandes-periodes", "matiere": "histoire-geo", "niveau": "CE1"}, "histoire"),
     ({"attendu": "histoire-geo.ce2.prehistoire", "matiere": "histoire-geo", "niveau": "CE2"}, "histoire"),
     # ce que le générateur ne fait pas : au modèle
-    ({"notion": "les continents et les océans", "matiere": "histoire-geo", "niveau": "CP"}, None),
+    ({"notion": "les paysages résidentiels", "matiere": "histoire-geo", "niveau": "CE2"}, None),  # une image
     ({"notion": "la vie à Rome", "matiere": "histoire-geo", "niveau": "CE2"}, None),
     ({"notion": "les rois de France", "matiere": "histoire-geo", "niveau": "CE2"}, None),
     ({"notion": "lire l'heure", "matiere": "histoire-geo", "niveau": "CP"}, None),

@@ -1,0 +1,39 @@
+# Table de référence (générateur procédural de la géographie, lot 2, étape 2.4), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §5). Les trois grandes zones
+# climatiques du programme du CE1 et ce qui les caractérise ; les territoires français dans leur zone (« en y
+# inscrivant les territoires français »). `zone` : celle de la ligne ; `climat` : ce qui caractérise une zone (« - »
+# pour un territoire). La zone tropicale est la zone chaude (« zones polaires (glaciales) et tropicales (torrides) ») :
+# la Guyane, au climat équatorial (un climat chaud), y est. Écartés, faute d'une page lue qui tranche : le Sahara,
+# Saint-Pierre-et-Miquelon, la Nouvelle-Calédonie, la Polynésie, les autres Terres australes ; « la terre Adélie » :
+# l'orthographe de Wikipédia.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire histoire-geo/climats --par "…"
+description: Les trois zones climatiques et des territoires français dans leur zone (CE1).
+sources:
+  programme: {nom: "Programme d’histoire-géographie du cycle 2, CE1, thème 2 : « Connaitre les trois grandes zones climatiques (tropicale, tempérée, froide). » ; repères : « Zone tropicale, zone tempérée, zone froide en y inscrivant les territoires français. »", url: "https://www.education.gouv.fr/sites/default/files/document/annexe-3-programme-d-histoire-geographie-cycle-2-516776.pdf", consulte: '2026-11-18'}
+  wp_tropical: {nom: "Wikipédia, « Climat tropical » (« un climat tropical est un climat non aride où la température moyenne mensuelle ne descend pas en dessous de 18 °C tout au long de l'année ») ; « Climat tempéré » (« Une zone tempérée, définie d'un point de vue strictement géographique, regroupe les régions situées entre les tropiques (23°) et les cercles polaires (66°) par opposition aux zones polaires (glaciales) et tropicales (torrides). »)", url: "https://fr.wikipedia.org/wiki/Climat_tropical", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_tempere: {nom: "Wikipédia, « Climat » (climats dits tempérés : « Ce climat est en général caractérisé par des températures tempérées, ainsi que deux saisons : une saison froide (hiver) et une saison chaude (été). ») ; « Climat de la France » (« la France métropolitaine est dans la zone tempérée, se caractérisant par des étés chauds et des hivers froids mais de façon modérée »)", url: "https://fr.wikipedia.org/wiki/Climat", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_polaire: {nom: "Wikipédia, « Climat polaire » (« Le climat polaire est un type de climat caractérisé par des températures froides toute l'année, sans chaleur estivale et avec des hivers glaciaux. »)", url: "https://fr.wikipedia.org/wiki/Climat_polaire", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_climat_france: {nom: "Wikipédia, « Climat de la France » (« Positionnée entre les latitudes 41° 19' N et 51° 04'N, la France métropolitaine est dans la zone tempérée, se caractérisant par des étés chauds et des hivers froids mais de façon modérée. »)", url: "https://fr.wikipedia.org/wiki/Climat_de_la_France", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_guyane: {nom: "Wikipédia, « Guyane » (« En raison de sa situation géographique au nord de l'Amérique du Sud, elle possède un climat équatorial […] ») ; « Climat » (le climat équatorial, parmi les « climats chauds » : « une température élevée quasiment constante toute l'année »)", url: "https://fr.wikipedia.org/wiki/Guyane", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_martinique: {nom: "Wikipédia, « Martinique » (« Le climat de la Martinique est tropical avec deux saisons principales […] »)", url: "https://fr.wikipedia.org/wiki/Martinique", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_guadeloupe: {nom: "Wikipédia, « Guadeloupe » (« La Guadeloupe bénéficie d'un climat tropical, tempéré par les influences maritimes. »)", url: "https://fr.wikipedia.org/wiki/Guadeloupe", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_reunion: {nom: "Wikipédia, « La Réunion » (« Bénéficiant d'un climat tropical d'alizé maritime et située sur la route des cyclones, La Réunion abrite un endémisme exceptionnel. »)", url: "https://fr.wikipedia.org/wiki/La_R%C3%A9union", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_mayotte: {nom: "Wikipédia, « Mayotte » (« Le climat est tropical d'alizé maritime. »)", url: "https://fr.wikipedia.org/wiki/Mayotte", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_terre_adelie: {nom: "Wikipédia, « Terre Adélie » (« La terre Adélie est caractérisée par un climat d'inlandsis (catégorie EF dans la classification de Köppen) […] ») ; « Antarctique » (« L'Antarctique est le continent dont le climat est le plus froid, le plus sec et le plus venteux. »)", url: "https://fr.wikipedia.org/wiki/Terre_Ad%C3%A9lie", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  nom: texte
+  sorte: [zone, territoire]
+  zone: [tropicale, tempérée, froide]
+  climat: texte
+cle: [nom]
+lignes:
+- {nom: la zone tropicale, sorte: zone, zone: tropicale, climat: il fait chaud toute l'année, source: wp_tropical}
+- {nom: la zone tempérée, sorte: zone, zone: tempérée, climat: l'été est chaud et l'hiver est froid, source: wp_tempere}
+- {nom: la zone froide, sorte: zone, zone: froide, climat: il fait froid toute l'année, source: wp_polaire}
+- {nom: la France hexagonale, sorte: territoire, zone: tempérée, climat: "-", source: wp_climat_france, note: "la page dit « la France métropolitaine » (avec la Corse)"}
+- {nom: la Guyane, sorte: territoire, zone: tropicale, climat: "-", source: wp_guyane}
+- {nom: la Martinique, sorte: territoire, zone: tropicale, climat: "-", source: wp_martinique}
+- {nom: la Guadeloupe, sorte: territoire, zone: tropicale, climat: "-", source: wp_guadeloupe}
+- {nom: La Réunion, sorte: territoire, zone: tropicale, climat: "-", source: wp_reunion}
+- {nom: Mayotte, sorte: territoire, zone: tropicale, climat: "-", source: wp_mayotte}
+- {nom: la terre Adélie, sorte: territoire, zone: froide, climat: "-", source: wp_terre_adelie, note: "un climat d'inlandsis, en Antarctique : la zone froide"}

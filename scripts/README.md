@@ -74,14 +74,15 @@ Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.3.
 
 Méthode : `docs/Generateur-Procedural/lot-1-francais.md` §11.4.
 
-## `histoire_geo/` : les tables de l'histoire (`generateur/procedural/donnees/histoire-geo/`)
+## `histoire_geo/` : les tables de l'histoire et de la géographie (`generateur/procedural/donnees/histoire-geo/`)
 
 | Script | Rôle | Demande |
 |---|---|---|
 | `page_relecture_histoire.py` | la page de relecture des 5 tables (calendrier, durées, périodes, repères, Préhistoire), avec leurs sources et ce qui n'est jamais demandé | `pyyaml` |
+| `page_relecture_geographie.py` | la page de relecture des 7 tables de la géographie sans carte (continents et océans, points cardinaux, lieux du monde, mots, climats, France, villes), avec leurs sources et ce qui n'est jamais demandé | `pyyaml` |
 
 Les tables sont écrites à la main (petites, chaque ligne avec sa source : le programme d'abord, sinon Wikipédia ou le
-Wiktionnaire) : `docs/Generateur-Procedural/lot-2-questionner-le-monde.md` §11.2.
+Wiktionnaire) : `docs/Generateur-Procedural/lot-2-questionner-le-monde.md` §11.2 et §11.5.
 
 ## `sciences_et_technologie/` : les tables des sciences (`generateur/procedural/donnees/sciences-et-technologie/`)
 
