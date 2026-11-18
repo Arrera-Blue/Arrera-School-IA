@@ -10,3 +10,4 @@ banque/supprimes/
 modeles/
 cache/
 /donnees/
+.DS_Store
