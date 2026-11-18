@@ -1,0 +1,33 @@
+# Table de référence (générateur procédural du corps humain, lot 2, étape 2.3), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §7). Les articulations sont celles
+# du programme du CP (« rotation (cou, bassin, épaule, poignet, cheville) et flexion/extension (coude, genou, … doigts
+# et … orteils) ») ; le « bassin » du programme est la hanche. `entre` : « Quelle articulation se trouve entre … ? ».
+# `geste` : « Quelle articulation permet de … ? » ; « - » : jamais demandé. Le classement du programme (rotation ou
+# flexion) n'est jamais demandé tel quel : l'épaule, le poignet, la cheville, la hanche plient aussi, et le genou
+# tourne un peu quand il est plié (« Genou » : « Le second degré de liberté est la rotation du tibia ») ; seuls les
+# gestes que la page de l'articulation décrit le sont. `partie` : pour « plier le bras », les mauvaises réponses ne
+# sont jamais du bras (l'épaule bouge aussi le bras).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/articulations --par "…"
+description: Les principales articulations, ce qu'elles relient, et le geste qu'elles permettent.
+sources:
+  wp_coude: {nom: "Wikipédia, « Coude » (« Le coude est le segment du membre supérieur situé entre le bras et l'avant-bras. » ; « C'est la zone de flexion - extension de l'avant-bras sur le bras. »)", url: "https://fr.wikipedia.org/wiki/Coude", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_genou: {nom: "Wikipédia, « Genou » (« le genou est le segment du membre inférieur situé entre la cuisse et la jambe » ; « la jambe peut fléchir d'un angle de 160° sur la cuisse »)", url: "https://fr.wikipedia.org/wiki/Genou", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_poignet: {nom: "Wikipédia, « Poignet » (« une région du membre supérieur située entre la main et l'avant-bras »)", url: "https://fr.wikipedia.org/wiki/Poignet", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_cheville: {nom: "Wikipédia, « Cheville (anatomie) » (« La cheville est le segment du membre inférieur qui relie la jambe et le pied. »)", url: "https://fr.wikipedia.org/wiki/Cheville_(anatomie)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_epaule: {nom: "Wikipédia, « Épaule » (« un complexe d'articulations et de muscles unissant le membre supérieur au tronc » ; « une connexion entre le bras et le torse »)", url: "https://fr.wikipedia.org/wiki/%C3%89paule", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_cou: {nom: "Wikipédia, « Cou » (« la région du corps qui est située entre la tête et le thorax » ; « il soutient et donne à la tête sa mobilité » ; « Les mouvements de rotation, flexion antéropostérieure et flexion latérale se font grâce »)", url: "https://fr.wikipedia.org/wiki/Cou", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_hanche: {nom: "Wikipédia, « Hanche » (« la jonction entre le membre inférieur au niveau de la cuisse et le tronc au niveau du bassin »)", url: "https://fr.wikipedia.org/wiki/Hanche", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  articulation: texte
+  entre: texte
+  geste: texte
+  partie: [bras, jambe, tete]
+cle: [articulation]
+lignes:
+- {articulation: le coude, entre: le bras et l'avant-bras, geste: plier le bras, partie: bras, source: wp_coude}
+- {articulation: le poignet, entre: l'avant-bras et la main, geste: "-", partie: bras, source: wp_poignet}
+- {articulation: l'épaule, entre: le bras et le tronc, geste: "-", partie: bras, source: wp_epaule}
+- {articulation: le genou, entre: la cuisse et la jambe, geste: plier la jambe, partie: jambe, source: wp_genou}
+- {articulation: la cheville, entre: la jambe et le pied, geste: "-", partie: jambe, source: wp_cheville}
+- {articulation: la hanche, entre: la cuisse et le bassin, geste: "-", partie: jambe, source: wp_hanche, note: "le « bassin » du programme"}
+- {articulation: le cou, entre: la tête et le thorax, geste: tourner la tête, partie: tete, source: wp_cou}

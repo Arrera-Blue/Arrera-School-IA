@@ -77,6 +77,8 @@ def lire_classe(texte: str) -> str | None:
 # --- la difficulté, le type, la matière ----------------------------------------------------------
 
 def sans_accents(texte: str) -> str:
+    """Sans accents, en minuscules ; « œ » et « æ » deviennent « oe » et « ae » (« cœur » : « coeur », pas « cur »)."""
+    texte = (texte or "").replace("œ", "oe").replace("Œ", "Oe").replace("æ", "ae").replace("Æ", "Ae")
     return unicodedata.normalize("NFKD", texte).encode("ascii", "ignore").decode().lower()
 
 
@@ -135,18 +137,25 @@ MOTS_DES_MATIERES = {
            r"vaccin|"
            # le vivant du cycle 2 (lot 2, étape 2.2 : au cycle 2, les SVT deviennent « sciences et technologie »)
            r"herbivore|carnivore|omnivore|chaines? alimentaires?|larves?|metamorphose|mammiferes?|insectes?|"
-           r"locomotion|germination|regimes? alimentaires?|cinq sens|organes? des sens",
+           r"locomotion|germination|regimes? alimentaires?|cinq sens|organes? des sens|"
+           # le corps du cycle 2 (étape 2.3)
+           r"aliments?\b|squelette|articulations?|\bos\b|dents?\b|dentition|biceps|triceps|pouls|rythme cardiaque|"
+           r"efforts? physiques?|pendant l'effort|activite physique",
     "physique-chimie": r"physique|chimie|electricit|circuits? electrique|tension electrique|intensite|atomes?\b|"
                        r"molecule|masse volumique|vitesse|energie|lumiere|melange|dissolution|"
                        r"etats? de la matiere|etats? de l'eau|transformation chimique|combustion|gravitation|forces?\b|"
                        r"poids\b|mouvement|optique|loi d'ohm|resistance electrique|acide|ions?\b|"
-                       r"changements? d'etat|solubilit|conducteur|isolant|signal|ondes?\b",
+                       r"changements? d'etat|solubilit|conducteur|isolant|signal|ondes?\b|"
+                       # la matière du cycle 2 (étape 2.3)
+                       r"fusion|solidification|solides? et (?:les )?liquides?|etats? (?:solide|liquide)",
     "anglais": r"anglais|english|preterit|present perfect|irregular|verbes irreguliers anglais|vocabulary|"
                r"grammar|simple past|present continuous|modals?\b",
     # « sciences et technologie » (le cycle 2) n'est pas la technologie du collège
     "technologie": r"(?<!sciences et )(?<!science et )(?:technologi|techno\b)|programmation|scratch|algorithm|robot|objets? techniques?|"
                    r"reseaux? informatiques?|informatique|capteur|actionneur|cahier des charges|"
-                   r"impression 3d|chaine d'energie|chaine d'information",
+                   r"impression 3d|chaine d'energie|chaine d'information|"
+                   # les objets du cycle 2 (étape 2.3)
+                   r"ordinateur|clavier|processeur|objets? electriques?",
     # le cycle 2 : les sciences et technologie (programme de 2026) ; « questionner le monde », l'ancien nom (2020),
     # partagé entre elles et l'histoire-géographie (matiere_de_la_classe) ; l'EMC, les arts plastiques et la musique, de
     # l'école au collège

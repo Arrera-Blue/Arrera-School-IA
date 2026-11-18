@@ -59,7 +59,9 @@ def prononcable(texte: str) -> str:
     terminaison s'épelle (« -ent » : « e, n, t » ; lue, elle ferait « an », et Piper n'en tirait aucun son), un préfixe
     se lit sans son tiret (« in- ») ; la flèche d'une règle (« -al → -aux ») se dit « devient » (étape 1.5 du lot 1).
     L'histoire (lot 2) : « av. J.-C. » se dit « avant Jésus-Christ » ; un siècle en chiffres romains, en toutes lettres
-    (« XIVe-XVe siècles » : « quatorzième et quinzième siècles ») ; « 10000 / 9000 » (deux années), « 10000 ou 9000 »."""
+    (« XIVe-XVe siècles » : « quatorzième et quinzième siècles ») ; « 10000 / 9000 » (deux années), « 10000 ou 9000 ».
+    Les sciences (étape 2.3) : l'espace entre les milliers est retirée (« 3 000 grammes » : « 3000 », trois mille)."""
+    texte = re.sub(r"(\d)[ \u00a0\u202f](?=\d{3}\b)", r"\1", texte)
     texte = re.sub(r"\b(?:av\.|avant) J\.-C\.", "avant Jésus-Christ", texte)
     texte = re.sub(r"\b(?:apr\.|après) J\.-C\.", "après Jésus-Christ", texte)
     texte = re.sub(r"\b([IVX]+)(?:er|e)\s*[-–]\s*([IVX]+)e\b", lambda m: f"{ordinal(m[1])} et {ordinal(m[2])}", texte)

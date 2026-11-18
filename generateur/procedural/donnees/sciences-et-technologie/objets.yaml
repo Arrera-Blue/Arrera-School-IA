@@ -1,0 +1,40 @@
+# Table de référence (générateur procédural de la matière et des objets, lot 2, étape 2.3), écrite par Claude ; chaque
+# ligne cite sa source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §8). Presque tout vient des exemples
+# du programme (CP : objet technique ou non ; CE1 : objet électrique ou non). `technique` : « oui » pour un objet
+# obtenu par intervention humaine. `electrique` : « oui » s'il utilise l'énergie électrique, « non » sinon, « - » : jamais
+# demandé (les objets du CP). `jumeau` : l'objet électrique qui fait le même travail (« un tournevis et une visseuse
+# électrique ») ; « - » : aucun. Pas de « matériau brut → objet » : l'argile, le bois brut, la laine donnent chacun
+# plusieurs objets (une cuillère en céramique, des tuiles en bois), une mauvaise réponse n'y serait pas toujours fausse.
+# Les vélos sont écartés (« vélo » seul ne dit pas s'il a une assistance électrique).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/objets --par "…"
+description: Des objets techniques ou naturels ; des objets qui utilisent ou non l'énergie électrique.
+sources:
+  programme_cp: {nom: "Programme de sciences et technologie du cycle 2, CP (BO n° 24 du 11 juin 2026) : « À partir d’un ensemble d’objets proposés (stylo en plastique, branche d’arbre, feuille, gomme, règle, etc.), l’élève fait un tri parmi ceux qui sont des objets techniques et ceux qui ne le sont pas » ; « (bois brut et cuillère de cuisine, argile et tuile, laine de mouton et pullover) » ; « (bouteilles en plastique, etc.) »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+  programme_ce1: {nom: "Programme de sciences et technologie du cycle 2, CE1 (BO n° 24 du 11 juin 2026) : « suivant l’utilisation ou non d’une source d’énergie électrique pour son fonctionnement (lampe torche, fouet de cuisine manuel, ordinateur, lunettes, etc.) » ; « d’un batteur électrique et d’un batteur manuel, […] un tournevis et une visseuse électrique »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+  wp_objet_technique: {nom: "Wikipédia, « Objet technique » (« Les objets finalisés : ceux qui sont obtenus par intervention humaine. » ; « Les objets naturels : galet, étoile, flocon de neige, etc. »)", url: "https://fr.wikipedia.org/wiki/Objet_technique", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  objet: texte
+  technique: [oui, non]
+  electrique: [oui, non, "-"]
+  jumeau: texte
+cle: [objet]
+lignes:
+- {objet: un stylo, technique: oui, electrique: "-", jumeau: "-", source: programme_cp}
+- {objet: une gomme, technique: oui, electrique: "-", jumeau: "-", source: programme_cp}
+- {objet: une règle, technique: oui, electrique: "-", jumeau: "-", source: programme_cp}
+- {objet: une cuillère, technique: oui, electrique: "-", jumeau: "-", source: programme_cp}
+- {objet: une tuile, technique: oui, electrique: "-", jumeau: "-", source: programme_cp}
+- {objet: un pull, technique: oui, electrique: "-", jumeau: "-", source: programme_cp}
+- {objet: une bouteille en plastique, technique: oui, electrique: "-", jumeau: "-", source: programme_cp}
+- {objet: une branche d'arbre, technique: non, electrique: "-", jumeau: "-", source: programme_cp}
+- {objet: une feuille d'arbre, technique: non, electrique: "-", jumeau: "-", source: programme_cp, note: "« feuille » dans le programme, à côté de « branche d'arbre »"}
+- {objet: un galet, technique: non, electrique: "-", jumeau: "-", source: wp_objet_technique}
+- {objet: un flocon de neige, technique: non, electrique: "-", jumeau: "-", source: wp_objet_technique}
+- {objet: une lampe torche, technique: oui, electrique: oui, jumeau: "-", source: programme_ce1}
+- {objet: un ordinateur, technique: oui, electrique: oui, jumeau: "-", source: programme_ce1}
+- {objet: un batteur électrique, technique: oui, electrique: oui, jumeau: "-", source: programme_ce1}
+- {objet: une visseuse électrique, technique: oui, electrique: oui, jumeau: "-", source: programme_ce1}
+- {objet: un fouet de cuisine manuel, technique: oui, electrique: non, jumeau: "-", source: programme_ce1}
+- {objet: des lunettes, technique: oui, electrique: non, jumeau: "-", source: programme_ce1}
+- {objet: un batteur manuel, technique: oui, electrique: non, jumeau: un batteur électrique, source: programme_ce1}
+- {objet: un tournevis, technique: oui, electrique: non, jumeau: une visseuse électrique, source: programme_ce1}

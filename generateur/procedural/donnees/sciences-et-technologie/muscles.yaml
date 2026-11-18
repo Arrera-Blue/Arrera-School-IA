@@ -1,0 +1,20 @@
+# Table de référence (générateur procédural du corps humain, lot 2, étape 2.3), écrite par Claude ; chaque ligne cite
+# sa source (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §7). Le biceps et le triceps : le programme du
+# CE2 ; le quadriceps n'est jamais demandé (`demande` : non), seulement proposé comme mauvaise réponse. Le biceps fait
+# aussi tourner l'avant-bras (« Muscle biceps brachial » : « il est principalement supinateur ») : jamais « il tourne
+# le bras » parmi les mauvaises réponses.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/muscles --par "…"
+description: Des muscles et le mouvement qu'ils permettent.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE2 (BO n° 24 du 11 juin 2026) : « L’élève identifie les muscles qui permettent de plier (le biceps), et de tendre (le triceps) le bras. »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+  wp_quadriceps: {nom: "Wikipédia, « Muscle quadriceps fémoral » (« extenseur de la jambe sur la cuisse (articulation du genou) »)", url: "https://fr.wikipedia.org/wiki/Muscle_quadriceps_f%C3%A9moral", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  muscle: texte
+  infinitif: texte
+  present: texte
+  demande: [oui, non]
+cle: [muscle]
+lignes:
+- {muscle: le biceps, infinitif: plier le bras, present: plie le bras, demande: oui, source: programme}
+- {muscle: le triceps, infinitif: tendre le bras, present: tend le bras, demande: oui, source: programme}
+- {muscle: le quadriceps, infinitif: tendre la jambe, present: tend la jambe, demande: non, source: wp_quadriceps}

@@ -1,0 +1,21 @@
+# Table de référence (générateur procédural de la matière et des objets, lot 2, étape 2.3), écrite par Claude ; chaque
+# ligne cite sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §8). Le programme du
+# CE2 : « la saisie, le traitement et la restitution d'informations (clavier, processeur, écran, etc.) ». Un écran
+# tactile sert aussi à saisir : l'écran est ici le moniteur (« un périphérique de sortie vidéo »).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/ordinateur --par "…"
+description: Les éléments d'un ordinateur, et ce qu'ils font des informations (saisir, traiter, restituer).
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE2 (BO n° 24 du 11 juin 2026) : « Identifier les dispositifs permettant la saisie, le traitement et la restitution d’informations (clavier, processeur, écran, etc.). »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+  wp_peripherique: {nom: "Wikipédia, « Périphérique informatique » (entrée : « Ils servent à obtenir des informations (ou données) pour le système informatique. Ce sont le clavier (frappe de texte), la souris (pointage) » ; sortie : « Ils servent à faire sortir des informations du système informatique. Ce sont l'écran, l'imprimante, les haut-parleurs, etc. »)", url: "https://fr.wikipedia.org/wiki/P%C3%A9riph%C3%A9rique_informatique", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_processeur: {nom: "Wikipédia, « Processeur » (« qui exécute les instructions machine des programmes informatiques, c'est le « cerveau » de l'ordinateur » ; « unité centrale de traitement »)", url: "https://fr.wikipedia.org/wiki/Processeur", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  element: texte
+  role: [saisir, traiter, restituer]
+cle: [element]
+lignes:
+- {element: le clavier, role: saisir, source: programme}
+- {element: la souris, role: saisir, source: wp_peripherique}
+- {element: le processeur, role: traiter, source: programme}
+- {element: l'écran, role: restituer, source: programme}
+- {element: l'imprimante, role: restituer, source: wp_peripherique}
+- {element: les haut-parleurs, role: restituer, source: wp_peripherique}

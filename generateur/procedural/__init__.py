@@ -70,6 +70,11 @@ class Retirer(Exception):
     """Tirage inutilisable (distracteurs trop peu nombreux, résultat non entier…) : on tire à nouveau."""
 
 
+class PasAssezDeQuestions(RuntimeError):
+    """Le générateur n'a plus de question nouvelle pour cette demande (le circuit électrique : six questions) : en mode
+    automatique, l'exercice part au modèle (generation.generer)."""
+
+
 Genre = Callable[[random.Random], Squelette]
 
 
@@ -109,6 +114,8 @@ def distracteurs(reponse: str, candidats: list[str], nombre: int = 3,
 # --- aiguillage ----------------------------------------------------------------------------------
 
 def sans_accents(texte: str) -> str:
+    """Sans accents, en minuscules ; « œ » et « æ » deviennent « oe » et « ae » (« cœur » : « coeur », pas « cur »)."""
+    texte = (texte or "").replace("œ", "oe").replace("Œ", "Oe").replace("æ", "ae").replace("Æ", "Ae")
     return unicodedata.normalize("NFKD", texte).encode("ascii", "ignore").decode().lower()
 
 
@@ -301,7 +308,7 @@ def tirer_une(genre: Genre, rng: random.Random, deja: set, niveau: str | None = 
         return _retenir(squelette, deja)
     if secours is not None:
         return _retenir(secours, deja)
-    raise RuntimeError("le générateur ne trouve plus de question nouvelle : demander moins de questions")
+    raise PasAssezDeQuestions("le générateur ne trouve plus de question nouvelle : demander moins de questions")
 
 
 def _retenir(squelette: Squelette, deja: set) -> Squelette:

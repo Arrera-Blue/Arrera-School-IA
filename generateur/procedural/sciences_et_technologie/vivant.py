@@ -20,6 +20,8 @@ MOTS_CLES = ("vivant", "animaux", "animal", "plante", "vegetal", "regime aliment
              "omnivore", "chaine alimentaire", "les sens", "cinq sens", "organes des sens", "larve", "metamorphose",
              "tetard", "chenille", "mue", "locomotion", "classification", "mammifere", "oiseau", "poisson", "insecte",
              "reptile", "germination", "graine", "racine", "fleur")
+# « l'origine animale ou végétale des aliments » est du corps humain (corps.py), pas du vivant
+EXCLUS = ("aliments", "alimentation", "corps humain")
 TABLES = ("etres_vivants", "animaux", "regimes", "sens", "plante", "cycle_plante", "petits", "locomotion", "chaines")
 # les notions précises, de la plus précise à la plus générale (« la vie d'une plante » avant « la plante »)
 PRECISIONS = (

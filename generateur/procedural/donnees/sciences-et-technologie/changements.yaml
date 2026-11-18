@@ -1,0 +1,24 @@
+# Table de référence (générateur procédural de la matière et des objets, lot 2, étape 2.3), écrite par Claude ; chaque
+# ligne cite sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §8). Les deux
+# changements d'état du programme du CE1 (`sorte` : changement), et deux mots voisins (`sorte` : mot), proposés comme
+# mauvaises réponses : jamais pour le changement dont ils sont `proche` (« la fonte » des glaces est une fusion ; la
+# congélation de l'eau, une solidification). `quand` : l'exemple de l'eau ; `de`, `vers` : les deux états.
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/changements --par "…"
+description: Les noms des changements d'état de l'eau, et les mots voisins qu'il ne faut pas confondre.
+sources:
+  wp_fusion: {nom: "Wikipédia, « Fusion (physique) » (« la fusion est le passage d'un corps de l'état solide vers l'état liquide »)", url: "https://fr.wikipedia.org/wiki/Fusion_(physique)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_solidification: {nom: "Wikipédia, « Solidification » (« La solidification est l'opération au cours de laquelle un liquide passe à l'état solide. » ; « La congélation peut aussi permettre la solidification de certains fluides (l'eau par exemple). »)", url: "https://fr.wikipedia.org/wiki/Solidification", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wkt_fonte: {nom: "Wiktionnaire, « fonte » (« Action de fondre, ou de se fondre, de se liquéfier. » ; « la fonte des neiges »)", url: "https://fr.wiktionary.org/wiki/fonte", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  nom: texte
+  sorte: [changement, mot]
+  quand: texte
+  de: [solide, liquide, "-"]
+  vers: [solide, liquide, "-"]
+  proche: texte
+cle: [nom]
+lignes:
+- {nom: la fusion, sorte: changement, quand: la glace fond, de: solide, vers: liquide, proche: "-", source: wp_fusion}
+- {nom: la solidification, sorte: changement, quand: l'eau gèle, de: liquide, vers: solide, proche: "-", source: wp_solidification}
+- {nom: la fonte, sorte: mot, quand: "-", de: "-", vers: "-", proche: la fusion, source: wkt_fonte}
+- {nom: la congélation, sorte: mot, quand: "-", de: "-", vers: "-", proche: la solidification, source: wp_solidification}

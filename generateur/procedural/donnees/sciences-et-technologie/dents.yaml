@@ -1,0 +1,29 @@
+# Table de référence (générateur procédural du corps humain, lot 2, étape 2.3), écrite par Claude ; chaque ligne cite
+# sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §7). Les parties de la dent sont
+# celles du programme du CE1 (« couronne, racine, pulpe, émail »). `description` : « Quelle partie de la dent … ? » ;
+# `jamais` : la partie qui n'est jamais une mauvaise réponse à cette question (l'émail se voit aussi : il recouvre la
+# couronne ; la pulpe descend dans la racine). Les dents de lait : leur nombre, et les dents définitives « plus
+# grandes, plus solides » (le programme), avec deux pièges qui disent l'inverse (`sorte` : piege). Pas le rôle des
+# canines ni des prémolaires (aucune page lue ne le dit).
+# À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/dents --par "…"
+description: Les parties d'une dent ; les dents de lait et les dents définitives.
+sources:
+  programme: {nom: "Programme de sciences et technologie du cycle 2, CE1 (BO n° 24 du 11 juin 2026) : « la structure des dents (couronne, racine, pulpe, émail) » ; « dents de lait (plus petites) et dents définitives (plus grandes, plus solides) »", url: "https://www.education.gouv.fr/sites/default/files/document/bulletin-officiel-ndeg-24-du-11-juin-2026-519026.pdf", consulte: '2026-11-18'}
+  wp_dent: {nom: "Wikipédia, « Dent (anatomie humaine) » (« une couronne visible extérieurement » ; « La racine est implantée dans l'os » ; « L'émail forme la couche externe de la couronne. »)", url: "https://fr.wikipedia.org/wiki/Dent_(anatomie_humaine)", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_pulpe: {nom: "Wikipédia, « Pulpe dentaire » (« l'ensemble des tissus de l'intérieur de la cavité dentaire » ; « Les vaisseaux et les nerfs pénètrent dans la cavité dentaire »)", url: "https://fr.wikipedia.org/wiki/Pulpe_dentaire", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+  wp_dent_lait: {nom: "Wikipédia, « Dent déciduale » (« L'humain possède 20 dents de lait » ; « tombent entre six et douze ans pour laisser la place aux dents permanentes »)", url: "https://fr.wikipedia.org/wiki/Dent_d%C3%A9ciduale", consulte: '2026-11-18', licence: CC BY-SA 4.0}
+proprietes:
+  element: texte
+  sorte: [partie, nombre_de_lait, definitives, piege]
+  description: texte
+  jamais: texte
+cle: [element]
+lignes:
+- {element: la couronne, sorte: partie, description: est visible, jamais: l'émail, source: wp_dent}
+- {element: la racine, sorte: partie, description: est implantée dans l'os, jamais: la pulpe, source: wp_dent}
+- {element: l'émail, sorte: partie, description: forme la couche externe de la couronne, jamais: la couronne, source: wp_dent}
+- {element: la pulpe, sorte: partie, description: se trouve à l'intérieur, jamais: "-", source: wp_pulpe}
+- {element: "20", sorte: nombre_de_lait, description: "-", jamais: "-", source: wp_dent_lait}
+- {element: plus grandes et plus solides que les dents de lait, sorte: definitives, description: "-", jamais: "-", source: programme}
+- {element: plus petites que les dents de lait, sorte: piege, description: "-", jamais: "-", source: programme}
+- {element: moins solides que les dents de lait, sorte: piege, description: "-", jamais: "-", source: programme}

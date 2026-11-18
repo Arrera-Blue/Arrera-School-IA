@@ -65,7 +65,9 @@ class Repere:
 
 
 def sans_accents(texte: str) -> str:
-    return unicodedata.normalize("NFKD", texte or "").encode("ascii", "ignore").decode().lower()
+    """Sans accents, en minuscules ; « œ » et « æ » deviennent « oe » et « ae » (« cœur » : « coeur », pas « cur »)."""
+    texte = (texte or "").replace("œ", "oe").replace("Œ", "Oe").replace("æ", "ae").replace("Æ", "Ae")
+    return unicodedata.normalize("NFKD", texte).encode("ascii", "ignore").decode().lower()
 
 
 # --- lecture --------------------------------------------------------------------------------------

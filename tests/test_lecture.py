@@ -62,6 +62,10 @@ def lu(audio: dict, cle: str) -> str:
     ("XIVe-XVe siècles", "quatorzième et quinzième siècles"),
     ("du Ier siècle avant J.-C. au IIe siècle", "du premier siècle avant Jésus-Christ au deuxième siècle"),
     ("En l'an 476, la Xe fois", "En l'an 476, la dixième fois"),
+    # les sciences (lot 2, étape 2.3) : les milliers, sans leur espace (« 3000 » se dit « trois mille »)
+    ("Combien de grammes font 3\u202f000 grammes ?", "Combien de grammes font 3000 grammes ?"),
+    ("12 345 678 et 2\u00a0050", "12345678 et 2050"), ("de 1 à 3 et 200", "de 1 à 3 et 200"),
+    ("vers 10 000 / 9 000 av. J.-C.", "vers 10000 ou 9000 avant Jésus-Christ"),
 ])
 def test_les_maths_sont_dites_en_mots(ecrit, dit):
     assert lecture.prononcable(ecrit) == dit
@@ -181,7 +185,8 @@ def test_la_voix_du_navigateur_dit_la_meme_chose():
     html = (config.RACINE / "generateur/types/qcm/gabarit.html").read_text(encoding="utf-8")
     code = html[html.index('    var LETTRE = "a-zàâçéèêëîïôûùüœ";'):html.index("function choisieEtBonne")]
     cas = ["52 av. J.-C.", "27 av. J.-C. – 14 après J.-C.", "vers 10000 / 9000 av. J.-C.", "XIVe-XVe siècles",
-           "du Ier siècle avant J.-C. au IIe siècle", "3/4 de 120", "5² = 25", "-al → -aux", "in-", "c'est-à-dire"]
+           "du Ier siècle avant J.-C. au IIe siècle", "3/4 de 120", "5² = 25", "-al → -aux", "in-", "c'est-à-dire",
+           "3\u202f000 grammes", "12 345 678 et 2\u00a0050", "de 1 à 3 et 200"]
     script = code + f"\nconsole.log(JSON.stringify({json.dumps(cas, ensure_ascii=False)}.map(prononcable)));"
     sortie = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout
     assert [t.strip() for t in json.loads(sortie)] == [lecture.prononcable(c) for c in cas]
