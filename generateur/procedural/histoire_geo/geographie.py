@@ -33,9 +33,11 @@ PRECISIONS = (
               r"(?: et (?:les |des )?(?:massifs?|montagnes?|fleuves?))?(?: de (?:la )?france| francais)|"
               r"massif central|pyrenees|vosges|\bjura\b|\bseine\b|\bloire\b|garonne|\brhone\b|\brhin\b|maroni",
               "les massifs et les fleuves de France", ("france",)),
-    Precision(r"fleuves? et (?:les |la |une )?rivieres?|rivieres?|cours d'eau", "le fleuve et la rivière",
+    Precision(r"fleuves? (?:et|ou) (?:les |la |une )?rivieres?|rivieres?|cours d'eau", "le fleuve et la rivière",
               ("cours_eau",)),
-    Precision(r"(?:fleuves?|montagnes?|massifs?|chaines? de montagnes?|deserts?|lieux) du monde|himalaya|andes|"
+    # « les montagnes, les fleuves et les déserts du monde » : « du monde » vaut pour toute la liste
+    Precision(r"(?:(?:les |des )?(?:fleuves?|montagnes?|massifs?|chaines? de montagnes?|deserts?|lieux)(?:, | et | ou ))*"
+              r"(?:les |des )?(?:fleuves?|montagnes?|massifs?|chaines? de montagnes?|deserts?|lieux) du monde|himalaya|andes|"
               r"\batlas\b|rocheuses|sahara|\bnil\b|amazone|mississippi", "les lieux du monde", ("lieux",)),
     Precision(r"\balpes\b", "les Alpes", ("lieux", "france")),
     Precision(r"points? cardinaux|point cardinal|rose des vents|\bnord\b|\bouest\b", "les points cardinaux",
@@ -104,7 +106,7 @@ def continents(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         return Squelette(
             genre=f"{NOM}.continents", enonce=f"Lequel est le nom d'{SORTES_MONDE[sorte][0]} ?",
             reponse=bon["nom"], distracteurs=tuple(l["nom"] for l in choisis),
-            explication=majuscule(explication) + ".", cle=("continents", "nom", sorte))
+            explication=majuscule(explication) + ".", cle=("continents", "nom", sorte), sujet=("continents", bon["nom"]))
     if forme == "est":
         # « L'océan Indien est… » : le mot « océan » donnerait la réponse
         l = rng.choice([x for x in lignes if x["demande"] == "oui" and "océan" not in x["le"]])
@@ -150,7 +152,7 @@ def points_cardinaux(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     pieges = _quelques(rng, [l["nom"] for l in t.filtrer(sorte="position")])
     return Squelette(
         genre=f"{NOM}.points_cardinaux", enonce="Lequel est un point cardinal ?", reponse=bon, distracteurs=pieges,
-        explication=(f"Les quatre points cardinaux sont {_liste(noms)}. {_liste([f'« {p} »' for p in pieges])} disent "
+        explication=(f"Les quatre points cardinaux sont {_liste(noms)}. {_liste([f'« {majuscule(p) if i == 0 else p} »' for i, p in enumerate(pieges)])} disent "
                      "où l'on est par rapport à quelque chose : ce ne sont pas des points cardinaux."),
         cle=("points", "lequel"))
 
@@ -238,10 +240,12 @@ def cours_eau(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     vallee = next(l for l in mots.filtrer(sorte="relief") if l["mot"] == "une vallée")
     regle = (f"{majuscule(fleuve['mot'])}, c'est {fleuve['definition']} ou l'océan ; "
              f"{riviere['mot']}, {riviere['definition']}.")
-    forme = rng.choice(("mot", "definition", "nomme", "nomme", "nomme"))
+    # le fleuve ou la rivière d'abord (une chance sur deux), puis la forme : sinon les fleuves nommés, plus nombreux,
+    # l'emportaient (4 questions sur 5 au critère de fin du lot 2)
+    l = rng.choice((fleuve, riviere))
+    autre = riviere if l is fleuve else fleuve
+    forme = rng.choice(("mot", "definition", "nomme", "nomme"))
     if forme in ("mot", "definition"):
-        l = rng.choice((fleuve, riviere))
-        autre = riviere if l is fleuve else fleuve
         if forme == "mot":
             return Squelette(
                 genre=f"{NOM}.cours_eau", enonce=f"{majuscule(l['definition'])}, c'est…", reponse=l["mot"],
@@ -252,9 +256,10 @@ def cours_eau(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             distracteurs=(autre["definition"], vallee["definition"]), explication=regle,
             cle=("cours_eau", "definition", l["mot"]), sujet=("cours_eau", l["mot"]))
     france = {l["nom"]: l for l in _table("france").lignes}
-    nommes = [l for l in france.values()
-              if (l["sorte"] == "fleuve" and ("mer" in l["se_jette"] or "océan" in l["se_jette"]))
-              or (l["sorte"] == "riviere" and l["se_jette"].removeprefix("dans ") in france)]
+    sorte = "fleuve" if l is fleuve else "riviere"
+    nommes = [x for x in france.values() if x["sorte"] == sorte
+              and (("mer" in x["se_jette"] or "océan" in x["se_jette"]) if sorte == "fleuve"
+                   else x["se_jette"].removeprefix("dans ") in france)]
     l = rng.choice(nommes)
     if l["sorte"] == "fleuve":
         enonce, bon = f"{majuscule(l['nom'])} se jette {l['se_jette']} : c'est…", fleuve["mot"]

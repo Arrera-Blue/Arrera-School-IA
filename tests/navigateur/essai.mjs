@@ -177,7 +177,8 @@ try {
   await jusqua(`document.querySelectorAll("#table-banque tbody tr a").length > 0`);
   const aSupprimer = await js(`document.querySelector("#table-banque tbody tr a").getAttribute("href").slice("#/exercice/".length)`);
   await aller(`#/exercice/${aSupprimer}`);
-  await jusqua(`!document.querySelector("#btn-supprimer").disabled && document.querySelector("#ex-statut").textContent === "À relire"`);
+  // « En cours de relecture » : un exercice à relire déjà pré-relu par Claude (la banque copiée est celle de l'enseignant)
+  await jusqua(`!document.querySelector("#btn-supprimer").disabled && ["À relire", "En cours de relecture"].includes(document.querySelector("#ex-statut").textContent)`);
   await js(`document.querySelector("#btn-supprimer").click()`);
   await jusqua(`document.querySelector("#dialogue").open`);
   verifier("supprimer : confirmation sans champ de motif", await js(`document.querySelector("#dialogue-champ").hidden`));

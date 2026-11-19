@@ -126,7 +126,7 @@ def regime(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             genre=f"{NOM}.regime", enonce=f"{majuscule(x['nom'])} est…", reponse=x["regime"],
             distracteurs=tuple(r for r in regimes if r != x["regime"]),
             explication=f"{majuscule(x['nom'])} est {x['regime']} : un animal {x['regime']} mange {mange[x['regime']]}.",
-            cle=("regime", "animal", x["nom"]))
+            cle=("regime", "animal", x["nom"]), sujet=("regime", x["nom"]))
     r = rng.choice(regimes)
     if forme == "lequel":
         bon = rng.choice([x for x in animaux if x["regime"] == r])
@@ -135,19 +135,21 @@ def regime(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             genre=f"{NOM}.regime", enonce=f"Lequel de ces animaux est {r} ?", reponse=bon["nom"],
             distracteurs=tuple(x["nom"] for x in faux),
             explication=(f"{majuscule(bon['nom'])} est {r} : un animal {r} mange {mange[r]}. "
-                         + " ; ".join(f"{x['nom']} est {x['regime']}" for x in faux) + "."),
-            cle=("regime", "lequel", r))
+                         + majuscule(" ; ".join(f"{x['nom']} est {x['regime']}" for x in faux)) + "."),
+            cle=("regime", "lequel", r), sujet=("regime", bon["nom"]))
     if forme == "definition":
         return Squelette(
             genre=f"{NOM}.regime", enonce=f"Un animal {r} mange…", reponse=mange[r],
             distracteurs=tuple(mange[s] for s in regimes if s != r),
-            explication=f"Un animal {r} mange {mange[r]}. " + " ; ".join(
-                f"un animal {s} mange {mange[s]}" for s in regimes if s != r) + ".",
-            cle=("regime", "definition", r))
+            explication=f"Un animal {r} mange {mange[r]}. " + majuscule(" ; ".join(
+                f"un animal {s} mange {mange[s]}" for s in regimes if s != r)) + ".",
+            cle=("regime", "definition", r), sujet=("regime", "definitions"))
     return Squelette(
         genre=f"{NOM}.regime", enonce=f"Un animal qui mange {mange[r]} est…", reponse=r,
         distracteurs=tuple(s for s in regimes if s != r),
-        explication=f"Un animal qui mange {mange[r]} est {r}.", cle=("regime", "nom", r))
+        explication=f"Un animal qui mange {mange[r]} est {r}. " + majuscule(" ; ".join(
+            f"un animal qui mange {mange[s]} est {s}" for s in regimes if s != r)) + ".",
+        cle=("regime", "nom", r), sujet=("regime", "definitions"))  # les trois définitions, dans chaque explication
 
 
 # --- CE1 : les sens, la plante --------------------------------------------------------------------------------
@@ -251,7 +253,7 @@ def cycle_plante(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         enonce=f"Quelle étape de la vie d'une plante vient en {'premier' if forme == 'premiere' else 'dernier'} ?",
         reponse=bon, distracteurs=tuple(etapes[k] for k in choisies if etapes[k] != bon),
         explication=f"{ordre} Parmi les étapes proposées, {bon} vient en {'premier' if forme == 'premiere' else 'dernier'}.",
-        cle=("cycle_plante", forme, tuple(choisies)))
+        cle=("cycle_plante", forme))  # l'énoncé ne cite pas les étapes : une seule question de cette forme
 
 
 LARVE, JEUNE, ADULTE = "une larve", "un jeune qui ressemble déjà à l'adulte", "un adulte"
@@ -319,18 +321,21 @@ def chaine(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     explication = (f"Dans cette chaîne alimentaire, {c['bas']} {c['bas_verbe']} par {c['milieu']}, et {c['milieu']} "
                    f"{c['milieu_verbe']} par {c['haut']}.")
     if rng.random() < 0.5:
-        herbivores = [x["nom"] for x in _table("animaux").lignes if x["regime"] == "herbivore"]
+        # des herbivores, jamais un animal de la chaîne (« le lapin est mangé par… le lapin »)
+        herbivores = [x["nom"] for x in _table("animaux").lignes
+                      if x["regime"] == "herbivore" and x["nom"] not in (c["milieu"], c["bas"])]
         faux = rng.sample(herbivores, 3)
         return Squelette(
             genre=f"{NOM}.chaine",
             enonce=f"{majuscule(c['bas'])} {c['bas_verbe']} par {c['milieu']}, qui {c['milieu_verbe']} par…",
             reponse=c["haut"], distracteurs=tuple(faux),
             explication=explication + f" {majuscule(', '.join(faux))} sont herbivores : ils ne mangent pas d'animaux.",
-            cle=("chaine", "haut", c["milieu"]))
+            cle=("chaine", "haut", c["milieu"]), sujet=("chaine", c["milieu"]))
     autres = [x["haut"] for x in chaines if x is not c]
     return Squelette(
         genre=f"{NOM}.chaine", enonce=f"{majuscule(c['milieu'])} {c['milieu_verbe']} par {c['haut']}. Que mange {c['milieu']} ?",
-        reponse=c["bas"], distracteurs=tuple(autres), explication=explication, cle=("chaine", "bas", c["milieu"]))
+        reponse=c["bas"], distracteurs=tuple(autres), explication=explication, cle=("chaine", "bas", c["milieu"]),
+        sujet=("chaine", c["milieu"]))  # la même chaîne dans les deux sens : l'une donnerait la réponse de l'autre
 
 
 GENRES = (etre_vivant, regime, sens, plante, classification, cycle_plante, petits, locomotion, chaine)

@@ -35,7 +35,8 @@ from generateur.moteur.validation.n2_schema import valider
 from generateur.procedural import habillage
 
 MODES = ("auto", "ia", "procedural")
-ESSAIS_DE_TIRAGE = 20  # régénération d'une question procédurale : tirages au plus
+ESSAIS_DE_TIRAGE = 20  # régénération d'une question procédurale : questions validées au plus
+TIRAGES_DE_REGENERATION = 200  # … et tirages au plus (un énoncé déjà dans l'exercice est écarté sans validation)
 ENSEIGNANT = "enseignant"  # « niveau » d'un défaut signalé par l'enseignant, et non par N1 → N4
 # reçoit les étapes d'une génération : {"etape": "modele" | "ecriture" | "validation" | "refus" | "valide" | …,
 # "message": « texte lisible », …} ; c'est ainsi que l'interface affiche la progression
@@ -798,17 +799,19 @@ def _retirer_question(instance: dict, numero: int, meta: dict, valider_fond: Cal
     possibles = [g for g in module.GENRES if g.__name__ in precision.get("genres", ())] or list(module.GENRES)
     graine = random.SystemRandom().randrange(1_000_000)
     rng = random.Random(graine)
-    ancienne = instance["questions"][numero - 1]
+    deja_vus = {q["enonce"] for q in instance["questions"]}
     schema = schema_de_sortie(registre.charger("qcm").schema, _demande_d_origine(instance))
     _signaler(suivi, etape="tirage", message=f"Générateur procédural ({module.NOTION}) : nouveau tirage de la "
                                               f"question {numero}")
-    derniere = None
-    for _ in range(ESSAIS_DE_TIRAGE):
+    derniere, validations = None, 0
+    for _ in range(TIRAGES_DE_REGENERATION):
         tire = genre or rng.choice(possibles)
         squelette = procedural.tirer_une(tire, rng, set(), instance.get("niveau"),
                                          (precision.get("criteres") or {}).get(tire.__name__))
         question = procedural.question(squelette, squelette.enonce, rng)
-        if question["enonce"] == ancienne["enonce"]:
+        # ni l'ancienne question, ni une autre de l'exercice (N3 refuserait le doublon : sur une petite notion, les
+        # essais s'épuisaient ; critère de fin du lot 2)
+        if question["enonce"] in deja_vus:
             continue
         nouvelle = {k: v for k, v in instance.items() if k != "meta"}
         nouvelle["questions"] = list(nouvelle["questions"])
@@ -816,8 +819,10 @@ def _retirer_question(instance: dict, numero: int, meta: dict, valider_fond: Cal
         try:
             valider(nouvelle, schema)
             valider_fond(nouvelle)
-        except ErreurValidation as e:  # une question en double avec une autre, par exemple : on tire à nouveau
-            derniere = e
+        except ErreurValidation as e:  # une question refusée par N3 ou N4 : on tire à nouveau
+            derniere, validations = e, validations + 1
+            if validations >= ESSAIS_DE_TIRAGE:
+                break
             continue
         meta["questions"] = list(origines)
         if numero <= len(origines):

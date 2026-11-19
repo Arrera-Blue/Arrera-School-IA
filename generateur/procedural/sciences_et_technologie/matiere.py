@@ -261,7 +261,9 @@ def solide_liquide(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     bon = par["surface"][0]["element"]
     return Squelette(genre=f"{NOM}.solide_liquide", enonce="La surface d'un liquide au repos est…", reponse=bon,
                      distracteurs=tuple(l["element"] for l in par["piege_surface"]),
-                     explication=f"La surface d'un liquide au repos est {bon}.", cle=("solide_liquide", "surface"))
+                     explication=(f"{majuscule(definition)} ; au repos, sa surface reste {bon}, ni "
+                                  + " ni ".join(l["element"] for l in par["piege_surface"]) + "."),
+                     cle=("solide_liquide", "surface"))
 
 
 def ordinateur(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
@@ -313,7 +315,8 @@ def masses(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         n = rng.randint(1, 9)
         reponse, candidats = unite(n * g, "gramme"), [unite(n * f, "gramme") for f in (100, 10, 10 * g, 1)]
         enonce = f"Combien de grammes {'fait' if n == 1 else 'font'} {unite(n, 'kilogramme')} ?"
-        explication = f"{regle}, donc {unite(n, 'kilogramme')} = {reponse}."
+        # « 1 kilogramme = 1 000 grammes » : la règle suffit (pas « donc 1 kilogramme = 1 000 grammes »)
+        explication = f"{regle}." if n == 1 else f"{regle}, donc {unite(n, 'kilogramme')} = {reponse}."
         cle = ("masses", forme, n)
     elif forme == "g_en_kg":
         n = rng.randint(2, 9)
@@ -327,7 +330,8 @@ def masses(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         reponse = unite(total, "gramme")
         candidats = [unite(x, "gramme") for x in (int(f"{a}{b}"), a * 100 + b, a * g + b * 10, a * 10 * g + b)]
         enonce = f"Combien de grammes font {unite(a, 'kilogramme')} et {unite(b, 'gramme')} ?"
-        explication = f"{regle}, donc {unite(a, 'kilogramme')} = {unite(a * g, 'gramme')} ; {nombre(a * g)} + {b} = {nombre(total)}."
+        explication = (f"{regle}" + (f", donc {unite(a, 'kilogramme')} = {unite(a * g, 'gramme')}" if a > 1 else "")
+                       + f" ; {nombre(a * g)} + {b} = {nombre(total)}.")
         cle = ("masses", forme, a, b)
     rng.shuffle(candidats)
     return Squelette(genre=f"{NOM}.masses", enonce=enonce, reponse=reponse, distracteurs=distracteurs(reponse, candidats),

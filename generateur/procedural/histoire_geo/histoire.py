@@ -134,7 +134,7 @@ def jour(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         genre=f"{NOM}.jour", enonce=enonce, reponse=bon,
         distracteurs=distracteurs(bon, _voisins(noms, depart, pas)),
         explication=_explication(noms, depart, pas, libelle, "jours", "c'est" if pas > 0 else "c'était"),
-        cle=("jour", forme, d, pas))
+        cle=("jour", forme, d, pas), sujet=("jour", tuple(sorted((d, bon)))))  # « après mardi », « demain (mardi) »
 
 
 def mois(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
@@ -162,7 +162,7 @@ def mois(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         genre=f"{NOM}.mois", enonce=enonce, reponse=bon,
         distracteurs=distracteurs(bon, _voisins(noms, depart, pas)),
         explication=_explication(noms, depart, pas, f"Dans {pas} mois" if forme == "dans" else "", "mois", "ce sera"),
-        cle=("mois", forme, depart, pas))
+        cle=("mois", forme, depart, pas), sujet=("mois", tuple(sorted((noms[depart], bon)))))
 
 
 def saison(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
@@ -306,7 +306,7 @@ def periode(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             reponse=bon, distracteurs=tuple(noms[k] for k in choisies if noms[k] != bon),
             explication=(f"De la plus ancienne à la plus récente : {', '.join(noms[k] for k in choisies)}. La plus "
                          f"{'ancienne' if forme == 'ancienne' else 'récente'} est {bon}."),
-            cle=("periode", forme, tuple(choisies)))
+            cle=("periode", forme))  # l'énoncé ne cite pas les périodes : une seule question de cette forme
     if forme in ("debut", "fin"):
         # seulement les limites précises (pas « environ 3000 av. J.-C. »)
         possibles = [p for p in periodes if p[forme][0].isdigit() and not p[forme].endswith("av. J.-C.")]
@@ -348,7 +348,8 @@ def repere(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     forme = rng.choice(("evenement", "date", "ancien", "recent"))
     if forme in ("evenement", "date"):
         l = rng.choice(lignes)
-        autres = [x for x in lignes if x is not l]
+        # jamais un repère trop proche pour son incertitude : « 3200 av. J.-C. » (Ötzi) n'est pas faux pour l'écriture
+        autres = [x for x in lignes if x is not l and _comparables(x, l)]
         rng.shuffle(autres)
         explication = f"Repère : {l['date']}, {l['evenement']}."
         if forme == "evenement":
@@ -377,7 +378,7 @@ def repere(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         genre=f"{NOM}.repere",
         enonce=f"Lequel de ces repères est le plus {'ancien' if forme == 'ancien' else 'récent'} ?",
         reponse=bon, distracteurs=tuple(x["evenement"] for x in choisis if x["evenement"] != bon),
-        explication=explication, cle=("repere", forme, tuple(sorted(x["evenement"] for x in choisis))))
+        explication=explication, cle=("repere", forme))  # l'énoncé ne cite pas les repères : une seule
 
 
 AUTRES_EPOQUES = ("dans l'Antiquité", "au Moyen Âge")  # bien après le Paléolithique et le Néolithique
@@ -395,7 +396,7 @@ def prehistoire(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             distracteurs=distracteurs("nomades", pieges),
             explication=("Au Paléolithique, les êtres humains sont surtout nomades : ils se déplacent pour chasser, "
                          "pêcher et cueillir. Ils deviennent sédentaires au Néolithique, avec l'agriculture."),
-            cle=("prehistoire", "nomades"))
+            cle=("prehistoire", "nomades"), sujet=("prehistoire", "mode de vie"))
     if forme == "sedentaires":
         pieges = [l["texte"] for l in t.filtrer(periode="Paléolithique") if l["sorte"] in ("mode_de_vie", "metier")]
         return Squelette(
@@ -403,7 +404,7 @@ def prehistoire(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             reponse="sédentaires", distracteurs=distracteurs("sédentaires", pieges),
             explication=("Au Néolithique, beaucoup d'êtres humains deviennent sédentaires : ils restent au même endroit "
                          "pour cultiver la terre et élever des animaux. Avant, au Paléolithique, ils étaient nomades."),
-            cle=("prehistoire", "sedentaires"))
+            cle=("prehistoire", "sedentaires"), sujet=("prehistoire", "mode de vie"))
     nouveautes = [l["texte"] for l in t.filtrer(sorte="nouveaute")]
     anciennes = [l["texte"] for l in t.filtrer(sorte="activite")]
     if forme in ("nouveaute", "deja"):
@@ -418,7 +419,7 @@ def prehistoire(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             explication = (f"Au Paléolithique, on connaissait déjà {bon}. En revanche, {faux[0]}, {faux[1]} et {faux[2]} "
                            "n'apparaissent qu'au Néolithique.")
         return Squelette(genre=f"{NOM}.prehistoire", enonce=enonce, reponse=bon, distracteurs=tuple(faux),
-                         explication=explication, cle=("prehistoire", forme))
+                         explication=explication, cle=("prehistoire", forme), sujet=("prehistoire", bon))
     l = rng.choice(t.filtrer(apparait="oui"))
     pluriel = l["texte"].startswith("les ")
     bon = f"au {l['periode']}"
@@ -431,7 +432,7 @@ def prehistoire(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
         genre=f"{NOM}.prehistoire",
         enonce=f"À quelle période {'apparaissent' if pluriel else 'apparaît'} {l['texte']} ?",
         reponse=bon, distracteurs=(autre, *AUTRES_EPOQUES), explication=explication,
-        cle=("prehistoire", "quand", l["texte"]))
+        cle=("prehistoire", "quand", l["texte"]), sujet=("prehistoire", l["texte"]))
 
 
 GENRES = (jour, mois, saison, calendrier, duree, periode, repere, prehistoire)

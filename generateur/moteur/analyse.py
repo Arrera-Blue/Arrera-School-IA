@@ -155,7 +155,8 @@ MOTS_DES_MATIERES = {
                        r"poids\b|mouvement|optique|loi d'ohm|resistance electrique|acide|ions?\b|"
                        r"changements? d'etat|solubilit|conducteur|isolant|signal|ondes?\b|"
                        # la matière du cycle 2 (étape 2.3)
-                       r"fusion|solidification|solides? et (?:les )?liquides?|etats? (?:solide|liquide)",
+                       r"fusion|solidification|solides? (?:et|ou) (?:les )?liquides?|etats? (?:solide|liquide)|"
+                       r"eau (?:solide|liquide)",
     "anglais": r"anglais|english|preterit|present perfect|irregular|verbes irreguliers anglais|vocabulary|"
                r"grammar|simple past|present continuous|modals?\b",
     # « sciences et technologie » (le cycle 2) n'est pas la technologie du collège

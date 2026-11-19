@@ -165,18 +165,23 @@ def squelette(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
 def dents(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     """« Quelle partie de la dent est implantée dans l'os ? » → la racine (jamais la pulpe parmi les mauvaises
     réponses : elle descend dans la racine) ; « Combien de dents de lait l'humain possède-t-il ? » → 20 ; « Les dents
-    définitives sont… » → plus grandes et plus solides que les dents de lait."""
+    définitives sont… » → plus grandes et plus solides que les dents de lait ; « Dans une dent, la racine… » → est
+    implantée dans l'os. `jamais` vaut dans les deux sens : la racine et la pulpe ne sont jamais proposées ensemble."""
     lignes = _table("dents").lignes
-    forme = rng.choice(("partie",) * 4 + ("nombre", "definitives"))
-    if forme == "partie":
+    forme = rng.choice(("partie",) * 4 + ("decrire",) * 3 + ("nombre", "definitives"))
+    if forme in ("partie", "decrire"):
         parties = [l for l in lignes if l["sorte"] == "partie"]
         l = rng.choice(parties)
-        autres = [x["element"] for x in parties if x is not l and x["element"] != l["jamais"]]
+        autres = [x for x in parties if x is not l and x["element"] != l["jamais"] and x["jamais"] != l["element"]]
         rng.shuffle(autres)
+        explication = f"Dans une dent, {l['element']} {l['description']}."
+        if forme == "decrire":
+            return Squelette(genre=f"{NOM}.dents", enonce=f"Dans une dent, {l['element']}…", reponse=l["description"],
+                             distracteurs=tuple(x["description"] for x in autres[:3]), explication=explication,
+                             cle=("dents", "decrire", l["element"]), sujet=("dents", l["element"]))
         return Squelette(genre=f"{NOM}.dents", enonce=f"Quelle partie de la dent {l['description']} ?",
-                         reponse=l["element"], distracteurs=tuple(autres[:3]),
-                         explication=f"Dans une dent, {l['element']} {l['description']}.",
-                         cle=("dents", l["element"]), sujet=("dents", l["element"]))
+                         reponse=l["element"], distracteurs=tuple(x["element"] for x in autres[:3]),
+                         explication=explication, cle=("dents", l["element"]), sujet=("dents", l["element"]))
     if forme == "nombre":
         n = int(next(l["element"] for l in lignes if l["sorte"] == "nombre_de_lait"))
         candidats = [str(x) for x in (n - 10, n + 12, n - 4, n + 8)]

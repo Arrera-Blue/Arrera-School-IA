@@ -120,6 +120,14 @@ def test_chaque_genre_est_juste_par_construction(genre, niveau):
                 assert dents[s.reponse]["description"] == m[1]
                 assert dents[s.reponse]["jamais"] not in s.distracteurs
                 assert all(dents[d]["sorte"] == "partie" for d in s.distracteurs)
+                # `jamais` dans les deux sens : jamais la racine pour « à l'intérieur » (la pulpe)
+                assert all(dents[d]["jamais"] != s.reponse for d in s.distracteurs)
+            elif m := re.fullmatch(r"Dans une dent, (.+)…", s.enonce):
+                l = dents[m[1]]
+                parties = {x["description"]: x for x in dents.values() if x["sorte"] == "partie"}
+                assert s.reponse == l["description"] and all(d in parties for d in s.distracteurs)
+                assert all(parties[d]["element"] != l["jamais"] and parties[d]["jamais"] != l["element"]
+                           for d in s.distracteurs)
             elif "Combien" in s.enonce:
                 assert dents[s.reponse]["sorte"] == "nombre_de_lait"
             else:
@@ -136,7 +144,7 @@ def test_chaque_genre_est_juste_par_construction(genre, niveau):
                 assert all(arts[d]["partie"] != arts[s.reponse]["partie"] for d in s.distracteurs)
         elif nom == "effort":
             assert s.reponse == effort[s.enonce]["reponse"]
-    assert len(vus) >= {"dents": 6, "muscles": 7, "effort": 3}.get(genre.__name__, 12)
+    assert len(vus) >= {"dents": 10, "muscles": 7, "effort": 3}.get(genre.__name__, 12)
 
 
 # --- l'aiguillage, et un exercice de bout en bout ------------------------------------------------------
