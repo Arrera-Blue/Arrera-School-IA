@@ -110,3 +110,4 @@ Méthode et mesure : `docs/Generateur-Procedural/controle-du-modele.md`.
 | `banc_prompt.py` (+ `demandes.json`) | le banc du prompt principal (26/10) : `docs/etapes/etape-prompt-principal.md` |
 | `contre_verification_essai.py` | l'essai de la contre-vérification (IA1.4) : `docs/etapes/etape-IA0-cadrage.md` |
 | `criteres/lot-1-francais.json` | les 20 demandes réelles du critère de fin du lot 1 (et la graine de chaque exercice accepté), pour `python -m generateur.entrainement aveugle chemins --demandes …` : `docs/Generateur-Procedural/lot-1-francais.md` §11.5 |
+| `criteres/lot-2-questionner-le-monde.json` | les 20 demandes réelles du critère de fin du lot 2 (10 en sciences, 10 en histoire-géographie), ce que l'enseignant complète dans le formulaire, la graine et l'exercice de chacune, pour la même comparaison : `docs/Generateur-Procedural/lot-2-questionner-le-monde.md` §11.6 |

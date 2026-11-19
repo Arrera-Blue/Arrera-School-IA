@@ -385,7 +385,9 @@ def explication_contredit_reponse(n: int, q: dict) -> list[Constat]:
     proposition, ou la valeur désignée n'y figure pas alors qu'une autre y figure. Réponse en mots : la réponse désignée n'y figure pas, et une seule autre
     proposition y est affirmée (ni citée dans l'énoncé, ni écartée par « ni », « pas »…)."""
     bonne_i, propositions = q["index_correct"], q["propositions"]
-    explication, enonce = normaliser(q["explication"].replace("$", " ")), normaliser(q["enonce"])
+    # « 2 000 grammes » : un seul nombre, comme dans les propositions (critère de fin du lot 2 : « 2 » était lu)
+    explication = SEPARATEUR_MILLIERS.sub("", normaliser(q["explication"].replace("$", " ")))
+    enonce = normaliser(q["enonce"])
     nombres = [_nombre_cite(p) for p in propositions]
     autre = None
     if all(x is not None for x in nombres):

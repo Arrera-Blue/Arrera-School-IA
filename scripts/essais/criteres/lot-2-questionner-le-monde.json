@@ -1,0 +1,114 @@
+[
+ {
+  "phrase": "vivant ou non vivant pour des CP",
+  "graine": 623122,
+  "exercice": "qcm-le-vivant-cp-20261119-130904"
+ },
+ {
+  "phrase": "le régime alimentaire des animaux en CE1",
+  "graine": 963809,
+  "exercice": "qcm-le-vivant-ce1-20261119-130905"
+ },
+ {
+  "phrase": "les chaînes alimentaires pour mes CE2",
+  "graine": 890545,
+  "exercice": "qcm-le-vivant-ce2-20261119-130906"
+ },
+ {
+  "phrase": "les catégories d'aliments au CP",
+  "graine": 902005,
+  "exercice": "qcm-le-corps-humain-cp-20261119-130907"
+ },
+ {
+  "phrase": "les dents CE1, 8 questions",
+  "graine": 636833,
+  "exercice": "qcm-le-corps-humain-ce1-20261119-130908"
+ },
+ {
+  "phrase": "le rôle des muscles pour des CE2",
+  "graine": 705864,
+  "exercice": "qcm-le-corps-humain-ce2-20261119-130909"
+ },
+ {
+  "phrase": "l'eau solide ou liquide dans la nature, CP",
+  "formulaire": {
+   "notion": "l'eau solide ou liquide"
+  },
+  "graine": 330087,
+  "exercice": "qcm-la-matiere-et-les-objets-cp-20261119-130910"
+ },
+ {
+  "phrase": "le circuit électrique en CE1",
+  "graine": 565536,
+  "exercice": "qcm-la-matiere-et-les-objets-ce1-20261119-130911"
+ },
+ {
+  "phrase": "conducteurs et isolants CE1",
+  "graine": 365051,
+  "exercice": "qcm-la-matiere-et-les-objets-ce1-20261119-130911-2"
+ },
+ {
+  "phrase": "les grammes et les kilogrammes pour des CE2, 10 questions",
+  "formulaire": {
+   "matiere": "sciences-et-technologie"
+  },
+  "graine": 212320,
+  "exercice": "qcm-la-matiere-et-les-objets-ce2-20261119-130912"
+ },
+ {
+  "phrase": "les jours de la semaine et les mois pour des CP",
+  "formulaire": {
+   "notion": "les jours de la semaine et les mois"
+  },
+  "graine": 315761,
+  "exercice": "qcm-le-temps-et-l-histoire-cp-20261119-130914"
+ },
+ {
+  "phrase": "les grandes périodes de l'histoire CE1",
+  "graine": 609241,
+  "exercice": "qcm-le-temps-et-l-histoire-ce1-20261119-130915"
+ },
+ {
+  "phrase": "les repères datés de l'histoire, CE2",
+  "graine": 814994,
+  "exercice": "qcm-le-temps-et-l-histoire-ce2-20261119-130916"
+ },
+ {
+  "phrase": "la Préhistoire pour mes CE2, 8 questions",
+  "graine": 917647,
+  "exercice": "qcm-le-temps-et-l-histoire-ce2-20261119-130917"
+ },
+ {
+  "phrase": "les continents et les océans au CP",
+  "graine": 643958,
+  "exercice": "qcm-la-geographie-cp-20261119-130919"
+ },
+ {
+  "phrase": "les points cardinaux CP",
+  "graine": 587813,
+  "exercice": "qcm-la-geographie-cp-20261119-130920"
+ },
+ {
+  "phrase": "les zones climatiques et le relief, CE1",
+  "graine": 822023,
+  "exercice": "qcm-la-geographie-ce1-20261119-130920"
+ },
+ {
+  "phrase": "fleuve ou rivière, CE1",
+  "graine": 744385,
+  "exercice": "qcm-la-geographie-ce1-20261119-130921"
+ },
+ {
+  "phrase": "les montagnes, les fleuves et les déserts du monde pour des CE1",
+  "formulaire": {
+   "notion": "les montagnes, les fleuves et les déserts du monde"
+  },
+  "graine": 867158,
+  "exercice": "qcm-la-geographie-ce1-20261119-130922"
+ },
+ {
+  "phrase": "les fleuves et les massifs de France, CE2, 10 questions",
+  "graine": 178944,
+  "exercice": "qcm-la-geographie-ce2-20261119-130923"
+ }
+]

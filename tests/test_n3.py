@@ -359,6 +359,11 @@ def test_l_explication_aboutit_a_une_autre_proposition(propositions, index_corre
     (["Un verbe", "Un adjectif", "Un nom", "Un déterminant"], 2,
      "Le mot désigne un animal : il fait partie des noms communs, précédé de l'article « le », un déterminant.",
      "Dans « Le chat dort », quelle est la nature du mot « chat » ?"),
+    # « 2 000 grammes » (espace fine insécable des milliers) : un seul nombre, pas « 2 » (critère de fin du lot 2)
+    (["200 grammes", "2 grammes", "20\u202f000 grammes", "2\u202f000 grammes"], 3,
+     "1 kilogramme = 1\u202f000 grammes, donc 2 kilogrammes = 2\u202f000 grammes.",
+     "Combien de grammes font 2 kilogrammes ?"),
+    (["3\u00a0000 g", "300 g", "30 g", "3 g"], 0, "1 kg = 1 000 g, donc 3 kg = 3 000 g.", "Combien de grammes font 3 kg ?"),
 ])
 def test_l_explication_coherente_ne_bloque_pas(propositions, index_correct, explication, enonce):
     messages = bloquants(qcm(avec_explication(propositions, index_correct, explication, enonce)))

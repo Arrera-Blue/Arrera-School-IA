@@ -201,10 +201,19 @@ def selection(module, demande: dict, niveau: str | None) -> Selection:
     (« les contraires »), s'il y en a. Vide : le générateur ne sait pas faire cette demande (« la ponctuation » au CP :
     la demande part au modèle)."""
     genres = [g for g in module.GENRES if niveau is None or niveau in classes_du_genre(module, g)]
+    precisions = preciser(module, demande)
     if cible := demande.get("attendu"):
         du_programme = genres_pour(module, cible, niveau)
+        # un objectif qui écarte une notion nommée tout entière (« les jours de la semaine et les mois » : l'objectif
+        # deviné ne parle que des mois) : son thème, s'il les couvre toutes (critère de fin du lot 2). Un objectif qui
+        # ne garde qu'une partie d'une notion la restreint, comme avant (« le présent » sans la terminaison)
+        classe, gardes = {g.__name__ for g in genres}, {g.__name__ for g in du_programme}
+        ecartees = [set(p.genres) & classe for p in precisions if set(p.genres) & classe and not set(p.genres) & gardes]
+        if ecartees and (a := programmes.attendu(cible)):
+            du_theme = genres_pour(module, a.theme_id, niveau)
+            if all(e & {g.__name__ for g in du_theme} for e in ecartees):
+                du_programme = du_theme
         genres = [g for g in genres if g in du_programme]
-    precisions = preciser(module, demande)
     if noms := {n for p in precisions for n in p.genres}:
         genres = [g for g in genres if g.__name__ in noms]
     criteres: dict[str, dict] = {}
