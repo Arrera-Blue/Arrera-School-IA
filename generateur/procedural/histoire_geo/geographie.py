@@ -28,7 +28,9 @@ TABLES = ("monde", "points_cardinaux", "lieux", "mots", "climats", "france", "vi
 # les notions précises, de la plus précise à la plus générale (« les fleuves de France » avant « les fleuves »,
 # « les montagnes du monde » avant « les montagnes »)
 PRECISIONS = (
-    Precision(r"(?:massifs?|montagnes?|chaines? de montagnes?|fleuves?)(?: de (?:la )?france| francais)|"
+    # « les massifs et les fleuves de France » : les deux mots d'un coup (sinon « massifs » serait relu seul)
+    Precision(r"(?:massifs?|montagnes?|chaines? de montagnes?|fleuves?)"
+              r"(?: et (?:les |des )?(?:massifs?|montagnes?|fleuves?))?(?: de (?:la )?france| francais)|"
               r"massif central|pyrenees|vosges|\bjura\b|\bseine\b|\bloire\b|garonne|\brhone\b|\brhin\b|maroni",
               "les massifs et les fleuves de France", ("france",)),
     Precision(r"fleuves? et (?:les |la |une )?rivieres?|rivieres?|cours d'eau", "le fleuve et la rivière",

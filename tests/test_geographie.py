@@ -260,6 +260,12 @@ def test_les_notions_precises(relues, notion, niveau, genres):
     assert {x.__name__ for x in choix.genres} == genres
 
 
+@pytest.mark.parametrize("notion", ["les massifs et les fleuves de France", "les fleuves et les massifs français"])
+def test_le_titre_ne_repete_pas_la_notion(notion):
+    """« massifs » n'est pas relu seul après « fleuves de France » : pas de « …, les montagnes » au titre."""
+    assert procedural.selection(g, {"notion": notion}, "CE2").titres == ["les massifs et les fleuves de France"]
+
+
 @pytest.mark.parametrize("phrase, generateur", [
     ("les continents et les océans CP", "geographie"), ("les fleuves français CE2", "geographie"),
     ("les grands fleuves français pour des CE2", "geographie"), ("le Nil CE1", "geographie"),
