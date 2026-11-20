@@ -163,10 +163,12 @@ def squelette(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
 # --- CE1 : les dents --------------------------------------------------------------------------------------------
 
 def dents(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
-    """« Quelle partie de la dent est implantée dans l'os ? » → la racine (jamais la pulpe parmi les mauvaises
+    """« Quelle partie de la dent s'enfonce dans l'os ? » → la racine (jamais la pulpe parmi les mauvaises
     réponses : elle descend dans la racine) ; « Combien de dents de lait l'humain possède-t-il ? » → 20 ; « Les dents
-    définitives sont… » → plus grandes et plus solides que les dents de lait ; « Dans une dent, la racine… » → est
-    implantée dans l'os. `jamais` vaut dans les deux sens : la racine et la pulpe ne sont jamais proposées ensemble."""
+    définitives sont… » → plus grandes et plus solides que les dents de lait ; « Dans une dent, la racine… » → s'enfonce
+    dans l'os. Une description va avec un mot masculin comme féminin : elle est une mauvaise réponse pour les autres
+    parties (« l'émail… est implantée dans l'os » : critère de fin du lot 2). `jamais` vaut dans les deux sens : la
+    racine et la pulpe ne sont jamais proposées ensemble."""
     lignes = _table("dents").lignes
     forme = rng.choice(("partie",) * 4 + ("decrire",) * 3 + ("nombre", "definitives"))
     if forme in ("partie", "decrire"):
@@ -191,12 +193,12 @@ def dents(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
                                                      "Combien de dents de lait a-t-on en tout ?")),
             reponse=str(n), distracteurs=distracteurs(str(n), candidats),
             explication=f"L'humain possède {n} dents de lait ; elles tombent pour laisser la place aux dents définitives.",
-            cle=("dents", "nombre"), sujet=("dents", "lait"))
+            cle=("dents", "nombre"), sujet=("dents", "nombre"))
     bon = next(l["element"] for l in lignes if l["sorte"] == "definitives")
     return Squelette(genre=f"{NOM}.dents", enonce="Les dents définitives sont…", reponse=bon,
                      distracteurs=tuple(l["element"] for l in lignes if l["sorte"] == "piege"),
                      explication="Les dents de lait sont plus petites ; les dents définitives sont plus grandes et plus "
-                                 "solides.", cle=("dents", "definitives"), sujet=("dents", "lait"))
+                                 "solides.", cle=("dents", "definitives"), sujet=("dents", "definitives"))
 
 
 # --- CE2 : les muscles, l'effort ---------------------------------------------------------------------------------

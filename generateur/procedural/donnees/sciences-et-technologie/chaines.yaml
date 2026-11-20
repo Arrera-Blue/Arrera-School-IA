@@ -1,7 +1,11 @@
 # Table de référence (générateur procédural du vivant, lot 2, étape 2.2), écrite par Claude ; chaque maillon vérifié
 # dans Wikipédia le 16/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §6). Les mauvaises réponses : pour
 # « qui mange le lapin ? », des herbivores (table des animaux) ; pour « que mange le lapin ? », le haut des autres chaînes
-# (le lapin ne mange ni l'épervier ni le hérisson). Écartée : « les feuilles → la chenille », la page ne le dit pas.
+# (le lapin ne mange ni l'épervier ni le hérisson), trois au plus. Écartée : « les feuilles → la chenille », la page ne
+# le dit pas. Ajoutées au critère de fin du lot 2 (3 chaînes pour 5 questions : l'énoncé de l'une donnait la réponse
+# d'une autre), lues le 20/11 : le zèbre, la gazelle, le campagnol. Écartées : « le mulot → la chouette » (la page de
+# la chouette dit « petits rongeurs », sans le mulot), « la grenouille → le héron » (« amphibiens »), « l'écureuil → la
+# martre » (la page de l'écureuil dit aussi que la martre en mange peu).
 # `bas_verbe`, `milieu_verbe` : l'accord (« les graines sont mangées », « la mésange est mangée »).
 # À relire par l'utilisateur : python -m generateur.procedural.tables relire sciences-et-technologie/chaines --par "…"
 description: Des chaînes alimentaires courtes, en trois maillons.
@@ -9,6 +13,9 @@ sources:
   wp_renard: {nom: "Wikipédia, « Renard roux » (« se nourrit surtout de rongeurs et de lapins ») ; « Lapin de garenne » (« Le lapin est herbivore »)", url: "https://fr.wikipedia.org/wiki/Renard_roux", consulte: '2026-11-16', licence: CC BY-SA 4.0}
   wp_epervier: {nom: "Wikipédia, « Épervier d'Europe » (« Les mâles prennent plutôt les petits oiseaux comme les mésanges ») ; « Mésange charbonnière » (« elle est plutôt granivore le reste de l'année »)", url: "https://fr.wikipedia.org/wiki/%C3%89pervier_d%27Europe", consulte: '2026-11-16', licence: CC BY-SA 4.0}
   wp_herisson: {nom: "Wikipédia, « Erinaceus europaeus » (« il cherche sa nourriture composée d'insectes, de vers, d'escargots, de limaces ») ; « Escargot » (« La plupart des escargots sont phytophages »)", url: "https://fr.wikipedia.org/wiki/Erinaceus_europaeus", consulte: '2026-11-16', licence: CC BY-SA 4.0}
+  wp_lion: {nom: "Wikipédia, « Zèbre » (« Les zèbres se contentent de brouter les herbes au sol » ; « Leurs principaux prédateurs sont les lions ») ; « Lion » (« Il chasse aussi des buffles, jeunes éléphants, phacochères, zèbres, girafes »)", url: "https://fr.wikipedia.org/wiki/Z%C3%A8bre", consulte: '2026-11-20', licence: CC BY-SA 4.0}
+  wp_guepard: {nom: "Wikipédia, « Gazelle de Thomson » (« des herbes courtes, du feuillage, des fruits » ; « Parmi les grands félins, il y a principalement les guépards ») ; « Guépard » (« Son régime alimentaire est carnivore, essentiellement constitué de mammifères de moins de 50 kg, dont plusieurs variétés d'antilopes, tels des gazelles »)", url: "https://fr.wikipedia.org/wiki/Gazelle_de_Thomson", consulte: '2026-11-20', licence: CC BY-SA 4.0}
+  wp_buse: {nom: "Wikipédia, « Microtus arvalis » (le campagnol des champs : « Il se nourrit de plantes herbacées ou de graines prélevées à la surface du sol ») ; « Buse variable » (« Elle se nourrit principalement de micromammifères » ; « le Campagnol des champs (Microtus arvalis) »)", url: "https://fr.wikipedia.org/wiki/Buse_variable", consulte: '2026-11-20', licence: CC BY-SA 4.0}
 proprietes:
   bas: texte
   bas_verbe: [est mangée, sont mangées]
@@ -20,3 +27,6 @@ lignes:
 - {bas: l'herbe, bas_verbe: est mangée, milieu: le lapin, milieu_verbe: est mangé, haut: le renard, source: wp_renard}
 - {bas: les graines, bas_verbe: sont mangées, milieu: la mésange, milieu_verbe: est mangée, haut: l'épervier, source: wp_epervier}
 - {bas: les plantes, bas_verbe: sont mangées, milieu: l'escargot, milieu_verbe: est mangé, haut: le hérisson, source: wp_herisson}
+- {bas: l'herbe, bas_verbe: est mangée, milieu: le zèbre, milieu_verbe: est mangé, haut: le lion, source: wp_lion}
+- {bas: l'herbe, bas_verbe: est mangée, milieu: la gazelle, milieu_verbe: est mangée, haut: le guépard, source: wp_guepard}
+- {bas: les graines, bas_verbe: sont mangées, milieu: le campagnol, milieu_verbe: est mangé, haut: la buse, source: wp_buse}

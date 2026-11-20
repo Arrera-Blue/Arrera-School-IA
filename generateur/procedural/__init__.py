@@ -50,6 +50,11 @@ class Squelette:
     # même sujet ne viennent dans un exercice que s'il ne reste pas assez d'autres sujets (pas de redondance : l'une
     # donnerait la réponse de l'autre)
     sujet: tuple | None = None
+    # ce que dit la bonne réponse, quand il n'y a que quelques possibilités, et toutes celles-ci (« herbivore »,
+    # (« carnivore », « herbivore », « omnivore ») ; « Lequel est herbivore ? » → le lapin dit aussi « herbivore ») :
+    # tant que c'est possible, chacune est la bonne réponse d'autant de questions, à une près (« un fleuve » 5 fois sur
+    # 5, « herbivore » jamais : critère de fin du lot 2)
+    equilibre: tuple[str, tuple[str, ...]] | None = None
 
 
 @dataclass(frozen=True)
@@ -304,8 +309,10 @@ def classes_du_genre(module, genre: Genre) -> tuple[str, ...]:
 
 def tirer_une(genre: Genre, rng: random.Random, deja: set, niveau: str | None = None,
               criteres: dict | None = None) -> Squelette:
-    """Une question du genre, différente de celles déjà tirées ; d'un autre sujet, tant que c'est possible (la moitié
-    des essais : ensuite, une question nouvelle d'un sujet déjà vu vaut mieux que pas de question)."""
+    """Une question du genre, différente de celles déjà tirées ; tant que c'est possible (la moitié des essais :
+    ensuite, une question nouvelle vaut mieux que pas de question), d'un autre sujet, et d'une bonne réponse qui ne
+    devient pas celle de plus de la moitié des questions, ni ne dit ce que d'autres ont dit plus souvent
+    (`Squelette.equilibre`)."""
     secours = None
     for essai in range(ESSAIS_MAX):
         try:
@@ -314,7 +321,8 @@ def tirer_une(genre: Genre, rng: random.Random, deja: set, niveau: str | None = 
             continue
         if squelette.cle in deja:
             continue
-        if squelette.sujet is not None and ("sujet", squelette.sujet) in deja and essai < ESSAIS_MAX // 2:
+        deja_vu = squelette.sujet is not None and ("sujet", squelette.sujet) in deja
+        if (deja_vu or _trop_souvent(squelette, deja)) and essai < ESSAIS_MAX // 2:
             secours = secours or squelette
             continue
         return _retenir(squelette, deja)
@@ -323,10 +331,32 @@ def tirer_une(genre: Genre, rng: random.Random, deja: set, niveau: str | None = 
     raise PasAssezDeQuestions("le générateur ne trouve plus de question nouvelle : demander moins de questions")
 
 
+def _deja_dits(deja: set, sorte: str) -> list[str]:
+    """Les bonnes réponses (`sorte` : « bonne reponse ») ou ce qu'elles disent (« equilibre ») des questions déjà
+    tirées, une par question."""
+    return [x[1] for x in deja if isinstance(x, tuple) and len(x) == 3 and x[0] == sorte]
+
+
+def _trop_souvent(squelette: Squelette, deja: set) -> bool:
+    """Avec cette question, la bonne réponse serait celle de plus de la moitié des questions (arrondie au-dessus : au
+    plus 1 sur 2, 2 sur 3, 2 sur 4, 3 sur 5) ; ou elle dirait ce que d'autres ont dit plus souvent (`equilibre`)."""
+    reponses = _deja_dits(deja, "bonne reponse")
+    if reponses.count(squelette.reponse) + 1 > (len(reponses) + 2) // 2:
+        return True
+    if squelette.equilibre is None:
+        return False
+    dit, possibles = squelette.equilibre
+    dits = _deja_dits(deja, "equilibre")
+    return dits.count(dit) > min(dits.count(p) for p in possibles)
+
+
 def _retenir(squelette: Squelette, deja: set) -> Squelette:
     deja.add(squelette.cle)
     if squelette.sujet is not None:
         deja.add(("sujet", squelette.sujet))
+    deja.add(("bonne reponse", squelette.reponse, len(_deja_dits(deja, "bonne reponse"))))
+    if squelette.equilibre is not None:
+        deja.add(("equilibre", squelette.equilibre[0], len(_deja_dits(deja, "equilibre"))))
     return squelette
 
 
