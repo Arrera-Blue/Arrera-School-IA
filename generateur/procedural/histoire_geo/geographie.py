@@ -244,17 +244,18 @@ def cours_eau(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     # l'emportaient (4 questions sur 5 au critère de fin du lot 2)
     l = rng.choice((fleuve, riviere))
     autre = riviere if l is fleuve else fleuve
+    equilibre = (l["mot"], (fleuve["mot"], riviere["mot"]))  # autant de fleuves que de rivières, à une près
     forme = rng.choice(("mot", "definition", "nomme", "nomme"))
     if forme in ("mot", "definition"):
         if forme == "mot":
             return Squelette(
                 genre=f"{NOM}.cours_eau", enonce=f"{majuscule(l['definition'])}, c'est…", reponse=l["mot"],
                 distracteurs=(autre["mot"], vallee["mot"]), explication=regle,
-                cle=("cours_eau", "mot", l["mot"]), sujet=("cours_eau", l["mot"]))
+                cle=("cours_eau", "mot", l["mot"]), sujet=("cours_eau", l["mot"]), equilibre=equilibre)
         return Squelette(
             genre=f"{NOM}.cours_eau", enonce=f"{majuscule(l['mot'])}, c'est…", reponse=l["definition"],
             distracteurs=(autre["definition"], vallee["definition"]), explication=regle,
-            cle=("cours_eau", "definition", l["mot"]), sujet=("cours_eau", l["mot"]))
+            cle=("cours_eau", "definition", l["mot"]), sujet=("cours_eau", l["mot"]), equilibre=equilibre)
     france = {l["nom"]: l for l in _table("france").lignes}
     sorte = "fleuve" if l is fleuve else "riviere"
     nommes = [x for x in france.values() if x["sorte"] == sorte
@@ -273,7 +274,7 @@ def cours_eau(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     return Squelette(
         genre=f"{NOM}.cours_eau", enonce=enonce, reponse=bon, distracteurs=(autre, vallee["mot"]),
         explication=f"{majuscule(l['nom'])} se jette {l['se_jette']} : c'est {bon}. {regle}",
-        cle=("cours_eau", "nomme", l["nom"]), sujet=("cours_eau", l["nom"]))
+        cle=("cours_eau", "nomme", l["nom"]), sujet=("cours_eau", l["nom"]), equilibre=equilibre)
 
 
 def climat(rng: random.Random, niveau: str = NIVEAU) -> Squelette:

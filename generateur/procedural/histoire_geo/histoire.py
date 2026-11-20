@@ -296,7 +296,8 @@ def periode(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             genre=f"{NOM}.periode", enonce=f"Quelle période vient juste {mot} {noms[i]} ?", reponse=noms[j],
             distracteurs=distracteurs(noms[j], autres),
             explication=f"{ordre} Juste {mot} {noms[i]} {accord(noms[j], 'vient', 'viennent')} {noms[j]}.",
-            cle=("periode", forme, i))
+            cle=("periode", forme, i), sujet=("periode", tuple(sorted((i, j)))))  # « avant l'Antiquité », « après la
+        # Préhistoire » : la même question (critère de fin du lot 2)
     if forme in ("ancienne", "recente"):
         choisies = sorted(rng.sample(range(len(noms)), 4))
         bon = noms[choisies[0] if forme == "ancienne" else choisies[-1]]
@@ -319,7 +320,8 @@ def periode(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             genre=f"{NOM}.periode", enonce=f"En quelle année {verbe} {p['nom']} ?", reponse=bon,
             distracteurs=distracteurs(bon, [x for x in limites if x != bon]),
             explication=f"{majuscule(p['nom'])} {accord(p['nom'], 'va', 'vont')} {de(p['debut'])} à {p['fin']}.",
-            cle=("periode", forme, p["rang"]))
+            cle=("periode", forme, p["rang"]), sujet=("periode", "limite", bon))  # la fin d'une période, le début de
+        # la suivante
     p = rng.choice(periodes)
     annee = rng.choice(_annees(p))
     i = periodes.index(p)

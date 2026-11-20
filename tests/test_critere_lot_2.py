@@ -132,3 +132,80 @@ def test_une_chaine_ne_propose_jamais_ses_propres_animaux():
         if ", qui " in s.enonce:
             bas, milieu = s.enonce.split(" par ")[0], s.enonce.split(" par ")[1].split(", qui")[0]
             assert milieu not in s.distracteurs and bas.lower() not in s.distracteurs, s
+
+
+# --- la vérification des 20 exercices (20/11) ----------------------------------------------------------------------
+
+def _exercice(notion: str, genre: str, niveau: str, graine: int, nombre: int = 5) -> list:
+    module = procedural.notions()[notion]
+    return procedural.tirer(notion, nombre, random.Random(graine), [g for g in module.GENRES if g.__name__ == genre],
+                            niveau)
+
+
+@pytest.mark.parametrize("notion, genre, niveau", [("geographie", "cours_eau", "CE1"), ("vivant", "regime", "CE1"),
+                                                    ("geographie", "continents", "CP")])
+def test_une_bonne_reponse_ne_revient_pas_plus_d_une_fois_sur_deux(relues, notion, genre, niveau):
+    """« Fleuve ou rivière » : « un fleuve » était la bonne réponse des 5 questions ; au plus 3 sur 5 maintenant."""
+    for graine in range(200):
+        reponses = [s.reponse for s in _exercice(notion, genre, niveau, graine)]
+        assert max(reponses.count(r) for r in reponses) <= 3, (graine, reponses)
+
+
+@pytest.mark.parametrize("notion, genre, niveau, possibles", [
+    ("geographie", "cours_eau", "CE1", ("un fleuve", "une rivière")),
+    ("vivant", "regime", "CE1", ("carnivore", "herbivore", "omnivore"))])
+def test_chaque_bonne_reponse_possible_revient_autant(relues, notion, genre, niveau, possibles):
+    """Autant de fleuves que de rivières, à une près ; carnivore, herbivore et omnivore, chacun au moins une fois en 5
+    questions (« Lequel est herbivore ? » → le lapin compte pour « herbivore »)."""
+    for graine in range(200):
+        dits = [s.equilibre[0] for s in _exercice(notion, genre, niveau, graine)]
+        comptes = [dits.count(p) for p in possibles]
+        assert max(comptes) - min(comptes) <= 1, (graine, dits)
+
+
+def test_l_email_n_est_jamais_implantee(relues):
+    """« Dans une dent, l'émail… est implantée dans l'os » : une description va avec un mot masculin comme féminin."""
+    from generateur.procedural.sciences_et_technologie import corps
+    rng = random.Random(6)
+    for _ in range(TIRAGES):
+        s = corps.dents(rng, "CE1")
+        assert not any(p.split(" ")[0] in ("est", "sont") and p.split(" ")[1].endswith(("ée", "ées"))
+                       for p in (s.reponse, *s.distracteurs)), s
+
+
+def test_huit_questions_sur_les_dents_ne_redisent_que_deux_faits(relues):
+    for graine in range(100):
+        sujets = [s.sujet for s in _exercice("corps", "dents", "CE1", graine, 8)]
+        assert len(set(sujets)) == 6, (graine, sujets)
+
+
+@pytest.mark.parametrize("notion, genre, niveau", [("histoire", "periode", "CE1"), ("matiere", "masses", "CE2"),
+                                                    ("vivant", "chaine", "CE2")])
+def test_cinq_questions_ne_reviennent_jamais_sur_le_meme_sujet(relues, notion, genre, niveau):
+    """« Juste avant l'Antiquité ? », puis « juste après la Préhistoire ? » ; « 4 kilogrammes en grammes », puis
+    « 4 000 grammes en kilogrammes » ; « le lapin est mangé par le renard » dans un énoncé, « le renard » réponse d'un
+    autre (3 chaînes ; 6 maintenant)."""
+    for graine in range(200):
+        sujets = [s.sujet for s in _exercice(notion, genre, niveau, graine) if s.sujet is not None]
+        assert len(sujets) == len(set(sujets)), (graine, sujets)
+
+
+def test_que_mange_propose_trois_mauvaises_reponses():
+    from generateur.procedural.sciences_et_technologie import vivant
+    rng = random.Random(7)
+    for _ in range(TIRAGES):
+        s = vivant.chaine(rng, "CE2")
+        assert len(s.distracteurs) == 3, s
+
+
+def test_le_regime_d_un_animal_est_tire_avant_l_animal():
+    """10 carnivores, 5 herbivores, 3 omnivores dans la table : « Le crocodile est… », « Le serpent est… », « Le
+    manchot est… » ; chaque régime est maintenant la réponse d'une question sur trois."""
+    from collections import Counter
+    from generateur.procedural.sciences_et_technologie import vivant
+    rng, compte = random.Random(8), Counter()
+    for _ in range(3 * TIRAGES):
+        s = vivant.regime(rng, "CE1")
+        if s.cle[1] == "animal":
+            compte[s.reponse] += 1
+    assert min(compte.values()) > 0.25 * sum(compte.values()), compte

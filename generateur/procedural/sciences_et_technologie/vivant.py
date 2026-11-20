@@ -120,14 +120,16 @@ def regime(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
     mange = {r["regime"]: r["mange"] for r in _table("regimes").lignes}
     regimes = list(mange)
     forme = rng.choice(("animal", "animal", "lequel", "definition", "nom"))
+    # le régime d'abord, puis l'animal : sinon les carnivores, plus nombreux dans la table, l'emportaient (carnivore
+    # 3 fois sur 5, herbivore jamais, au critère de fin du lot 2)
+    r = rng.choice(regimes)
     if forme == "animal":
-        x = rng.choice(animaux)
+        x = rng.choice([a for a in animaux if a["regime"] == r])
         return Squelette(
             genre=f"{NOM}.regime", enonce=f"{majuscule(x['nom'])} est…", reponse=x["regime"],
             distracteurs=tuple(r for r in regimes if r != x["regime"]),
             explication=f"{majuscule(x['nom'])} est {x['regime']} : un animal {x['regime']} mange {mange[x['regime']]}.",
-            cle=("regime", "animal", x["nom"]), sujet=("regime", x["nom"]))
-    r = rng.choice(regimes)
+            cle=("regime", "animal", x["nom"]), sujet=("regime", x["nom"]), equilibre=(r, tuple(regimes)))
     if forme == "lequel":
         bon = rng.choice([x for x in animaux if x["regime"] == r])
         faux = rng.sample([x for x in animaux if x["regime"] != r], 3)
@@ -136,20 +138,22 @@ def regime(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             distracteurs=tuple(x["nom"] for x in faux),
             explication=(f"{majuscule(bon['nom'])} est {r} : un animal {r} mange {mange[r]}. "
                          + majuscule(" ; ".join(f"{x['nom']} est {x['regime']}" for x in faux)) + "."),
-            cle=("regime", "lequel", r), sujet=("regime", bon["nom"]))
+            cle=("regime", "lequel", r), sujet=("regime", bon["nom"]), equilibre=(r, tuple(regimes)))
     if forme == "definition":
         return Squelette(
             genre=f"{NOM}.regime", enonce=f"Un animal {r} mange…", reponse=mange[r],
             distracteurs=tuple(mange[s] for s in regimes if s != r),
             explication=f"Un animal {r} mange {mange[r]}. " + majuscule(" ; ".join(
                 f"un animal {s} mange {mange[s]}" for s in regimes if s != r)) + ".",
-            cle=("regime", "definition", r), sujet=("regime", "definitions"))
+            cle=("regime", "definition", r), sujet=("regime", "definitions"),
+            equilibre=(r, tuple(regimes)))
     return Squelette(
         genre=f"{NOM}.regime", enonce=f"Un animal qui mange {mange[r]} est…", reponse=r,
         distracteurs=tuple(s for s in regimes if s != r),
         explication=f"Un animal qui mange {mange[r]} est {r}. " + majuscule(" ; ".join(
             f"un animal qui mange {mange[s]} est {s}" for s in regimes if s != r)) + ".",
-        cle=("regime", "nom", r), sujet=("regime", "definitions"))  # les trois définitions, dans chaque explication
+        # les trois définitions, dans chaque explication
+        cle=("regime", "nom", r), sujet=("regime", "definitions"), equilibre=(r, tuple(regimes)))
 
 
 # --- CE1 : les sens, la plante --------------------------------------------------------------------------------
@@ -331,7 +335,7 @@ def chaine(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
             reponse=c["haut"], distracteurs=tuple(faux),
             explication=explication + f" {majuscule(', '.join(faux))} sont herbivores : ils ne mangent pas d'animaux.",
             cle=("chaine", "haut", c["milieu"]), sujet=("chaine", c["milieu"]))
-    autres = [x["haut"] for x in chaines if x is not c]
+    autres = rng.sample([x["haut"] for x in chaines if x is not c], 3)  # trois : six chaînes depuis le critère de fin
     return Squelette(
         genre=f"{NOM}.chaine", enonce=f"{majuscule(c['milieu'])} {c['milieu_verbe']} par {c['haut']}. Que mange {c['milieu']} ?",
         reponse=c["bas"], distracteurs=tuple(autres), explication=explication, cle=("chaine", "bas", c["milieu"]),

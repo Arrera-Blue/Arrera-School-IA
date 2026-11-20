@@ -1,6 +1,8 @@
 # Table de référence (générateur procédural du corps humain, lot 2, étape 2.3), écrite par Claude ; chaque ligne cite
 # sa source, lue le 18/11 (docs/Generateur-Procedural/lot-2-questionner-le-monde.md §7). Les parties de la dent sont
-# celles du programme du CE1 (« couronne, racine, pulpe, émail »). `description` : « Quelle partie de la dent … ? » ;
+# celles du programme du CE1 (« couronne, racine, pulpe, émail »). `description` : « Quelle partie de la dent … ? »,
+# écrite pour aller avec un mot masculin comme féminin (elle est une mauvaise réponse pour les autres parties :
+# « l'émail… est implantée dans l'os » était faux ; « s'enfonce dans l'os » redit la source) ;
 # `jamais` : la partie qui n'est jamais une mauvaise réponse à cette question (l'émail se voit aussi : il recouvre la
 # couronne ; la pulpe descend dans la racine). Les dents de lait : leur nombre, et les dents définitives « plus
 # grandes, plus solides » (le programme), avec deux pièges qui disent l'inverse (`sorte` : piege). Pas le rôle des
@@ -20,7 +22,7 @@ proprietes:
 cle: [element]
 lignes:
 - {element: la couronne, sorte: partie, description: est visible, jamais: l'émail, source: wp_dent}
-- {element: la racine, sorte: partie, description: est implantée dans l'os, jamais: la pulpe, source: wp_dent}
+- {element: la racine, sorte: partie, description: s'enfonce dans l'os, jamais: la pulpe, source: wp_dent}
 - {element: l'émail, sorte: partie, description: forme la couche externe de la couronne, jamais: la couronne, source: wp_dent}
 - {element: la pulpe, sorte: partie, description: se trouve à l'intérieur, jamais: "-", source: wp_pulpe}
 - {element: "20", sorte: nombre_de_lait, description: "-", jamais: "-", source: wp_dent_lait}

@@ -334,8 +334,10 @@ def masses(rng: random.Random, niveau: str = NIVEAU) -> Squelette:
                        + f" ; {nombre(a * g)} + {b} = {nombre(total)}.")
         cle = ("masses", forme, a, b)
     rng.shuffle(candidats)
+    # le sujet : le nombre de kilogrammes (« 4 kilogrammes = 4 000 grammes », puis l'inverse : l'une donnerait la
+    # réponse de l'autre ; critère de fin du lot 2)
     return Squelette(genre=f"{NOM}.masses", enonce=enonce, reponse=reponse, distracteurs=distracteurs(reponse, candidats),
-                     explication=explication, cle=cle)
+                     explication=explication, cle=cle, sujet=("masses", cle[2]))
 
 
 GENRES = (etat_eau, objet_technique, changement_etat, conservation, conducteur, circuit, objet_electrique,
