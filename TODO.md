@@ -1,2 +1,55 @@
-TU me fais le README stp 
-Rapidement sinon tu est virer
+# Liste des tâches réalisées
+
+- **Infrastructure** : serveur de génération dans un conteneur Podman sur le VPS, modèle qwen3:4b servi par Ollama, quatre pannes réseau résolues : 23/09/2026 - 30/09/2026
+- **Premier exercice généré** : chaîne complète demande → modèle → JSON (N1, N2) → page HTML autonome, type QCM : 01/10/2026 - 07/10/2026
+- **Cible de production** : modèle sur le PC enseignant, diffusion par paquets signés, architecture version 3, plan en 8 phases : 08/10/2026 - 14/10/2026
+- **Prompt renforcé (1.1)** : réécriture du prompt (injection, JSON strict, une seule bonne réponse, niveau, contenus interdits) : 15/10/2026 - 21/10/2026
+- **Validation N3 (1.2)** : contrôle de cohérence pédagogique (propositions équivalentes, doublons, énoncés recopiés) : 22/10/2026 - 28/10/2026
+- **Validation N4 (1.3)** : recalcul exact des questions de maths, puis revue et trois essais réels : 29/10/2026 - 10/11/2026
+- **Changement de modèle** : Gemma 4 E4B à la place de qwen3:4b (0 erreur de calcul sur 25 questions), N3 et N4 élargies : 12/11/2026 - 17/11/2026
+- **Reprise sur erreur (1.4)** : seules les questions refusées sont renvoyées au modèle (82 s au lieu de 338 s) : 18/11/2026 - 24/11/2026
+- **Compteurs de génération (1.5)** : durées et tokens enregistrés dans chaque exercice : 25/11/2026 - 27/11/2026
+- **Générateur procédural (1.7)** : le programme calcule les maths (calcul mental, pourcentages, Pythagore, fractions), le modèle réécrit les énoncés : 30/11/2026 - 09/12/2026
+- **Recette 1.6** : 8 générations relues, 0 réponse fausse sur 48 questions, jalon A atteint : 10/12/2026 - 14/12/2026
+- **Passage à llama.cpp** : essais sur le VPS (mémoire, vitesse), puis génération sur le Mac avec Metal (32 s au lieu de 340 s) : 15/12/2026 - 18/12/2026
+- **Mesure du matériel (phase 2)** : outil de mesure, configuration minimale du PC enseignant (12 Go de mémoire) : 21/12/2026 - 23/12/2026
+- **Interface enseignant (phase 3)** : générer, relire, modifier, régénérer, accepter, banque ; jalon B validé : 04/01/2027 - 15/01/2027
+- **Conception de la diffusion signée (phase 4)** : conception écrite (signature Ed25519, paquets, agent du poste élève) : 18/01/2027 - 20/01/2027
+- **E0 — Cadrage, architecture, RGPD** : plan des évolutions, décisions D1 à D12, architecture version 4, dossier RGPD, modèle de menace : 21/01/2027 - 25/01/2027
+- **E1 — Base SQLite, connexion, sécurité** : comptes enseignants, sessions, journal des accès, tests d'attaque ; jalon S validé : 26/01/2027 - 29/01/2027
+- **E2 — Programmes officiels** : 368 attendus de maths et de français (6e, 5e) copiés mot pour mot, exercices rattachés ; jalon P validé : 01/02/2027 - 05/02/2027
+- **E3 — Classes et élèves** : classes à partir d'une liste collée, codes de 4 images, cartes imprimables, export, suppression, purge : 08/02/2027 - 12/02/2027
+- **Ordre et périmètre revus** : serveur de classe passé en E8, socle de la soutenance et calendrier jusqu'à fin mars 2027 : 12/02/2027 - 12/02/2027
+- **E4 — Suivi des élèves** : réponses simulées, tableau de suivi, groupes, exercices à travailler, remédiation ; jalon D validé : 15/02/2027 - 22/02/2027
+- **Topo d'avancement** : document Word de 2 pages pour présenter le projet : 23/02/2027 - 23/02/2027
+- **Prompt principal repris** : nouveau prompt mesuré sur un banc, explication avant la réponse, contrôle N3 explication ↔ réponse ; validé : 23/02/2027 - 26/02/2027
+- **Difficultés rencontrées** : historique pour le rendu final et liste des difficultés à corriger : 26/02/2027 - 26/02/2027
+- **E5 — Accessibilité** : l'exercice au clavier seul (carte de touches) et la lecture à voix haute, profil Stream Deck ; jalon A validé : 01/03/2027 - 03/03/2027
+- **Voix de Piper** : un vrai moteur de synthèse sur le PC enseignant, la voix rangée dans la page de l'exercice : 04/03/2027 - 05/03/2027
+- **E7 — Interface enseignant refaite** : maquettes, style épuré (Atkinson Hyperlegible, sombre ou clair), menu d'icônes ; validée : 08/03/2027 - 11/03/2027
+- **E7 — La page d'exercice devient un jeu** : une question à la fois, style enfant en 6e, collège de la 5e à la 3e, animations ; validée : 12/03/2027 - 17/03/2027
+- **E8 — Données du serveur de classe** : mots de passe des élèves du collège, connexion et blocage, publications, réponses une à une : 18/03/2027 - 22/03/2027
+- **E8 — Serveur de classe** : application séparée pour les élèves, exercice servi sans les bonnes réponses, corrigé par le serveur ; validé : 23/03/2027 - 25/03/2027
+- **Nouveau plan IA** : entraîner le modèle, s'appuyer sur les cours des enseignants, sécuriser l'IA (phases IA0 à IA4) ; validé : 26/03/2027 - 26/03/2027
+- **E8 — Publier depuis l'interface enseignant** : « Publier… », exercices publiés par classe, débloquer un élève, adresse du serveur de classe : 30/03/2027 - 31/03/2027
+- **IA0 — Cadrage du plan IA** : licences, entraînement possible sur le Mac, bancs d'attaque et de connaissances, mesures du modèle actuel : 01/04/2027 - 01/04/2027
+- **Perspective : matières et types d'exercices** : toutes les matières du collège et de l'école primaire, plusieurs styles d'exercices : 01/04/2027 - 01/04/2027
+- **IA1 — Sécuriser l'IA** : demande contrôlée avant le modèle, phrase encadrée, sortie contrôlée, contre-vérification des réponses ; 18 détournements bloqués sur 20 au banc de contrôle : 02/04/2027 - 06/04/2027
+- **IA2 — Les cours des enseignants** : dépôt sûr des cours, recherche dans les cours, exercices qui citent leur source, ancrage, rubrique « Mes cours » : 07/04/2027 - 12/04/2027
+- **IA3 — Les données d'entraînement** : lot d'entraînement à part, génération de nuit, relecture du lot, jeu de données séparé par notion et sa fiche : 13/04/2027 - 15/04/2027
+- **IA4 — Préparer l'entraînement** : entraîner un adaptateur LoRA sur le Mac (mlx-lm), le convertir pour llama.cpp dans le projet, le brancher en une ligne, l'adaptateur noté dans chaque exercice : 16/04/2027 - 20/04/2027
+- **IA3 — Produire les données d'entraînement** : génération de nuit (401 exercices), premier entraînement d'essai, pré-relecture de l'échantillon par Claude (statut « En cours de relecture ») et ses corrections, à vérifier : 21/04/2027 - 23/04/2027
+- **IA4 — Premier entraînement et comparaison à l'aveugle** : adaptateur entraîné sur 65 exercices (37 min), outil de relecture à l'aveugle, 2 exercices acceptés sur 15 pour le modèle de base contre 1 sur 15 pour le modèle entraîné ; adaptateur non adopté : 26/04/2027 - 28/04/2027
+- **IA4 — Deuxième cycle d'entraînement** : les 81 exercices corrigés par Claude vérifiés et acceptés, jeu de 158 exercices, 8 contre 3 sur 15 à l'aveugle ; le modèle de base gardé, l'entraînement remis à plus tard : 29/04/2027 - 03/05/2027
+- **Générateur procédural du cycle 2 : conception** : matières du CP à la 3e, réponses calculées ou lues dans des tables relues, décisions de l'utilisateur ; l'E8 attend l'OS personnalisé : 04/05/2027 - 05/05/2027
+- **Lot 0 — Les fondations du cycle 2** : le CP, le CE1 et le CE2 dans toute l'application (migration de la base), générateur rangé par matière, tables de référence relues, programme de français du cycle 2 relevé mot pour mot (182 attendus) : 07/05/2027 - 12/05/2027
+- **Lot 1 — Les générateurs de français** : conjugaison, accords, phrase, vocabulaire du CP au CE2 ; 13 tables comparées à Verbiste et à Lexique 3.83, validées par l'utilisateur ; scripts rangés dans le dépôt : 13/05/2027 - 21/05/2027
+- **Lot 1 — Critère de fin et comparaison au modèle seul** : notions précises, 20 demandes réelles acceptées sans modification ; à l'aveugle, 20 sur 20 pour le générateur contre 3 sur 20 pour le modèle seul : 24/05/2027 - 26/05/2027
+- **Lot 1 — « Écouter » au CP et au CE1** : écran « Commencer », question et correction lues d'office, terminaisons épelées ; maquette validée ; le lot 1 est terminé : 27/05/2027 - 28/05/2027
+- **N4 vérifie le français** : formes verbales inventées refusées, ordre alphabétique recalculé (Lexique 3.83) ; 17 formes inventées trouvées sur 182 exercices réels, aucune fausse alerte : 31/05/2027 - 01/06/2027
+- **README du dépôt** : présentation, installation, commandes, tests, données des élèves, licences : 02/06/2027 - 02/06/2027
+- **Lot 2 — Conception et programmes de 2026** : « Questionner le monde » remplacé par deux programmes de 2026 (sciences et technologie, histoire-géographie), 7 décisions, 163 attendus relevés mot pour mot : 03/06/2027 - 07/06/2027
+- **Lot 2 — Le temps et l'histoire, le vivant** : deux générateurs, 17 genres, 14 tables sourcées et validées par l'utilisateur : 08/06/2027 - 11/06/2027
+- **Lot 2 — Le corps, la matière et les objets, la géographie sans carte** : trois générateurs, 21 tables sourcées et validées ; les cinq générateurs du lot 2 en service : 14/06/2027 - 17/06/2027
+- **Lot 2 — Critère de fin et comparaison au modèle seul** : 20 demandes réelles, vérifiées puis corrigées (bonnes réponses équilibrées), acceptées ; à l'aveugle, 20 sur 20 pour le générateur contre 4 sur 20 pour le modèle seul ; le lot 2 est terminé : 18/06/2027 - 23/06/2027
+- **Lot 3 — Conception de l'anglais** : nouveau programme de 2026 lu dans le BO, tout oral au CP et au CE1 ; trois générateurs, une voix anglaise, l'écoute au CP et au CE1 ; 8 décisions attendues : 24/06/2027 - 25/06/2027
