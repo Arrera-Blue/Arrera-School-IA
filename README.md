@@ -43,8 +43,8 @@ flowchart LR
 
 **Pourquoi un générateur procédural ?** Un petit modèle se trompe : sur 20 demandes réelles de français du CP au CE2,
 3 exercices sur 20 écrits par le modèle seul ont été jugés acceptables, contre 20 sur 20 pour le générateur procédural
-(les contrôles automatiques avaient laissé passer les 20 du modèle). Là où c'est possible, le programme fixe la
-réponse, et le modèle n'est jamais seul juge.
+(les contrôles automatiques avaient laissé passer les 20 du modèle) ; en sciences et en histoire-géographie, 4 sur 20
+contre 20 sur 20. Là où c'est possible, le programme fixe la réponse, et le modèle n'est jamais seul juge.
 
 ---
 
@@ -103,7 +103,7 @@ Pour essayer avec une classe fictive de 24 élèves : `.venv/bin/python -m gener
 | `python -m generateur.classe` | le serveur de classe, la porte des élèves (port 8001) |
 | `python -m generateur.moteur.generation --demande "…"` | générer un exercice sans l'interface |
 | `python -m generateur.donnees.comptes …` | les comptes : `creer-admin`, `creer`, `lister`, `reinitialiser`, `debloquer`, `supprimer` |
-| `python -m generateur.procedural.tables` | l'état des tables de référence du générateur ; `… relire francais/<table> --par "…"` pour en valider une après relecture |
+| `python -m generateur.procedural.tables` | l'état des tables de référence du générateur ; `… relire <matière>/<table> --par "…"` pour en valider une après relecture |
 | `python -m generateur.outils.mesurer` | les durées et la réussite, par modèle et par machine |
 | `python -m generateur.entrainement aveugle chemins --demandes …` | comparer à l'aveugle le modèle seul et le générateur procédural |
 | `python -m generateur.interface.api --aveugle` | relire une comparaison à l'aveugle (port 8003) |
@@ -115,7 +115,7 @@ Les commandes se lancent depuis la racine du dépôt, avec le Python du projet (
 ## Les tests
 
 ```bash
-.venv/bin/python -m pytest -q          # plus de 1 300 tests, en une demi-minute, sans modèle
+.venv/bin/python -m pytest -q          # plus de 1 600 tests, en deux minutes environ, sans modèle
 node tests/navigateur/essai.mjs        # l'interface enseignant, dans Chrome, sur une copie de la banque
 node tests/navigateur/exercice.mjs     # la page d'exercice : clavier, animations, voix, téléphone
 ```
@@ -127,7 +127,8 @@ node tests/navigateur/exercice.mjs     # la page d'exercice : clavier, animation
 ```
 generateur/
 ├── moteur/          la chaîne : analyse de la demande, génération, validation (N1 → N4), banque, rendu, voix
-├── procedural/      le générateur procédural : maths/, francais/, et les tables de référence relues (donnees/)
+├── procedural/      le générateur procédural : maths/, francais/, histoire_geo/, sciences_et_technologie/, et les
+│                    tables de référence relues (donnees/)
 ├── programmes/      les programmes officiels, recopiés mot pour mot
 ├── types/qcm/       le type « QCM » : schéma, prompt, exemple, gabarit de la page d'exercice
 ├── interface/       l'interface enseignant (FastAPI) et ses pages
