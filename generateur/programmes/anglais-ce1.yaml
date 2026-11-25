@@ -1,0 +1,601 @@
+# Référentiel des attendus — anglais, CE1 (générateur procédural du cycle 2, lot 3, étape 3.0). Libellés recopiés
+# MOT POUR MOT des « Attendus de fin d’année » et de la colonne « Objectifs d’apprentissage » du programme officiel de
+# 2026 (source ci-dessous ; le PDF du BO, pages 14 à 47 :
+# https://www.education.gouv.fr/sites/default/files/document/Bulletin%20officiel%20n%C2%B0%2012%20du%2019%20mars%202026-481193.pdf).
+# Le programme vaut pour toutes les langues vivantes ; ses marques de niveau, « (A1) » et « (pré-A1) », sont gardées
+# dans les libellés. Seuls les identifiants, le code de la compétence (« code »), le champ « qcm » (se prête ou non à
+# un QCM : classement du projet, pas du programme), la colonne d’origine (« colonne ») et le niveau du CECRL
+# (« niveau_cecrl », lu dans la couleur du texte : bleu pour le A1) sont ajoutés. Méthode et corrections :
+# docs/Generateur-Procedural/lot-3-anglais.md §11.1.
+matiere: anglais
+niveau: CE1
+cycle: 2
+source:
+  texte: Programme de langues vivantes étrangères et régionales pour le cycle 2 (annexe 1 de l’arrêté)
+  arrete: Arrêté du 26 février 2026 (JO du 7 mars 2026)
+  nor: MENE2602911A
+  bo: BO n° 12 du 19 mars 2026
+  url: https://www.education.gouv.fr/bo/2026/Hebdo12/MENE2602911A
+  en_vigueur: au CE1 à la rentrée 2027-2028 (article 3 de l’arrêté) ; en 2026-2027, le CE1 suit encore le programme de langues
+    vivantes de 2015 modifié (BO n° 31 du 30 juillet 2020)
+  extrait: Programme de langues vivantes étrangères et régionales pour le cycle 2 (annexe 1), « Cours élémentaire première
+    année »
+  releve: '2026-11-25'
+themes:
+- id: anglais.ce1.mots-familiers
+  domaine: 'Compréhension de l’oral : écouter et comprendre'
+  theme: Comprendre quelques mots familiers et expressions très courantes
+  code: CO-CE1
+  attendus:
+  - id: anglais.ce1.mots-familiers.01
+    libelle: l’élève peut reconnaitre des consignes, des jours de la semaine, des dates, des nombres connus, des prix, à condition
+      qu’ils soient prononcés clairement et lentement dans un contexte bien défini, quotidien et familier. (A1) Il peut comprendre
+      les consignes données en classe ;
+    qcm: true
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.mots-familiers.02
+    libelle: l’élève peut repérer des mots simples ou des expressions toutes faites, à condition qu’ils soient prononcés en
+      face-à-face, accompagnés de visuels ou de gestes et éventuellement répétés. (A1) Il peut comprendre des mots familiers
+      et des expressions courtes dans une conversation simple, à condition que l’interlocuteur parle lentement et très distinctement.
+    qcm: true
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.mots-familiers.03
+    libelle: Repérer quelques mots du champ lexical de la prise de contact ou des salutations.
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.mots-familiers.04
+    libelle: Reconnaitre les formules usuelles d’encouragement et de félicitations.
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.mots-familiers.05
+    libelle: Reconnaitre les pronoms interrogatifs usuels (Qui ? Que ? Où ? Comment ?)
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.mots-familiers.06
+    libelle: Reconnaitre les pronoms personnels sujets (je, tu, (A1) il/elle/on), compléments (moi, toi, (A1) elle/lui/ça)
+      et les déterminants possessifs (mon, ton, (A1) son/sa) pour déterminer qui parle (A1) et de qui l’on parle.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.mots-familiers.07
+    libelle: (A1) Identifier les verbes permettant d’exprimer le gout et le dégout ainsi que quelques adjectifs associés,
+      (pré-A1) accompagnés si besoin de gestes, expressions du visage ou d’un support visuel.
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.mots-familiers.08
+    libelle: (A1) Identifier l’humeur des interlocuteurs (tristesse, joie, colère) en s’aidant de l’émotion portée par la
+      voix, (pré-A1) les gestes et les expressions du visage.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.mots-familiers.09
+    libelle: (A1) Repérer les mots simples et familiers (pré-A1) accompagnés de visuels (A1) (famille et environnement immédiat).
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+- id: anglais.ce1.suivre-histoire
+  domaine: 'Compréhension de l’oral : écouter et comprendre'
+  theme: Suivre le fil d’une histoire adaptée à l’âge des élèves et suffisamment étayée
+  code: CO-CE1
+  attendus:
+  - id: anglais.ce1.suivre-histoire.01
+    libelle: l’élève peut reconnaitre des mots courants, à condition qu’ils soient prononcés lentement dans un contexte clairement
+      défini, quotidien et familier. Il peut repérer des indices sonores simples dans une variété de supports brefs et simples
+      (comptines, courtes chansons, albums de littérature jeunesse, saynètes, (A1) récits de fiction, contes, légendes, dialogues)
+      ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.suivre-histoire.02
+    libelle: il peut identifier des mots, des noms et des chiffres connus, dans des énoncés ou des enregistrements courts
+      et simples, à condition que la prononciation soit lente et claire. (A1) Il peut isoler des informations simples dans
+      un message clair ;
+    qcm: true
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.suivre-histoire.03
+    libelle: il peut associer un document oral à un document visuel parmi deux propositions très contrastées. (A1) Il peut
+      associer un document oral à un document visuel lorsque le lien est très explicite.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.suivre-histoire.04
+    libelle: Reconnaitre certaines lettres de l’alphabet et les nombres (A1) jusqu’à 31 environ.
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.suivre-histoire.05
+    libelle: Reconnaitre quelques structures et formes grammaticales simples appartenant à un répertoire mémorisé.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.suivre-histoire.06
+    libelle: Reconnaitre les mots familiers (A1) ou repérer les champs lexicaux qui permettent (pré-A1) de parler de soi,
+      de sa sphère immédiate (A1) et des thématiques culturelles et disciplinaires travaillées en classe.
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.suivre-histoire.07
+    libelle: Reconnaitre des intonations de phrase propres à la langue pour identifier une question, une affirmation, une
+      exclamation et plusieurs sentiments (joie, colère, surprise, (A1) déception, crainte, etc.).
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+- id: anglais.ce1.comprendre-agir
+  domaine: 'Compréhension de l’oral : écouter et comprendre'
+  theme: Comprendre et agir
+  code: CO-CE1
+  attendus:
+  - id: anglais.ce1.comprendre-agir.01
+    libelle: l’élève peut montrer sa compréhension par une action ou une gestuelle adaptée. (A1) Il peut suivre des instructions
+      courtes et simples. Il peut associer un document oral à un document visuel.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.comprendre-agir.02
+    libelle: Reconnaitre quelques formes courantes de l’impératif pour réagir à des consignes et instructions simples (consignes
+      de la classe, instructions de jeu ou étapes d’une recette, etc.), qui peuvent être éventuellement accompagnées de gestes
+      et de supports visuels.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.comprendre-agir.03
+    libelle: Agir en suivant les indications données par quelques prépositions qui permettent de se repérer dans l’espace
+      et les verbes d’action associés
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.comprendre-agir.04
+    libelle: (A1) Identifier les modaux pour exprimer la capacité ou l’incapacité au présent.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+- id: anglais.ce1.reperes-phonologiques
+  domaine: 'Expression orale en continu : parler en continu'
+  theme: Repères phonologiques
+  code: EOC-CE1
+  attendus:
+  - id: anglais.ce1.reperes-phonologiques.01
+    libelle: l’élève peut prononcer un répertoire de quelques mots et expressions mémorisés de manière compréhensible.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.reperes-phonologiques.02
+    libelle: Réaliser les spécificités phonologiques essentielles de la langue étudiée.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.reperes-phonologiques.03
+    libelle: Prononcer correctement des mots isolés et mémorisés dans certains champs lexicaux connus en respectant le schéma
+      phonétique.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+- id: anglais.ce1.reproduire-modele
+  domaine: 'Expression orale en continu : parler en continu'
+  theme: Reproduire un modèle oral
+  code: EOC-CE1
+  attendus:
+  - id: anglais.ce1.reproduire-modele.01
+    libelle: l’élève peut (A1) lire et reproduire un modèle oral court ((A1) répéter, réciter, etc.) ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.reproduire-modele.02
+    libelle: il peut décrire très brièvement des personnes, des objets ou des animaux familiers en utilisant des modèles mémorisés,
+      (A1) en s’appuyant sur des modèles connus, après y avoir été entrainé.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.reproduire-modele.03
+    libelle: (A1) Parler de soi ou de son environnement familier, (pré-A1) en s’appuyant sur des supports visuels (A1) et
+      en prononçant correctement des formulations (pré-A1) brèves (A1) ritualisées et mémorisées.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.reproduire-modele.04
+    libelle: Dire à voix haute une expression ou phrase courte déjà connue à l’oral (A1) ou chanter collectivement une courte
+      comptine.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+- id: anglais.ce1.raconter
+  domaine: 'Expression orale en continu : parler en continu'
+  theme: Raconter
+  code: EOC-CE1
+  attendus:
+  - id: anglais.ce1.raconter.01
+    libelle: l’élève peut produire une phrase courte pour raconter la partie d’une histoire travaillée en classe en s’appuyant
+      sur des images et des expressions toutes faites ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.raconter.02
+    libelle: (A1) l’élève peut raconter une histoire très brève, en juxtaposant des expressions ou des phrases simples et
+      en s’aidant d’images.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.raconter.03
+    libelle: 'Nommer, caractériser, dénombrer très simplement des personnes, des objets, des lieux : mobiliser quelques mots
+      (A1) ou champs lexicaux connus (pré-A1) en lien avec les domaines (A1) et thématiques étudiés (l’école, la famille,
+      etc.) (A1) et les champs lexicaux de l’environnement géographique et culturel proche, des prénoms, du matériel scolaire,
+      etc. avoir recours à quelques adjectifs usuels (A1) appliquer les règles élémentaires de l’accord (pré-A1) compter en
+      utilisant la suite numérique.'
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.raconter.04
+    libelle: Situer dans l’espace les personnes, les objets et les lieux, à l’aide de prépositions et d'expressions lexicalisées.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.raconter.05
+    libelle: 'Situer dans le temps : exprimer le jour (A1) et la date du jour en s’appuyant sur un étayage visuel qui donne
+      à voir les correspondances entre les nombres cardinaux et les nombres ordinaux ; exprimer des repères temporels très
+      simples.'
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.raconter.06
+    libelle: (A1) Reproduire un modèle oral court en suivant la trame d’une histoire répétitive (histoire en randonnée).
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+- id: anglais.ce1.se-decrire
+  domaine: 'Expression orale en continu : parler en continu'
+  theme: Se décrire en utilisant des expressions courtes ou proches des modèles rencontrés lors des apprentissages
+  code: EOC-CE1
+  attendus:
+  - id: anglais.ce1.se-decrire.01
+    libelle: l’élève peut se présenter de manière succincte avec des mots et des expressions toutes faites, en étant soutenu
+      et en ayant préparé son propos ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.se-decrire.02
+    libelle: il peut exprimer ses gouts de façon très succincte ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.se-decrire.03
+    libelle: (A1) l’élève peut se présenter et se décrire avec des mots et des expressions simples, à condition d’avoir pu
+      préparer son propos ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.se-decrire.04
+    libelle: (A1) il peut exprimer ses gouts, ses émotions et ses activités préférées de façon simple et très succincte.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.se-decrire.05
+    libelle: 'Exprimer simplement des informations sur soi et sur les autres : utiliser (A1) et maitriser le présent des verbes
+      les plus courants (pré-A1) à la première ou deuxième personne du singulier (A1) ou à la troisième personne du singulier.
+      se présenter à l’aide d’expressions lexicalisées.'
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.se-decrire.06
+    libelle: 'Donner des informations simples sur des activités quotidiennes, des habitudes : nommer les différents moments
+      de la journée ; mobiliser quelques mots (A1) et champs lexicaux, même peu étendus, en lien avec les activités quotidiennes,
+      les habitudes, etc.'
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+- id: anglais.ce1.echanger-informations
+  domaine: 'Expression orale en interaction : réagir et dialoguer'
+  theme: Échanger des informations simples
+  code: EOI-CE1
+  attendus:
+  - id: anglais.ce1.echanger-informations.01
+    libelle: l’élève peut saluer un interlocuteur et se présenter à lui. (A1) Il peut lui demander de faire de même ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.echanger-informations.02
+    libelle: il peut comprendre et utiliser des expressions courantes. (A1) Il peut suivre et utiliser des directives ou consignes
+      simples, brèves ou routinières ;
+    qcm: true
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.echanger-informations.03
+    libelle: l’élève peut comprendre et utiliser des nombres simples dans les conversations courantes ;
+    qcm: true
+    colonne: attendus
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.echanger-informations.04
+    libelle: il peut poser des questions très simples pour obtenir des informations et comprendre un ou deux mots de la réponse.
+      (A1) Il peut en poser de manière ritualisée, sur des sujets familiers et des habitudes quotidiennes. Il peut réagir
+      à des affirmations très simples et en émettre, en utilisant des formules courtes ou expressions courantes et en s’aidant
+      de gestes pour renforcer ou compléter l’information donnée ou reçue ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.echanger-informations.05
+    libelle: La communication inclut les répétitions nécessaires, un débit lent et des reformulations de la part de l’interlocuteur.
+      L’interlocuteur aide l’élève à formuler ce qu’il essaie de dire.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.echanger-informations.06
+    libelle: Poser quelques questions simples à l’aide d’une gamme très réduite de pronoms interrogatifs.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.echanger-informations.07
+    libelle: Donner quelques consignes ou ordres simples ritualisés à l’aide de verbes fréquemment utilisés à l’impératif.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.echanger-informations.08
+    libelle: Utiliser les réponses courtes.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.echanger-informations.09
+    libelle: (A1) Mobiliser l’expression permettant de formuler simplement l’autorisation sous forme de bloc lexicalisé).
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+- id: anglais.ce1.emotions-souhaits
+  domaine: 'Expression orale en interaction : réagir et dialoguer'
+  theme: Exprimer des émotions et formuler des souhaits élémentaires
+  code: EOI-CE1
+  attendus:
+  - id: anglais.ce1.emotions-souhaits.01
+    libelle: 'l’élève peut formuler des souhaits élémentaires. Il peut exprimer ses émotions en utilisant le langage corporel
+      (gestes, expressions du visage, etc.) et quelques adjectifs simples. (A1) Il peut exprimer simplement des sentiments
+      et émotions, à l’aide d’expressions idiomatiques pour : (A1) demander et dire comment on se porte ; (A1) réagir à la
+      réponse donnée ; (A1) exprimer de manière simple (y compris par onomatopées) des émotions ou réactions telles que la
+      joie, la tristesse, la déception, la peur ou la surprise.'
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.emotions-souhaits.02
+    libelle: Exprimer son ressenti et ses souhaits de manière très simple en utilisant des blocs lexicalisés, une gestuelle
+      ou les expressions du visage.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.emotions-souhaits.03
+    libelle: (A1) Mobiliser l’expression de sentiments ou d’émotions dans le cadre de situations ritualisées.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+  - id: anglais.ce1.emotions-souhaits.04
+    libelle: (A1) Connaitre et mobiliser quelques onomatopées typiques.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+- id: anglais.ce1.clarifier
+  domaine: 'Expression orale en interaction : réagir et dialoguer'
+  theme: Clarifier ou faire clarifier un point
+  code: EOI-CE1
+  attendus:
+  - id: anglais.ce1.clarifier.01
+    libelle: 'l’élève peut signifier son incompréhension, notamment par des gestes. (A1) Il peut clarifier ou faire clarifier
+      des points très simples, notamment en situation de communication de classe, comme : (A1) dire qu’il ne comprend pas
+      ; (A1) demander de répéter et répéter soi-même un mot ou une phrase très brève ; (A1) demander le sens ou la traduction
+      d’un mot ; (A1) épeler des mots familiers.'
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.clarifier.02
+    libelle: (A1) l’élève peut répéter une consigne simple et connue afin de s’assurer de sa bonne compréhension.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.clarifier.03
+    libelle: Indiquer très simplement qu’il n’a pas compris en utilisant au besoin la gestuelle ou les expressions du visage.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.clarifier.04
+    libelle: Connaitre et prononcer de manière compréhensible quelques lettres de l’alphabet afin d’épeler un mot très simple
+      ou le reconnaitre (prononciation des lettres d’un prénom, par exemple).
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.clarifier.05
+    libelle: (A1) Mobiliser des formules toutes faites pour demander le sens d’un mot.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+  - id: anglais.ce1.clarifier.06
+    libelle: (A1) Donner quelques consignes simples mémorisées en lien avec le lexique de la communication de classe.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+- id: anglais.ce1.conversation
+  domaine: 'Expression orale en interaction : réagir et dialoguer'
+  theme: Utiliser des procédés très simples pour commencer, poursuivre et terminer une conversation brève
+  code: EOI-CE1
+  attendus:
+  - id: anglais.ce1.conversation.01
+    libelle: 'l’élève peut reconnaitre de simples salutations et quelques formules de politesse. (A1) Il peut établir un contact
+      en utilisant les formes de politesse les plus élémentaires : salutation et prise de congé, présentations, etc. ;'
+    qcm: true
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.conversation.02
+    libelle: il peut saluer ou remercier. (A1) Il peut demander de ses nouvelles à quelqu’un et réagir ; il peut donner de
+      ses nouvelles ;
+    qcm: true
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.conversation.03
+    libelle: (A1) il peut demander des informations complémentaires très simples, si le fil des échanges porte sur des faits
+      familiers et simples, avec un interlocuteur qui adopte un débit lent et accepte de répéter ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.conversation.04
+    libelle: '(A1) il peut clore une conversation (pré-A1) à l’aide de mots très simples comme : Thank you, Goodbye, Ok.'
+    qcm: true
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.conversation.05
+    libelle: Utiliser des formules de salutation très simples et adaptées à son interlocuteur en situation connue et répétée
+      pour ouvrir ou clore un échange.
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.conversation.06
+    libelle: Utiliser des formules de politesse variées.
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.conversation.07
+    libelle: Relancer par des questions élémentaires.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.conversation.08
+    libelle: (A1) Utiliser des formules simples de relance ou de ponctuation cohérentes en fonction de situations connues
+      et répétées.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+  - id: anglais.ce1.conversation.09
+    libelle: Utiliser des expressions très courantes pour clore une conversation.
+    qcm: true
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+- id: anglais.ce1.reperes-culturels
+  domaine: Médiation
+  theme: Identifier les repères culturels
+  code: M-CE1
+  attendus:
+  - id: anglais.ce1.reperes-culturels.01
+    libelle: il n’existe pas, en médiation, de descripteur pour le niveau pré-A1. Les élèves peuvent cependant être sensibilisés
+      à ce niveau de classe à l’identification d’une similitude ou d’une différence culturelle lors de l’étude d’un album,
+      par exemple, ou de la projection d’images ou d’une vidéo ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.reperes-culturels.02
+    libelle: (A1) l’élève peut identifier une similitude ou une différence culturelle.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.reperes-culturels.03
+    libelle: (A1) Repérer quelques différences ou similitudes dans des domaines familiers (fêtes calendaires, nourriture,
+      jeux, sports, etc.).
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+  - id: anglais.ce1.reperes-culturels.04
+    libelle: (A1) Informer ou prévenir d’une situation culturelle non comprise par un geste ou des formules élémentaires ou
+      toutes faites.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+- id: anglais.ce1.expliciter
+  domaine: Médiation
+  theme: Expliciter un message, une situation, un document pour autrui
+  code: M-CE1
+  attendus:
+  - id: anglais.ce1.expliciter.01
+    libelle: l’élève peut indiquer avec (A1) des mots et (pré-A1) des gestes simples les besoins élémentaires d’une tierce
+      personne dans une situation précise ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.expliciter.02
+    libelle: il peut pointer (A1) et attirer l’attention sur (pré-A1) des informations simples et prévisibles d’un intérêt
+      immédiat, données sur des supports visuels explicites (documents iconographiques, pictogrammes, panneaux et affiches)
+      et authentiques, (A1) ou sur des supports courts et simples tels que des panneaux, des annonces, des affiches, des programmes,
+      des dépliants, etc.
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.expliciter.03
+    libelle: Mobiliser le champ lexical des besoins élémentaires à l’aide de mots isolés, accompagnés de gestes (A1) ou insérés
+      dans des structures très simples.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.expliciter.04
+    libelle: Utiliser quelques expressions indiquant ce que l’on veut montrer à l’aide de gestes (A1) et utiliser quelques
+      termes permettant de situer une information.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.expliciter.05
+    libelle: (A1) Utiliser quelques verbes de perception.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+  - id: anglais.ce1.expliciter.06
+    libelle: (A1) Joindre le geste à la parole pour identifier ou souligner une information.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+- id: anglais.ce1.animer-cooperer
+  domaine: Médiation
+  theme: Animer un travail collectif, coopérer et contribuer à des échanges interculturels
+  code: M-CE1
+  attendus:
+  - id: anglais.ce1.animer-cooperer.01
+    libelle: 'l’élève peut demander aux participants une contribution à des tâches élémentaires, notamment par des mots simples
+      soutenus par une gestuelle explicitant la tâche à accomplir : il peut signifier, notamment par des gestes, qu’il a compris
+      ou qu’il est d’accord ; il peut demander aux autres, notamment par des gestes, s’ils ont compris ou s’ils sont d’accord.'
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.animer-cooperer.02
+    libelle: (A1) l’élève peut faciliter un échange en manifestant son intérêt par des mots simples et des expressions non
+      verbales ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.animer-cooperer.03
+    libelle: (A1) l’élève peut utiliser des mots simples et des expressions non verbales pour montrer son intérêt pour une
+      idée ;
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.animer-cooperer.04
+    libelle: '(A1) il peut demander aux participants leur avis ou des contributions à des tâches élémentaires, à l’aide d’expressions
+      mémorisées : (A1) il peut dire qu’il a compris, qu’il est d’accord, que tout va bien (dans la tâche à accomplir ou dans
+      la communication) ; (A1) il peut demander aux autres s’ils ont compris, s’ils sont d’accord, s’ils ont un problème.'
+    qcm: false
+    colonne: attendus
+    niveau_cecrl: A1
+  - id: anglais.ce1.animer-cooperer.05
+    libelle: Utiliser des consignes élémentaires accompagnées de gestes.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.animer-cooperer.06
+    libelle: Exprimer sa compréhension ou son accord par des expressions simples accompagnées de gestes.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1
+  - id: anglais.ce1.animer-cooperer.07
+    libelle: (A1) Utiliser des formules de politesse ou d’accueil élémentaires.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+  - id: anglais.ce1.animer-cooperer.08
+    libelle: (A1) Donner quelques consignes ou ordres simples ritualisés.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1
+  - id: anglais.ce1.animer-cooperer.09
+    libelle: Utiliser des expressions simples accompagnées de gestes (A1) et des formules pour manifester ou demander l’adhésion.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: pré-A1 et A1
+  - id: anglais.ce1.animer-cooperer.10
+    libelle: (A1) Dire ou demander si l’on a compris.
+    qcm: false
+    colonne: objectifs
+    niveau_cecrl: A1

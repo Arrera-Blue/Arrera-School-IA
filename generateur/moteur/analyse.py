@@ -269,6 +269,8 @@ BRUIT = re.compile(
     r"questions?|classe|niveau|élèves?|plutôt|assez|très|pas trop|facile|difficile)\b",
     re.IGNORECASE)
 MOTS_DEVINES_MAX = 6
+# « en anglais » ne compte pas dans cette limite : « les nombres de 1 à 20 en anglais » est une notion (lot 3 du cycle 2)
+EN_ANGLAIS = re.compile(r"^(?:en anglais|in english)$", re.IGNORECASE)
 MOTS_VIDES = {"un", "une", "des", "de", "du", "d", "le", "la", "les", "l", "pour", "en", "sur", "avec", "à", "au",
               "aux", "et", "ma", "mes", "mon", "a", "me", "moi", "un peu"}
 
@@ -292,7 +294,8 @@ def lire_notion(texte: str) -> tuple[str | None, bool]:
         mots.pop(0)
     while mots and mots[-1].lower().strip("'’") in MOTS_VIDES:
         mots.pop()
-    if len(mots) > MOTS_DEVINES_MAX:  # une phrase entière n'est pas une notion : au modèle, ou à l'enseignant
+    comptes = len(mots) - 2 * bool(len(mots) >= 2 and EN_ANGLAIS.match(" ".join(mots[-2:])))
+    if comptes > MOTS_DEVINES_MAX:  # une phrase entière n'est pas une notion : au modèle, ou à l'enseignant
         return None, False
     notion = _nettoyer(" ".join(mots))
     return (notion, False) if notion else (None, False)

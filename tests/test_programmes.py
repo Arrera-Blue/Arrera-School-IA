@@ -19,9 +19,10 @@ def test_le_referentiel_est_sain():
     assert programmes.verifier() == []
 
 
-def test_treize_programmes_sources_citees():
+def test_seize_programmes_sources_citees():
     documents = {(d["matiere"], d["niveau"]): d for d in programmes.documents()}
-    cycle_2 = {(m, n) for m in ("francais", "sciences-et-technologie", "histoire-geo") for n in ("CP", "CE1", "CE2")}
+    cycle_2 = {(m, n) for m in ("francais", "sciences-et-technologie", "histoire-geo", "anglais")
+               for n in ("CP", "CE1", "CE2")}
     assert set(documents) == {("maths", "6e"), ("maths", "5e"), ("francais", "6e"), ("francais", "5e")} | cycle_2
     for (matiere, niveau), doc in documents.items():
         source = doc["source"]
@@ -29,21 +30,23 @@ def test_treize_programmes_sources_citees():
             assert doc["cycle"] == 2 and source["nor"] == "MENE2611650A" and source["bo"] == "BO n° 24 du 11 juin 2026"
         elif matiere == "histoire-geo":
             assert doc["cycle"] == 2 and source["nor"] == "MENE2608631A" and source["bo"] == "BO n° 22 du 28 mai 2026"
+        elif matiere == "anglais":  # lot 3 du cycle 2 (25/11) : le programme de langues vivantes de 2026
+            assert doc["cycle"] == 2 and source["nor"] == "MENE2602911A" and source["bo"] == "BO n° 12 du 19 mars 2026"
         elif niveau == "6e":
             assert doc["cycle"] == 3 and source["nor"] == "MENE2504620A" and source["bo"] == "BO n° 16 du 17 avril 2025"
         elif niveau in ("CP", "CE1", "CE2"):  # le cycle 2 : générateur procédural du cycle 2, étape 0.4 (10/11)
             assert doc["cycle"] == 2 and source["nor"] == "MENE2415135A" and source["bo"] == "BO n° 41 du 31 octobre 2024"
         else:
             assert doc["cycle"] == 4 and source["nor"] == "MENE2602912A" and source["bo"] == "BO n° 10 du 5 mars 2026"
-    # 368 libellés relevés le 21/10/2026, 182 le 10/11/2026, 163 le 16/11/2026 : tout ajout ou retrait doit être
-    # voulu (et la doc mise à jour)
-    assert len(programmes.lister()) == 713
+    # 368 libellés relevés le 21/10/2026, 182 le 10/11/2026, 163 le 16/11/2026, 259 le 25/11/2026 : tout ajout ou
+    # retrait doit être voulu (et la doc mise à jour)
+    assert len(programmes.lister()) == 972
     assert {(m, n): len(programmes.lister(m, n)) for m, n in documents} == {
         ("maths", "6e"): 95, ("maths", "5e"): 104, ("francais", "6e"): 85, ("francais", "5e"): 84,
         ("francais", "CP"): 70, ("francais", "CE1"): 60, ("francais", "CE2"): 52,
         ("sciences-et-technologie", "CP"): 18, ("sciences-et-technologie", "CE1"): 29,
         ("sciences-et-technologie", "CE2"): 30, ("histoire-geo", "CP"): 33, ("histoire-geo", "CE1"): 26,
-        ("histoire-geo", "CE2"): 27}
+        ("histoire-geo", "CE2"): 27, ("anglais", "CP"): 62, ("anglais", "CE1"): 87, ("anglais", "CE2"): 110}
 
 
 def test_le_francais_du_cycle_2():
