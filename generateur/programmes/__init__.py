@@ -4,7 +4,10 @@ Un fichier par matière et par classe (`maths-6e.yaml`…) : les « Objectifs d'
 recopiés MOT POUR MOT, rangés par thème, avec la source (arrêté, NOR, Bulletin officiel). Méthode, vérification et
 corrections : docs/etapes/etape-E2-programmes.md. Au cycle 2, les sciences et technologie et l'histoire-géographie
 viennent des programmes de 2026, en vigueur au CP depuis la rentrée 2026, au CE1 et au CE2 à la rentrée 2027 ; en
-histoire-géographie, la colonne « Attendus » est relevée aussi (`colonne` : « objectifs » ou « attendus »).
+histoire-géographie, la colonne « Attendus » est relevée aussi (`colonne` : « objectifs » ou « attendus »). L'anglais
+du cycle 2 vient du programme de langues vivantes de 2026 (lot 3 : docs/Generateur-Procedural/lot-3-anglais.md), en
+vigueur aux mêmes dates : les attendus de fin d'année (`colonne: attendus`) et les objectifs d'apprentissage
+(`colonne: objectifs`), avec le code de la compétence (`code` : CO-CP…) et le niveau du CECRL (`niveau_cecrl`).
 
 Identifiants : `maths.6e.fractions` désigne un thème, `maths.6e.fractions.09` un attendu de ce thème. Un exercice
 peut viser un attendu précis ou un thème entier ; un filtre sur un thème trouve aussi les exercices de ses attendus
@@ -30,8 +33,9 @@ NIVEAUX = ("CP", "CE1", "CE2", "6e", "5e", "4e", "3e")
 CYCLES = {"CP": 2, "CE1": 2, "CE2": 2, "6e": 3, "5e": 4, "4e": 4, "3e": 4}
 _SEGMENTS = "|".join(n.lower() for n in NIVEAUX)
 # les matières du référentiel : les maths et le français (E2, étape 0.4) ; les sciences et l'histoire-géographie du
-# cycle 2 (lot 2, programmes de 2026 : docs/Generateur-Procedural/lot-2-questionner-le-monde.md)
-_MATIERES = "maths|francais|sciences-et-technologie|histoire-geo"
+# cycle 2 (lot 2, programmes de 2026 : docs/Generateur-Procedural/lot-2-questionner-le-monde.md) ; l'anglais du cycle 2
+# (lot 3, programme de langues vivantes de 2026 : docs/Generateur-Procedural/lot-3-anglais.md)
+_MATIERES = "maths|francais|sciences-et-technologie|histoire-geo|anglais"
 ID_THEME = re.compile(rf"^({_MATIERES})\.({_SEGMENTS})\.[a-z0-9]+(?:-[a-z0-9]+)*$")
 ID_ATTENDU = re.compile(rf"^({_MATIERES})\.({_SEGMENTS})\.[a-z0-9]+(?:-[a-z0-9]+)*\.\d{{2}}$")
 CHAMPS_SOURCE = ("texte", "arrete", "nor", "bo", "url", "en_vigueur", "extrait", "releve")
@@ -171,7 +175,7 @@ def arbre(matiere: str, niveau: str, qcm: bool | None = True) -> dict | None:
 MOTS_VIDES = {"les", "des", "une", "aux", "sur", "pour", "par", "avec", "dans", "son", "ses", "qui", "que", "est",
               "exercice", "exercices", "qcm", "question", "questions", "classe", "niveau", "eleves", "notion", "cours",
               "travail", "travailler", "revoir", "reviser", "entrainement", "maths", "mathematiques", "francais",
-              "sixieme", "cinquieme", "facile", "difficile", "moyen"}
+              "anglais", "english", "sixieme", "cinquieme", "facile", "difficile", "moyen"}
 
 
 def _racines(texte: str) -> set[str]:
